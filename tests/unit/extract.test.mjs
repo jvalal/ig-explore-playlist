@@ -103,6 +103,19 @@ const songJson = (title) => ({ items: [{ code: 'P1', media_type: 2, music_asset_
 }
 
 {
+  // Music fields present but nothing extractable (e.g. all null): the export gets excerpts.
+  const noSong = JSON.stringify({ items: [{ code: 'E1', media_type: 2, clips_metadata: { music_info: null, original_sound_info: null, music_asset_info: { title: null, display_artist: null } } }] });
+  const { posted, docListeners } = makePage({ embedded: [noSong] });
+  docListeners.DOMContentLoaded();
+  await tick(20);
+  const m = posted[0];
+  check('relevant response with no songs: reported with zero hits', m && m.relevant && m.hits.length === 0);
+  check('...and a diagnostic sample with excerpts around the music fields',
+    m && /^\[no songs extracted\]/.test(m.sample) && m.sample.includes('"display_artist":null') && m.sample.includes('parsedObjects=1'),
+    m && m.sample && m.sample.slice(0, 160));
+}
+
+{
   const { page, posted } = makePage();
   page.fetch = page.fetch; // patched copy is installed on page.fetch already
   for (let i = 0; i < 7; i++) {

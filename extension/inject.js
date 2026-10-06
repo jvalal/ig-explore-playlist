@@ -108,7 +108,26 @@
       return hits;
     }
 
-    return { TAG, looksRelevant, parseLoose, extract, extractFromText };
+    // For the debug export: when a response mentions music fields but nothing was extracted,
+    // short excerpts around those fields show whether the music is really absent (e.g. nulls)
+    // or the parser is missing a shape.
+    function diagnose(text) {
+      const counts = {};
+      const excerpts = [];
+      for (const k of KEYWORDS) {
+        let i = text.indexOf(k);
+        counts[k] = 0;
+        while (i >= 0) {
+          counts[k]++;
+          if (excerpts.length < 12) excerpts.push(`${k} @${i}: ${text.slice(Math.max(0, i - 200), i + 250)}`);
+          i = text.indexOf(k, i + k.length);
+        }
+      }
+      return `[no songs extracted] length=${text.length} parsedObjects=${parseLoose(text).length} ` +
+        `counts=${JSON.stringify(counts)}\n\n${excerpts.join('\n\n')}`;
+    }
+
+    return { TAG, looksRelevant, parseLoose, extract, extractFromText, diagnose };
   })();
 
   if (typeof module !== 'undefined' && module.exports) module.exports = IGMP;
@@ -159,15 +178,11 @@
         try {
           const relevant = IGMP.looksRelevant(text);
           const hits = relevant ? IGMP.extractFromText(text) : [];
-          const withSample = hits.length > 0 && samplesSent < MAX_SAMPLES;
+          const withSample = relevant && samplesSent < MAX_SAMPLES;
           if (withSample) samplesSent++;
-          send({
-            url,
-            name: name || null,
-            relevant,
-            hits,
-            sample: withSample ? text.slice(0, 300_000) : null,
-          });
+          let sample = null;
+          if (withSample) sample = hits.length ? text.slice(0, 300_000) : IGMP.diagnose(text).slice(0, 20_000);
+          send({ url, name: name || null, relevant, hits, sample });
         } catch (err) {
           console.warn('[Explore Finds]', err);
         }
