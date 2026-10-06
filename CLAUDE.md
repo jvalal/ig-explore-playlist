@@ -97,8 +97,11 @@ There is no "Only from Explore" checkbox any more.
 
 The grid responses fetched while scrolling Explore carry the music, so nothing has to be opened
 (the user's experience with earlier builds, 2026-10-05). The first screen of the grid arrives in
-the page HTML (`#embedded`); in two exports it held the music keywords but yielded no songs, so
-captures start once scrolling fetches more. Opening a post from the grid changes the URL to `/p/…` or `/reel/…`. Since v0.6.6 inject.js
+the page HTML (`#embedded`), with the post data as **JSON inside a string** (escaped quotes). Up to
+v0.6.7 the parser didn't look inside such strings, so first-screen songs only registered once a
+post was opened (it fetches `/api/v1/media/{id}/info/`). The export of 2026-10-05 had 8 songs in it.
+Since v0.6.8 `extract()` also parses string values that start with `{`/`[` and mention a music
+field. Opening a post from the grid changes the URL to `/p/…` or `/reel/…`. Since v0.6.6 inject.js
 sends `via`, the last non-post page, so a post opened from Explore counts as `explore`. One
 opened from Home or a profile, or loaded directly (`via` null), is `post` and isn't kept. `page` and
 `via` are recorded when the request is made, not when the response is parsed. Before v0.6.6 a

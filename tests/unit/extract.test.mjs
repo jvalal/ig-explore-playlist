@@ -124,6 +124,21 @@ const songJson = (title) => ({ items: [{ code: 'P1', media_type: 2, music_asset_
 }
 
 {
+  // Real shape (first Explore screen, 2026-10-05): post data is JSON inside a string inside
+  // the page's JSON, so every quote is escaped. Eight songs were there; v0.6.7 found none.
+  const media = (code, title, artist) => ({ code, media_type: 2, product_type: 'clips', pk: code,
+    clips_metadata: { music_info: { music_asset_info: { title, display_artist: artist, duration_in_ms: 209546 } }, original_sound_info: null } });
+  const inner = JSON.stringify({ data: { items: [media('A1', 'Bohemian Rhapsody', 'Queen'), media('A2', "Ain't No Mountain High Enough", 'Marvin Gaye, Tammi Terrell')] } });
+  const page = JSON.stringify({ require: [['ScheduledServerJS', 'handle', null, [{ __bbox: { payload: inner } }]]] });
+  check('test data really is double-encoded', page.includes('\\"display_artist\\":\\"Queen\\"'));
+  const r = IGMP.extractFromText(page);
+  check('songs in JSON-inside-a-string are found', r.map((h) => h.title).join('|') === "Bohemian Rhapsody|Ain't No Mountain High Enough" ||
+    r.map((h) => h.title).sort().join('|') === "Ain't No Mountain High Enough|Bohemian Rhapsody", JSON.stringify(r.map((h) => h.title)));
+  check('...each with its post', r.every((h) => h.post && /^A[12]$/.test(h.post.code)), JSON.stringify(r.map((h) => h.post)));
+  check('a plain string that merely mentions display_artist is left alone', IGMP.extractFromText(JSON.stringify({ q: 'fields: title, display_artist' })).length === 0);
+}
+
+{
   // Music fields present but nothing extractable (e.g. all null): the export gets excerpts.
   const noSong = JSON.stringify({ items: [{ code: 'E1', media_type: 2, clips_metadata: { music_info: null, original_sound_info: null, music_asset_info: { title: null, display_artist: null } } }] });
   const { posted, docListeners } = makePage({ embedded: [noSong] });

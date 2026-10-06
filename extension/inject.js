@@ -40,6 +40,21 @@
     //   - any object with title + display_artist  -> licensed song
     //   - any non-null original_sound_info        -> creator's original audio
     // The nearest ancestor with a shortcode (`code`) is recorded as the post.
+    // The first screen of Explore arrives in the page HTML with the post data as JSON *inside a
+    // string* (escaped quotes), seen in a debug export 2026-10-05. Such strings are parsed and
+    // walked too, but only when they look like JSON and mention a music field.
+    function nestedJson(v) {
+      if (typeof v !== 'string' || v.length < 40) return null;
+      const c = v[0];
+      if ((c !== '{' && c !== '[') || !KEYWORDS.some((k) => v.includes(k))) return null;
+      try {
+        const o = JSON.parse(v);
+        return o && typeof o === 'object' ? o : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
     function extract(root) {
       const hits = [];
       const seen = new Set();
@@ -50,7 +65,7 @@
         if (!node || typeof node !== 'object' || depth > 80) continue;
 
         if (Array.isArray(node)) {
-          for (const c of node) stack.push({ node: c, media: parentMedia, depth: depth + 1 });
+          for (const c of node) stack.push({ node: nestedJson(c) || c, media: parentMedia, depth: depth + 1 });
           continue;
         }
 
@@ -95,7 +110,7 @@
         }
 
         for (const k in node) {
-          const v = node[k];
+          const v = nestedJson(node[k]) || node[k];
           if (v && typeof v === 'object') stack.push({ node: v, media, depth: depth + 1 });
         }
       }
