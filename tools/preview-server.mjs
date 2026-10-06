@@ -68,10 +68,10 @@ http.createServer((req, res) => {
   const f = path.join(dist, p);
   if (!f.startsWith(dist) || !fs.existsSync(f)) { res.writeHead(404); res.end(); return; }
   let body = fs.readFileSync(f);
-  if (p === '/sidepanel.html') body = body.toString().replace('<script type="module"', '<script src="preview-stub.js"></script>\n  <script type="module"');
+  if (p.endsWith('.html')) body = body.toString().replace('<script type="module"', '<script src="preview-stub.js"></script>\n  <script type="module"');
   res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
   res.end(body);
 }).listen(PORT, '0.0.0.0', () => {
   const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address);
-  console.log(`Preview running. On your phone (same Wi-Fi), open:\n${ips.map((ip) => `  http://${ip}:${PORT}/   (embed probe: /probe/)`).join('\n')}`);
+  console.log(`Preview running. On your phone (same Wi-Fi), open:\n${ips.map((ip) => `  http://${ip}:${PORT}/   (setup page: /onboarding.html?new, embed probe: /probe/)`).join('\n')}`);
 });

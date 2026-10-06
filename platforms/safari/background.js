@@ -29,11 +29,28 @@ async function registerMainWorldCapture() {
   }
 }
 
+// The number on the extension's button: songs found on Explore so far (same as the popup's
+// list). There's no side panel on iPhone, so this is how progress shows while you scroll.
+async function updateBadge() {
+  try {
+    const { tracks = {} } = await chrome.storage.local.get('tracks');
+    const n = Object.values(tracks).filter((t) => t.kind === 'song' && t.areas && t.areas.explore).length;
+    await chrome.action.setBadgeText({ text: n ? (n > 999 ? '999+' : String(n)) : '' });
+  } catch (err) {
+    console.warn('[Explore Finds] could not update the button count', err);
+  }
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && 'tracks' in changes) updateBadge();
+});
+
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   registerMainWorldCapture();
+  updateBadge();
+  if (reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('onboarding.html') });
   if (reason === 'install' || reason === 'update') reattachToOpenTabs();
 });
-chrome.runtime.onStartup.addListener(registerMainWorldCapture);
+chrome.runtime.onStartup.addListener(() => { registerMainWorldCapture(); updateBadge(); });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!msg || msg.type !== 'ef-connect') return undefined;

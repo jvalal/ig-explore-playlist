@@ -67,6 +67,12 @@ Only `platforms/safari/` differs:
   and the background script catches that URL, finishes the login and closes the tab. It runs in
   the background because the popup closes when a tab opens. **Add this Redirect URI to your
   Spotify app** next to the desktop one.
+- **Setup page** (`onboarding.html`), which opens on install, and from the popup's "Set up
+  Explore Finds" button. One step per screen: Welcome → Spotify app (paste the Client ID, add the
+  iPhone Redirect URI) → Connect → Allow Instagram → Done (opens instagram.com/explore). Progress
+  is saved, so leaving for the login or Settings resumes where you were.
+- **Song count on the extension's button** (`action.setBadgeText`), since there's no side panel to
+  watch while scrolling. It counts Explore songs only.
 - **Capture:** the capture script is also registered for the page's own world at runtime
   (`registerContentScripts`, `world: "MAIN"`), in case Safari ignores it in the manifest.
 
@@ -76,6 +82,10 @@ Verified without Xcode:
   closing the tab, Spotify refusing, and the redirect seen via tabs or webNavigation.
 - The popup page passes the desktop layout and playback tests in Chrome.
 - At iPhone width (390 px) the popup has no sideways scroll.
+
+Phone preview pages: `/` (popup with sample songs), `/?new` (first run), `/onboarding.html`
+(setup, with a faked Spotify login), `/probe/` (embed probe; "Send log to Mac" saves to
+tools/embed-probe/logs).
 
 Phone preview, no Xcode needed: `node tools/preview-server.mjs` serves the popup page on your
 Wi-Fi with sample songs (tools/preview-stub.js stands in for the extension APIs). It shows the real

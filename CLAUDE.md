@@ -107,8 +107,11 @@ tests/              npm test = unit + browser. run.mjs fails on any FAIL line or
   sim/              Spotify Web API sim (token, /me, search, playlists) + chrome.storage stub.
 tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/ has the runs.
 legacy/             v0.5.0 extension + tests, reference only.
-platforms/safari/   Safari (iPhone) build parts: manifest, background (login runs here),
-                    platform.js (tab + loopback login), popup.css. Shared code stays in extension/.
+platforms/safari/   Safari (iPhone) build parts: manifest, background (login, button count,
+                    opens setup on install), platform.js (tab + loopback login), popup.css,
+                    onboarding.html/js/css (setup page). Shared code stays in extension/.
+                    setup.js shows the desktop steps or, when PLATFORM is 'safari', a link
+                    to onboarding.html.
 tools/build-safari.mjs  assembles dist/safari (gitignored). tools/ios-sim.sh: Xcode → Simulator.
 extension/platform.js   desktop platform (chrome.identity); the Safari build swaps this file.
 ```

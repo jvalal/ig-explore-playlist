@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up Explore Finds</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body class="ob">
+  <main>
+    <p class="ob-progress" id="ob-progress"></p>
+
+    <section data-step="welcome">
+      <h1>Explore Finds</h1>
+      <p>Finds the songs in the posts you scroll past on Instagram Explore, and turns them into a Spotify playlist you can play right here.</p>
+      <ul class="ob-points">
+        <li>Use <strong>instagram.com in Safari</strong>, not the Instagram app.</li>
+        <li>Songs are picked up while you scroll. Nothing is posted or changed on Instagram.</li>
+        <li>You need <strong>Spotify Premium</strong>.</li>
+      </ul>
+      <div class="ob-actions"><button class="primary" data-next>Get started</button></div>
+    </section>
+
+    <section data-step="spotify" hidden>
+      <h1>Your Spotify app</h1>
+      <p>Explore Finds talks to Spotify through a free developer app that you own. If you set up Explore Finds on your computer, use the same app.</p>
+      <label class="field">Client ID
+        <span class="copyline"><input id="ob-client" placeholder="32 letters and numbers" autocomplete="off" spellcheck="false" autocapitalize="off"><button id="ob-save">Save</button></span>
+      </label>
+      <p class="ob-note" id="ob-client-msg" role="status"></p>
+      <div class="ob-box">
+        <p><strong>Add this Redirect URI to that Spotify app</strong>, next to any that are already there:</p>
+        <p class="copyline"><code class="ob-uri" id="ob-redirect"></code><button id="ob-copy">Copy</button></p>
+      </div>
+      <details class="ob-how">
+        <summary>Don't have a Spotify app yet?</summary>
+        <ol>
+          <li>On a computer (easier) or here, open <a href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Create app</a> and log in with your Spotify account.</li>
+          <li>Any name and description. Add the Redirect URI above, tick <strong>Web API</strong>, agree to the terms, and <strong>Save</strong>.</li>
+          <li>Copy the <strong>Client ID</strong> from the app's page and paste it above.</li>
+        </ol>
+      </details>
+      <div class="ob-actions"><button data-back>Back</button><button class="primary" data-next id="ob-spotify-next" disabled>Next</button></div>
+    </section>
+
+    <section data-step="connect" hidden>
+      <h1>Connect Spotify</h1>
+      <p>Spotify's login opens in a new tab. When you've agreed, it closes by itself; come back to this tab.</p>
+      <p class="ob-note" id="ob-connect-msg" role="status"></p>
+      <div class="ob-actions"><button data-back>Back</button><button class="primary" id="ob-connect">Connect Spotify</button><button class="primary" data-next id="ob-connect-next" hidden>Next</button></div>
+    </section>
+
+    <section data-step="instagram" hidden>
+      <h1>Allow Instagram</h1>
+      <p>Safari asks before an extension can read a website. Explore Finds needs instagram.com.</p>
+      <ol class="ob-steps">
+        <li>Open instagram.com in Safari and log in.</li>
+        <li>Tap the <strong>extensions</strong> button in the address bar, then <strong>Explore Finds</strong>.</li>
+        <li>Choose <strong>Always Allow on This Website</strong>.</li>
+      </ol>
+      <div class="ob-actions"><button data-back>Back</button><button class="primary" data-next>Done</button></div>
+    </section>
+
+    <section data-step="done" hidden>
+      <h1>You're set</h1>
+      <p>Open Explore and scroll. Songs collect by themselves; the number on the Explore Finds button shows how many so far.</p>
+      <p>Tap that button any time to see the list, play songs, and build your playlist.</p>
+      <div class="ob-actions"><button data-back>Back</button><a class="primary-link" id="ob-explore" href="https://www.instagram.com/explore/">Open Instagram Explore</a></div>
+    </section>
+  </main>
+  <script type="module" src="onboarding.js"></script>
+</body>
+</html>

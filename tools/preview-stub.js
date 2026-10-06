@@ -22,8 +22,9 @@
     playlist: { id: 'preview', url: '#', name: 'Explore finds (preview)', keys: [], uris: [] },
   };
   // ?new shows what a first-time user sees: nothing captured, Spotify not connected.
-  if (new URLSearchParams(location.search).has('new')) {
-    for (const k of ['tracks', 'matches', 'seen', 'log', 'playlist']) delete data[k];
+  // The setup page always starts that way.
+  if (new URLSearchParams(location.search).has('new') || location.pathname.endsWith('onboarding.html')) {
+    for (const k of ['tracks', 'matches', 'seen', 'log', 'playlist', 'onboarding']) delete data[k];
     data.spotify = {};
     data.prefs = {};
   }
@@ -37,7 +38,20 @@
       set: async (o) => { const c = {}; for (const [k, v] of Object.entries(clone(o))) { c[k] = { newValue: v }; data[k] = v; } fire(c); },
       remove: async (ks) => { const c = {}; for (const k of [].concat(ks)) { c[k] = {}; delete data[k]; } fire(c); },
     }, onChanged: { addListener: (f) => listeners.push(f) } },
-    runtime: { id: 'preview', getManifest: () => window.__PREVIEW_MANIFEST, sendMessage: async () => ({ error: 'This is a preview: Spotify login only works in the installed extension.', code: 'INPUT' }) },
+    runtime: {
+      id: 'preview',
+      getManifest: () => window.__PREVIEW_MANIFEST,
+      getURL: (p) => `/${p}`,
+      // Spotify login, faked: needs a Client ID, then "connects" after a moment.
+      sendMessage: async (msg) => {
+        if (!msg || msg.type !== 'ef-connect') return undefined;
+        if (!(data.spotify && data.spotify.clientId)) return { error: 'Paste your Spotify Client ID first.', code: 'INPUT' };
+        await new Promise((r) => setTimeout(r, 1200));
+        await window.chrome.storage.local.set({ spotify: { ...data.spotify, access_token: 'preview', refresh_token: 'preview', expires_at: Date.now() + 3.6e6, user: 'Preview account' } });
+        return { ok: true };
+      },
+    },
+    tabs: { create: async ({ url }) => { location.href = url; } },
   };
   // No real Spotify account here: Web API calls fail with a plain message instead of a login loop.
   const realFetch = window.fetch.bind(window);

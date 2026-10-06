@@ -37,13 +37,14 @@ const tabs = { created: [], removed: [], onUpdated: ev(), onRemoved: ev(), query
 tabs.create = async ({ url }) => { const tab = { id: 100 + tabs.created.length, url }; tabs.created.push(tab); return tab; };
 tabs.remove = async (id) => { tabs.removed.push(id); tabs.onRemoved.fire(id); };
 const registered = [];
-const runtime = { onMessage: ev(), onInstalled: ev(), onStartup: ev() };
+const runtime = { onMessage: ev(), onInstalled: ev(), onStartup: ev(), getURL: (p) => `safari-web-extension://x/${p}` };
 globalThis.chrome = {
   storage: { local: storage.local, onChanged: storage.onChanged },
   tabs,
   webNavigation: { onBeforeNavigate: ev() },
   runtime,
   scripting: { registerContentScripts: async (s) => registered.push(...s), unregisterContentScripts: async () => {}, executeScript: async () => {} },
+  action: { setBadgeText: async () => {} },
 };
 await import(DIST + 'background.js');
 const { REDIRECT } = await import(DIST + 'platform.js');

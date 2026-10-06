@@ -5,6 +5,7 @@
 //   background.js  no side panel; runs the Spotify login; registers the MAIN-world capture
 //   platform.js    Spotify login through a tab + loopback redirect (no chrome.identity)
 //   popup.css      popup width on macOS
+//   onboarding.*   the iPhone setup page (opens on install and from the popup)
 // Desktop-only files are left out.
 import fs from 'fs';
 import path from 'path';
@@ -23,7 +24,9 @@ for (const f of fs.readdirSync(src)) {
   if (DESKTOP_ONLY.has(f) || REPLACED.has(f)) continue;
   fs.copyFileSync(path.join(src, f), path.join(out, f));
 }
-for (const f of ['background.js', 'platform.js', 'popup.css']) fs.copyFileSync(path.join(plat, f), path.join(out, f));
+for (const f of ['background.js', 'platform.js', 'popup.css', 'onboarding.html', 'onboarding.js', 'onboarding.css']) {
+  fs.copyFileSync(path.join(plat, f), path.join(out, f));
+}
 
 const desktop = JSON.parse(fs.readFileSync(path.join(src, 'manifest.json'), 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(path.join(plat, 'manifest.json'), 'utf8'));
@@ -35,7 +38,7 @@ fs.writeFileSync(page, fs.readFileSync(page, 'utf8')
   .replace('<link rel="stylesheet" href="sidepanel.css">', '<link rel="stylesheet" href="sidepanel.css">\n  <link rel="stylesheet" href="popup.css">'));
 
 // Every file the manifest and the page refer to must exist.
-const refs = [manifest.background.service_worker, manifest.action.default_popup, ...manifest.content_scripts.flatMap((c) => c.js)];
+const refs = [manifest.background.service_worker, manifest.action.default_popup, 'onboarding.html', ...manifest.content_scripts.flatMap((c) => c.js)];
 const missing = refs.filter((f) => !fs.existsSync(path.join(out, f)));
 if (missing.length) { console.error('missing:', missing); process.exit(1); }
 console.log(`Built ${path.relative(root, out)} (version ${manifest.version}): ${fs.readdirSync(out).length} files`);

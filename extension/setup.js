@@ -1,13 +1,16 @@
 // The "Connect Spotify" section.
 import * as S from './spotify.js';
-import { runConnect as platformConnect } from './platform.js';
+import { runConnect as platformConnect, PLATFORM } from './platform.js';
 import { $, setMsg } from './dom.js';
 import { connected } from './store.js';
 
 export function renderSetup(st) {
   $('#redirect-uri').textContent = S.redirectUri();
   const ok = connected(st);
-  $('#setup-steps').hidden = ok;
+  // On iPhone the setup steps live on their own page (onboarding.html); the popup links to it.
+  const mobile = PLATFORM === 'safari';
+  $('#setup-steps').hidden = ok || mobile;
+  $('#setup-mobile').hidden = ok || !mobile;
   $('#setup-done').hidden = !ok;
   $('#setup-summary').textContent = ok ? 'Spotify connected' : 'Connect Spotify';
   $('#sp-user').textContent = (st.spotify && st.spotify.user) || 'your account';
@@ -23,6 +26,11 @@ export function openSetup() {
 
 export function wireSetup({ store, onError, onDisconnect }) {
   $('#setup').addEventListener('toggle', () => { $('#setup').dataset.touched = '1'; });
+
+  $('#open-onboarding').addEventListener('click', async () => {
+    await chrome.tabs.create({ url: chrome.runtime.getURL('onboarding.html') });
+    window.close();
+  });
 
   $('#copy-redirect').addEventListener('click', async () => {
     await navigator.clipboard.writeText(S.redirectUri());

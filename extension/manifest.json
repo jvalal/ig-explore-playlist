@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Explore Finds (test build)",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArnQgXIYm/tf22+i7DBQHSxHwv3wK4/tYk4TNnBbA0LsOVJx5NQCbVNgoG+YKVOLBOlVr1+dUTpvIJtM2XXTyUyOuxBrYS10ajDK474nLb7+x6ySJMXkwrKW0en6JTiUlS0BJ4fjNz9B04w/yDFMikNRWTBZOlFUsh55gMD4sB6DwpsE1oRyif85rHewJOGPAfQChEvlOOfHcfFcr+d6IPLnFtDkCW33Y/QwZ8ESx2QYfRvPpOUxB2qZ76QyIID6bhv3vBVTG+tDstq3gkQhZRHlNZFI8mTz1vnLHskgqA1OYB/jEJpSxvEsaFxYjmsMEBbhYIOUzuhgAxQpz2YesgQIDAQAB",
   "description": "Captures song info from the posts Instagram loads in your browser while you browse Explore, and turns it into a Spotify playlist.",
   "minimum_chrome_version": "116",

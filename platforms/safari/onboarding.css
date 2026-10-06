@@ -1,0 +1,22 @@
+/* iPhone setup page. Colors and base controls come from sidepanel.css. */
+body.ob { display: block; }
+.ob main { max-width: 520px; margin: 0 auto; padding: 20px 18px 40px; }
+.ob h1 { font-size: 24px; margin: 6px 0 10px; }
+.ob p, .ob li { font-size: 15px; line-height: 1.45; }
+.ob button, .ob .primary-link { font-size: 15px; padding: 10px 16px; border-radius: 10px; min-height: 44px; }
+.ob .primary-link {
+  display: inline-flex; align-items: center; font-weight: 600; text-decoration: none;
+  background: var(--accent); color: var(--accent-ink);
+}
+.ob-progress { margin: 0; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+.ob-points, .ob-steps { padding-left: 20px; display: grid; gap: 6px; }
+.ob-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.ob-actions [data-back] { background: none; }
+.ob-box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 14px; }
+.ob-box p { margin: 0 0 6px; }
+.ob-uri { font-size: 13px; }
+.ob-note { min-height: 1.2em; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.ob-note.error { color: var(--danger); }
+.ob-how { margin-top: 14px; }
+.ob-how summary { font-weight: 600; cursor: pointer; padding: 6px 0; }
+.ob .field input { font-size: 16px; padding: 10px; } /* 16px stops iOS zooming into the field */
