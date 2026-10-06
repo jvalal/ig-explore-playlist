@@ -21,6 +21,12 @@
     prefs: { goal: 10 },
     playlist: { id: 'preview', url: '#', name: 'Explore finds (preview)', keys: [], uris: [] },
   };
+  // ?new shows what a first-time user sees: nothing captured, Spotify not connected.
+  if (new URLSearchParams(location.search).has('new')) {
+    for (const k of ['tracks', 'matches', 'seen', 'log', 'playlist']) delete data[k];
+    data.spotify = {};
+    data.prefs = {};
+  }
   const listeners = [];
   const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
   const fire = (changes) => setTimeout(() => listeners.forEach((l) => l(changes, 'local')), 5);
