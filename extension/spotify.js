@@ -1,7 +1,10 @@
 // Spotify Web API client for a personal development-mode app.
-// Auth: Authorization Code with PKCE via chrome.identity (no client secret needed).
+// Auth: Authorization Code with PKCE (no client secret needed); how the login window opens is
+// platform-specific (platform.js).
 // Endpoints follow Spotify's February 2026 revision:
 //   POST /me/playlists, POST /playlists/{id}/items, GET /search (limit max 10).
+
+import * as P from './platform.js';
 
 const AUTH_URL = 'https://accounts.spotify.com/authorize';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -10,7 +13,7 @@ const SCOPES = 'playlist-modify-private playlist-modify-public';
 // Bump when matching changes, so songs an older matcher gave up on get another try.
 export const MATCHER_VERSION = 3;
 
-export const redirectUri = () => chrome.identity.getRedirectURL();
+export const redirectUri = () => P.redirectUri();
 
 const b64url = (buf) =>
   btoa(String.fromCharCode(...new Uint8Array(buf)))
@@ -84,7 +87,7 @@ export async function connect() {
     state,
   }).toString();
 
-  const back = await chrome.identity.launchWebAuthFlow({ url: url.toString(), interactive: true });
+  const back = await P.launchAuth(url.toString());
   const params = new URL(back).searchParams;
   const authError = params.get('error');
   if (authError) {

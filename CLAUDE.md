@@ -107,6 +107,10 @@ tests/              npm test = unit + browser. run.mjs fails on any FAIL line or
   sim/              Spotify Web API sim (token, /me, search, playlists) + chrome.storage stub.
 tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/ has the runs.
 legacy/             v0.5.0 extension + tests, reference only.
+platforms/safari/   Safari (iPhone) build parts: manifest, background (login runs here),
+                    platform.js (tab + loopback login), popup.css. Shared code stays in extension/.
+tools/build-safari.mjs  assembles dist/safari (gitignored). tools/ios-sim.sh: Xcode → Simulator.
+extension/platform.js   desktop platform (chrome.identity); the Safari build swaps this file.
 ```
 
 Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
@@ -264,6 +268,8 @@ extension sandbox. That last point is unverified.
   protocol changes, re-run `tools/embed-probe`, update the protocol section above, then the fake.
   Some real behaviour can't be reproduced in puppeteer (a stale message passing the
   `e.source` check). `tests/unit/player.test.mjs` replays those sequences instead.
+- `EXT_DIR=dist/safari` runs the browser tests against the Safari build's popup page.
+  `unit/safari-build.test.mjs` builds it and runs the loopback login against the simulator.
 - Plant the bug: a new test should fail when the behaviour it guards is broken on purpose
   (done for toggle, stale messages, the URI filter, end detection and the swallowed clicks).
 - Real Spotify is never reached by tests. A fix is not "done" until it's verified in the real

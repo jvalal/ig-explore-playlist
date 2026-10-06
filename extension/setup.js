@@ -1,5 +1,6 @@
 // The "Connect Spotify" section.
 import * as S from './spotify.js';
+import { runConnect as platformConnect } from './platform.js';
 import { $, setMsg } from './dom.js';
 import { connected } from './store.js';
 
@@ -44,7 +45,7 @@ export function wireSetup({ store, onError, onDisconnect }) {
     if (v && store.st.spotify.clientId !== v) await S.saveClientId(v);
     try {
       setMsg('Opening Spotify login…');
-      await S.connect();
+      await platformConnect(S.connect);
       $('#setup').dataset.touched = '';
       setMsg('Spotify connected.');
     } catch (err) {

@@ -57,6 +57,33 @@ for the web. As far as I know, it has no 5-user development cap like Spotify's. 
 the Apple Developer Program you'd already have for the Safari app. Verify its quota, catalog
 search and playlist-creation access before relying on it.
 
+## iPhone test build (started 2026-10-06)
+
+The same code as desktop, assembled for Safari by `node tools/build-safari.mjs` into `dist/safari`.
+Only `platforms/safari/` differs:
+- **UI:** the panel page becomes the extension's popup (a sheet on iPhone).
+- **Spotify login:** Safari has no `chrome.identity`, so the login opens in a normal tab.
+  Spotify redirects to `http://127.0.0.1:43821/explore-finds` (nothing needs to run there),
+  and the background script catches that URL, finishes the login and closes the tab. It runs in
+  the background because the popup closes when a tab opens. **Add this Redirect URI to your
+  Spotify app** next to the desktop one.
+- **Capture:** the capture script is also registered for the page's own world at runtime
+  (`registerContentScripts`, `world: "MAIN"`), in case Safari ignores it in the manifest.
+
+Verified without Xcode:
+- The build assembles.
+- The whole loopback login runs against the Spotify simulator: PKCE, state check, the user
+  closing the tab, Spotify refusing, and the redirect seen via tabs or webNavigation.
+- The popup page passes the desktop layout and playback tests in Chrome.
+- At iPhone width (390 px) the popup has no sideways scroll.
+
+Needs Xcode (then `tools/ios-sim.sh` builds and installs it in the iPhone Simulator):
+1. Enable it: Simulator → Settings → Apps → Safari → Extensions → Explore Finds → on. Allow it
+   on instagram.com, accounts.spotify.com and 127.0.0.1.
+2. In the Simulator's Safari, log in to instagram.com yourself, open Explore, scroll, and check
+   that songs reach the popup. This answers unverified points 1 and 2 above.
+3. Connect Spotify from the popup (loopback login), then play a song in the popup (point 3).
+
 ## Recommended next step
 
 A small, time-boxed spike (about half a day) before any product decision:

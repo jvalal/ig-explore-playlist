@@ -1,0 +1,41 @@
+// Assembles the Safari (iPhone) build in dist/safari from extension/ plus platforms/safari/.
+//   node tools/build-safari.mjs
+// Shared code stays in extension/; only these differ:
+//   manifest.json  no side panel or key; popup = the panel page; loopback redirect permission
+//   background.js  no side panel; runs the Spotify login; registers the MAIN-world capture
+//   platform.js    Spotify login through a tab + loopback redirect (no chrome.identity)
+//   popup.css      popup width on macOS
+// Desktop-only files are left out.
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const src = path.join(root, 'extension');
+const plat = path.join(root, 'platforms', 'safari');
+const out = path.join(root, 'dist', 'safari');
+const DESKTOP_ONLY = new Set(['spotify-dashboard.js']);
+const REPLACED = new Set(['manifest.json', 'background.js', 'platform.js']);
+
+fs.rmSync(out, { recursive: true, force: true });
+fs.mkdirSync(out, { recursive: true });
+for (const f of fs.readdirSync(src)) {
+  if (DESKTOP_ONLY.has(f) || REPLACED.has(f)) continue;
+  fs.copyFileSync(path.join(src, f), path.join(out, f));
+}
+for (const f of ['background.js', 'platform.js', 'popup.css']) fs.copyFileSync(path.join(plat, f), path.join(out, f));
+
+const desktop = JSON.parse(fs.readFileSync(path.join(src, 'manifest.json'), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(path.join(plat, 'manifest.json'), 'utf8'));
+manifest.version = desktop.version;
+fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+
+const page = path.join(out, 'sidepanel.html');
+fs.writeFileSync(page, fs.readFileSync(page, 'utf8')
+  .replace('<link rel="stylesheet" href="sidepanel.css">', '<link rel="stylesheet" href="sidepanel.css">\n  <link rel="stylesheet" href="popup.css">'));
+
+// Every file the manifest and the page refer to must exist.
+const refs = [manifest.background.service_worker, manifest.action.default_popup, ...manifest.content_scripts.flatMap((c) => c.js)];
+const missing = refs.filter((f) => !fs.existsSync(path.join(out, f)));
+if (missing.length) { console.error('missing:', missing); process.exit(1); }
+console.log(`Built ${path.relative(root, out)} (version ${manifest.version}): ${fs.readdirSync(out).length} files`);
