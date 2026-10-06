@@ -29,6 +29,8 @@ New in v0.6.0:
 - The panel shows songs only: the Original audio tab is gone. Original audio is still captured,
   stored and included in the CSV.
 - "Debug data" is a small muted link next to the version, no longer a button.
+- Every Instagram link people tap ends in `#weblink` (dom.js `webLink`), so on iPhone it opens in
+  Safari, not the Instagram app; see MOBILE.md. The CSV keeps plain post URLs.
 - Explore only: songs from the home feed, Reels and other pages are no longer kept or listed.
 - The status line reads "N Explore posts checked, M songs found". M is the list's own count. N is
   distinct Explore post shortcodes: inject.js collects every post code it walks (`posts` on the

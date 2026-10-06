@@ -71,6 +71,12 @@ Only `platforms/safari/` differs:
   Explore Finds" button. One step per screen: Welcome → Spotify app (paste the Client ID, add the
   iPhone Redirect URI) → Connect → Allow Instagram → Done (opens instagram.com/explore). Progress
   is saved, so leaving for the login or Settings resumes where you were.
+- **Links stay in Safari:** on iPhone, tapping an instagram.com link opens the Instagram app
+  (Universal Links). Instagram's own apple-app-site-association (checked 2026-10-06) excludes
+  any URL with the fragment `#weblink`; its first rule wins over the final "everything else
+  opens the app" rule. So every Instagram link the extension shows ends in `#weblink` (`webLink()`
+  in dom.js; tests check every link). Typing an address in Safari's bar also always stays in
+  Safari.
 - **Song count on the extension's button** (`action.setBadgeText`), since there's no side panel to
   watch while scrolling. It counts Explore songs only.
 - **Capture:** the capture script is also registered for the page's own world at runtime

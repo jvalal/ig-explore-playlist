@@ -22,6 +22,9 @@ await external({ tracks: { ...data.tracks, k0: { ...track('k0', "You've Got a Fr
   k2: track('k2', 'Song B', 'Artist B', 2000), k3: track('k3', 'Mystery Tune', 'Unknown', 3000) } });
 await tick(100);
 const titles = rows().map((li) => li.querySelector('.title').textContent + (li.classList.contains('enter') ? '*' : ''));
+check('song rows link to their post, kept in the browser on iPhone (#weblink)',
+  rows().every((li) => /^https:\/\/www\.instagram\.com\/(reel|p)\/[^/]+\/#weblink$/.test(li.querySelector('a.main').href)),
+  rows().map((li) => li.querySelector('a.main').href).join(' '));
 check('a song captured only outside Explore is not listed', !rowBy("You've Got a Friend in Me") && $('#n-song').textContent === '3 songs', $('#n-song').textContent);
 check('new songs roll in at the top, existing row not re-animated', JSON.stringify(titles) === '["Mystery Tune*","Song B*","Song A"]', JSON.stringify(titles));
 // Status counts only what the list can show (real case: "3 had music", 1 song listed).

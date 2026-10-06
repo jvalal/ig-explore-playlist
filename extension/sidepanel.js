@@ -1,6 +1,6 @@
 // Side panel controller: wires storage, the list, matching, playback and the playlist together.
 import * as S from './spotify.js';
-import { $, setMsg, ago } from './dom.js';
+import { $, setMsg, ago, EXPLORE_URL } from './dom.js';
 import { createStore, connected, list, matchOf, pending } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { renderList, resetList } from './list.js';
@@ -331,6 +331,7 @@ store.subscribe((keys) => {
   if (['matches', 'tracks', 'excluded', 'playlist', 'prefs'].some((k) => keys.has(k))) scheduleSync();
 });
 $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;
+$('#open-explore').href = EXPLORE_URL;
 setInterval(render, 30_000); // keep "Last … ago" fresh
 await store.load();
 store.watch();

@@ -1,6 +1,6 @@
 // The captured-songs list. Keyed: existing rows stay in the DOM (so nothing re-animates);
 // rows for songs captured since the last render roll in from the top.
-import { $, el, postUrl, searchUrl } from './dom.js';
+import { $, el, postUrl, searchUrl, webLink } from './dom.js';
 import { coreTitle } from './spotify.js';
 import { matchOf, inPlaylist } from './store.js';
 
@@ -105,7 +105,7 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen }) {
 
   const main = el(t.posts[0] ? 'a' : 'div', 'main');
   if (t.posts[0]) {
-    main.href = postUrl(t.posts[0]);
+    main.href = webLink(postUrl(t.posts[0]));
     main.target = '_blank';
     main.title = 'Open a post that uses this audio';
   }

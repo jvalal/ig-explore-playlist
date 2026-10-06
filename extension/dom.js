@@ -22,4 +22,9 @@ export function ago(ts) {
 }
 
 export const postUrl = (p) => `https://www.instagram.com/${p.type === 'clips' ? 'reel' : 'p'}/${encodeURIComponent(p.code)}/`;
+// For links people tap. On iPhone, tapping an instagram.com link opens the Instagram app
+// (Universal Links); Instagram's own app-site-association excludes any URL with the fragment
+// #weblink, so those stay in the browser (checked 2026-10-06). Harmless on desktop.
+export const webLink = (url) => `${url.split('#')[0]}#weblink`;
+export const EXPLORE_URL = webLink('https://www.instagram.com/explore/');
 export const searchUrl = (t) => `https://open.spotify.com/search/${encodeURIComponent(`${t.title} ${t.artist || ''}`.trim())}`;

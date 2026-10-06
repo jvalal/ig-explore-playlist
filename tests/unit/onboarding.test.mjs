@@ -70,7 +70,10 @@ async function openPage(file, initial) {
   p.next(); await tick(20);
   check('Next: Allow Instagram', p.visible().join() === 'instagram');
   p.next(); await tick(20);
-  check('Next: Done, with a link to Instagram Explore', p.visible().join() === 'done' && p.$('#ob-explore').href === 'https://www.instagram.com/explore/');
+  check('Next: Done, with a link to Instagram Explore', p.visible().join() === 'done' && p.$('#ob-explore').href === 'https://www.instagram.com/explore/#weblink');
+  const igLinks = [...document.querySelectorAll('a[href*="instagram.com"]')].map((a) => a.href);
+  check('every Instagram link on the setup page stays in Safari (#weblink, not the app)',
+    igLinks.length >= 2 && igLinks.every((h) => h.endsWith('#weblink')), igLinks.join(' '));
   check('progress is remembered', p.storage.data.onboarding && p.storage.data.onboarding.step === 'done');
   p.window.close();
 }
@@ -92,6 +95,8 @@ async function openPage(file, initial) {
   const p = await openPage('sidepanel.html', { tracks: {}, matches: {} });
   window.close = () => { p.closed = true; };
   await tick(50);
+  const popupIg = [...document.querySelectorAll('a[href*="instagram.com"]')].map((a) => a.href);
+  check('popup: the empty list links to Explore, kept in Safari', popupIg.includes('https://www.instagram.com/explore/#weblink'), popupIg.join(' '));
   check('popup, not connected: shows "Set up Explore Finds", hides the desktop steps',
     !p.$('#setup-mobile').hidden && p.$('#setup-steps').hidden, `${p.$('#setup-mobile').hidden} ${p.$('#setup-steps').hidden}`);
   p.click('#open-onboarding'); await tick(20);
