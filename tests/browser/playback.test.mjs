@@ -133,14 +133,17 @@ try {
       const rb = b.getBoundingClientRect(); const ra = a.getBoundingClientRect();
       return !!b.closest('.pl-line') && rb.left > ra.right - 1 && Math.abs((rb.top + rb.bottom) / 2 - (ra.top + ra.bottom) / 2) < 6;
     }));
-    check('it reads as strong text, not a full button', await page.evaluate(() => {
-      const cs = getComputedStyle(document.querySelector('#pl-play'));
-      return cs.borderTopWidth === '0px' && cs.backgroundColor === 'rgba(0, 0, 0, 0)' && Number(cs.fontWeight) >= 700;
+    check('it is a small outlined button with a play icon', await page.evaluate(() => {
+      const b = document.querySelector('#pl-play'); const cs = getComputedStyle(b);
+      return cs.borderTopWidth === '1px' && !!b.querySelector('svg.icon') && b.getBoundingClientRect().height < 30;
     }));
+    check('a little space between the name and Play', await page.evaluate(() =>
+      document.querySelector('#pl-play').getBoundingClientRect().left - document.querySelector('#pl-link').getBoundingClientRect().right >= 12));
     check('label starts as Play', (await pl()) === 'Play');
     await page.click('#pl-play');
     await waitFor(page, () => document.querySelector('#pl-play').textContent === 'Pause', 5000);
     const f = await fake(page);
+    check('icon switches to pause while playing', (await page.$eval('#pl-play path', (e) => e.getAttribute('d'))).includes('h2.2'));
     check('Play playlist loads the playlist embed and starts it', f.some((e) => e.event === 'started' && e.id === 'PL1'), JSON.stringify(f));
     check('player shows "Playlist", Prev/Next off', (await page.$eval('#dock-pos', (e) => e.textContent)) === 'Playlist' &&
       (await page.$eval('#dock-prev', (e) => e.disabled)) && (await page.$eval('#dock-next', (e) => e.disabled)));

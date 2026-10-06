@@ -14,7 +14,6 @@ const store = createStore();
 const { st } = store;
 
 const ui = {
-  kind: 'song',
   exploreOnly: false,
   busy: false,                       // building a playlist
   picker: { key: null, items: null }, // manual-match picker (items null while loading)
@@ -153,6 +152,9 @@ async function useCandidate(t, c) {
 }
 
 // ---------- rendering ----------
+const PLAY_ICON = 'M2 1l7 4-7 4z';
+const PAUSE_ICON = 'M2 1h2.2v8H2zM5.8 1H8v8H5.8z';
+
 function renderBuild() {
   const pl = st.playlist;
   const n = pending(st).length;
@@ -163,7 +165,8 @@ function renderBuild() {
     $('#pl-link').textContent = pl.name;
     $('#pl-link').href = pl.url || '#';
     const p = playback.playlistState();
-    $('#pl-play').textContent = p.label;
+    $('#pl-play span').textContent = p.label;
+    $('#pl-play path').setAttribute('d', p.label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
     $('#pl-play').disabled = p.disabled;
     $('#pl-play').setAttribute('aria-label', `${p.label} playlist ${pl.name}`);
   }
@@ -198,12 +201,10 @@ function render() {
   renderQueued = true;
   requestAnimationFrame(() => {
     renderQueued = false;
-    $('#n-song').textContent = list(st, 'song').length;
-    $('#n-original').textContent = list(st, 'original').length;
-    document.querySelectorAll('.segment button').forEach((b) =>
-      b.setAttribute('aria-selected', String(b.dataset.kind === ui.kind)));
+    const n = list(st, 'song').length;
+    $('#n-song').textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
 
-    const items = list(st, ui.kind, { exploreOnly: ui.exploreOnly });
+    const items = list(st, 'song', { exploreOnly: ui.exploreOnly });
     renderList({
       st,
       items,
@@ -266,8 +267,6 @@ wireSetup({
 });
 
 // ---------- list controls & exports ----------
-document.querySelectorAll('.segment button').forEach((b) =>
-  b.addEventListener('click', () => { ui.kind = b.dataset.kind; render(); }));
 $('#explore-only').addEventListener('change', (e) => { ui.exploreOnly = e.target.checked; render(); });
 
 $('#dl-csv').addEventListener('click', () => downloadCsv(st));

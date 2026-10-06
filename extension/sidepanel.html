@@ -37,10 +37,7 @@
   </details>
 
   <div class="controls">
-    <div class="segment" role="tablist" aria-label="Audio type">
-      <button role="tab" data-kind="song" aria-selected="true">Songs <span class="n" id="n-song">0</span></button>
-      <button role="tab" data-kind="original" aria-selected="false">Original audio <span class="n" id="n-original">0</span></button>
-    </div>
+    <p class="count" id="n-song">0 songs</p>
     <label class="check"><input type="checkbox" id="explore-only"> Only from Explore</label>
   </div>
 
@@ -53,9 +50,8 @@
 
   <div class="tools">
     <button id="dl-csv">Download CSV</button>
-    <button id="dl-json">Download debug data</button>
     <button id="clear" class="quiet">Clear captures</button>
-    <p class="version" id="version"></p>
+    <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
   </div>
 
   <footer class="build" id="build">
@@ -73,7 +69,7 @@
       <label class="field">Playlist name <input id="pl-name"></label>
     </div>
     <div id="build-existing" hidden>
-      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="text-btn">Play</button></p>
+      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="pill"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button></p>
     </div>
     <div class="row-actions">
       <button class="primary" id="build-btn">Create playlist</button>

@@ -71,12 +71,7 @@ input {
 }
 
 .controls { padding: 4px 16px 10px; display: flex; flex-direction: column; gap: 8px; }
-.segment {
-  display: grid; grid-template-columns: 1fr 1fr;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px;
-}
-.segment button { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 6px 8px; border-radius: 7px; }
-.segment button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+.count { margin: 0; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .n { font-variant-numeric: tabular-nums; font-weight: 500; opacity: 0.8; }
 .check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .check input { flex: none; accent-color: var(--accent); margin: 0; }
@@ -117,14 +112,16 @@ input {
 }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
 .field input { font-weight: 400; }
-.pl-line { margin: 0; font-size: 13px; color: var(--muted); }
-.pl-line a { font-weight: 600; }
-/* A button that reads as strong inline text, e.g. Play next to the playlist name */
-.text-btn {
-  border: 0; background: none; padding: 2px 4px; margin-left: 6px; border-radius: 6px;
-  color: var(--accent); font-size: 13px; font-weight: 700;
+.pl-line { margin: 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 4px; min-width: 0; }
+.pl-line a { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Understated pill button with an icon, e.g. Play next to the playlist name */
+.pill {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; margin-left: 12px;
+  padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: var(--accent); background: var(--surface); border: 1px solid var(--line);
 }
-.text-btn:hover:not(:disabled) { background: var(--accent-soft); }
+.pill:hover:not(:disabled) { background: var(--accent-soft); border-color: transparent; }
+.pill .icon { width: 9px; height: 9px; fill: currentColor; }
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .row-actions .quiet { margin-left: auto; }
 .msg { margin: 0; font-size: 12px; color: var(--muted); min-height: 1em; }
@@ -147,6 +144,7 @@ input {
 .picker li small { color: var(--muted); }
 .picker .row-actions a { font-size: 12px; align-self: center; }
 .linkish { border: 0; background: none; padding: 0; color: var(--accent); font-size: 11px; font-weight: 600; text-decoration: underline; }
+.version .linkish { color: var(--muted); font-weight: 400; }
 
 /* new songs roll in from the top */
 @keyframes roll-in {

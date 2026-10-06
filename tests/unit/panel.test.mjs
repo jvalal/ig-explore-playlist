@@ -1,5 +1,7 @@
 // Panel flows in jsdom: roll-in, background matching, Choose picker, playlist build/add,
 // a failed add that must not orphan the playlist, Play wiring, and Clear.
+import fs from 'fs';
+import { EXT_DIR } from '../ext-dir.mjs';
 import { makeSim } from '../sim/spotify-sim.mjs';
 import { boot, track, rows, rowBy } from './harness.mjs';
 import { suite, tick, waitUntil } from '../check.mjs';
@@ -19,7 +21,8 @@ await external({ tracks: { ...data.tracks, k2: track('k2', 'Song B', 'Artist B',
 await tick(100);
 const titles = rows().map((li) => li.querySelector('.title').textContent + (li.classList.contains('enter') ? '*' : ''));
 check('new songs roll in at the top, existing row not re-animated', JSON.stringify(titles) === '["Mystery Tune*","Song B*","Song A"]', JSON.stringify(titles));
-check('version label shows the manifest version', $('#version').textContent === 'Version 0.6.0', $('#version').textContent);
+const manifestVersion = JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')).version;
+check('version label shows the manifest version', $('#version').textContent === `Version ${manifestVersion}`, $('#version').textContent);
 
 await waitUntil(() => data.matches.k1 && data.matches.k2 && data.matches.k3, 15000);
 check('background matching found the two real songs', data.matches.k1.status === 'matched' && data.matches.k2.status === 'matched');

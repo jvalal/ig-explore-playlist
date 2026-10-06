@@ -14,6 +14,9 @@ try {
   const t = await open({ songs: 40, misses: ['Mystery Tune'] });
   const { page } = t;
   await waitFor(page, () => document.querySelectorAll('#list > li.row').length === 41);
+  check('no Original audio tab', !(await page.$('.segment')) && !(await page.evaluate(() => document.body.textContent.includes('Original audio'))));
+  check('song count shown', (await page.$eval('#n-song', (e) => e.textContent)) === '41 songs');
+  check('debug data is a small link, not a full button', await page.$eval('#dl-json', (e) => e.classList.contains('linkish') && !!e.closest('.version')));
   check('every captured song is listed', (await page.$$eval('#list > li.row', (l) => l.length)) === 41);
   check('player hidden before anything plays', !(await onScreen(page, '#dock')));
   check('empty-state text hidden when there are songs', !(await onScreen(page, '#empty')));

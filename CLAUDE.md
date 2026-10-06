@@ -23,8 +23,12 @@ New in v0.6.0:
 - Token refresh is single-flight.
 - The playlist is saved before songs are added, so a failed add can't orphan it.
 - Bridge writes are batched.
-- **Play playlist** is back as a strong text control (`.text-btn`) right after the playlist name.
-  Its label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
+- The panel shows songs only: the Original audio tab is gone. Original audio is still captured,
+  stored and included in the CSV.
+- "Debug data" is a small muted link next to the version, no longer a button.
+- **Play playlist** is back as an understated pill button with a play/pause icon (`.pill`), a little
+  to the right of the playlist name. It plays the playlist built by this panel in Spotify. Its
+  label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
   embed moves through the playlist by itself (Prev/Next are off). Pressing a song's Play takes
   over.
 
