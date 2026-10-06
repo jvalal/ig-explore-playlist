@@ -71,6 +71,7 @@ async function openPage(file, initial) {
   check('Next: Allow Instagram', p.visible().join() === 'instagram');
   p.next(); await tick(20);
   check('Next: Done, with a link to Instagram Explore', p.visible().join() === 'done' && p.$('#ob-explore').href === 'https://www.instagram.com/explore/#weblink');
+  check('Explore opens in a new tab, so the setup page stays', p.$('#ob-explore').target === '_blank');
   const igLinks = [...document.querySelectorAll('a[href*="instagram.com"]')].map((a) => a.href);
   check('every Instagram link on the setup page stays in Safari (#weblink, not the app)',
     igLinks.length >= 2 && igLinks.every((h) => h.endsWith('#weblink')), igLinks.join(' '));
