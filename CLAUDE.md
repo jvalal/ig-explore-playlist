@@ -93,9 +93,11 @@ feed (`PolarisFeedTimelineRootV2Query`, `xdt_api__v1__feed__timeline__connection
 suggested reels (`explore_story`). Before v0.6.3 those were counted as Explore on every refresh.
 There is no "Only from Explore" checkbox any more.
 
-Open question: a post opened from the Explore grid changes the URL to `/p/…` or `/reel/…`
-(area `post`), so its songs are not kept. Check a debug export after real scrolling to see
-whether the grid responses themselves carry music. First real session: ~25% of
+The grid responses fetched while scrolling Explore carry the music, so nothing has to be opened
+(the user's experience with earlier builds, 2026-10-05). The first screen of the grid arrives in
+the page HTML (`#embedded`); in two exports it held the music keywords but yielded no songs, so
+captures start once scrolling fetches more. Songs seen in a post opened from the grid (`/p/…`,
+`/reel/…`, area `post`) are not kept. First real session: ~25% of
 Explore audio was licensed songs.
 
 ## Spotify constraints (verified Oct 2026, re-check if something breaks)
