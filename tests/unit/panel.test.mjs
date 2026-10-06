@@ -32,7 +32,9 @@ await external({ log: [
   { at: Date.now(), page: '/explore/', area: 'explore', relevant: false, hits: 0 },
 ] });
 await tick(50);
-check('status counts Explore responses and songs only', $('#status').textContent.startsWith('3 Explore responses checked, 1 had songs.'), $('#status').textContent);
+check('status: Explore responses only, and the same song count as the list',
+  $('#status').textContent.startsWith(`3 Explore responses checked, ${rows().length} songs found.`) && $('#n-song').textContent === `${rows().length} songs`,
+  `${$('#status').textContent} / ${$('#n-song').textContent}`);
 const manifestVersion = JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')).version;
 check('version label shows the manifest version', $('#version').textContent === `Version ${manifestVersion}`, $('#version').textContent);
 

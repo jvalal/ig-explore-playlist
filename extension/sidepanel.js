@@ -185,14 +185,14 @@ function renderBuild() {
 }
 
 function renderStatus() {
-  // Counts only what the list can show: Explore responses, and songs (not original audio).
-  // Entries logged before v0.6.7 have no `songs` count; their `hits` stands in.
+  // The song number is the list's own count, so the two always agree (one response can
+  // carry several songs, so counting responses with songs didn't match the list).
   const log = (st.log || []).filter((l) => l.area === 'explore');
   if (!log.length) $('#status').textContent = 'Waiting for Instagram Explore';
   else {
-    const withSongs = log.filter((l) => (l.songs ?? l.hits) > 0).length;
-    $('#status').textContent =
-      `${log.length} Explore responses checked, ${withSongs} had songs. Last ${ago(log[log.length - 1].at)}.`;
+    const n = list(st, 'song').length;
+    $('#status').textContent = `${log.length} Explore responses checked, ${n} ${n === 1 ? 'song' : 'songs'} found. ` +
+      `Last ${ago(log[log.length - 1].at)}.`;
   }
 }
 
