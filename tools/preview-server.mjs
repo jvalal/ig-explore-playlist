@@ -15,8 +15,50 @@ spawnSync(process.execPath, [path.join(root, 'tools', 'build-safari.mjs')], { st
 const manifest = fs.readFileSync(path.join(dist, 'manifest.json'), 'utf8');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 
+// The embed probe (tools/embed-probe) as a plain page at /probe/, so it can run in iPhone Safari.
+// "Send log to Mac" posts the log here; it's saved in tools/embed-probe/logs/.
+const probeDir = path.join(root, 'tools', 'embed-probe');
+const PROBE_SHIM = '<script>window.chrome = { runtime: { getManifest: () => ({ version: "phone-web" }) } };</script>';
+const PROBE_SEND = `<script>
+  (() => {
+    const b = document.createElement('button');
+    b.textContent = 'Send log to Mac';
+    b.addEventListener('click', async () => {
+      b.textContent = 'Sending…';
+      try {
+        const r = await fetch('/probe-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...header(), log }) });
+        b.textContent = r.ok ? 'Sent ✓' : 'Failed';
+      } catch (_) { b.textContent = 'Failed'; }
+    });
+    document.querySelector('#download').before(b);
+  })();
+</script>`;
+
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
+  if (req.method === 'POST' && p === '/probe-log') {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 20e6) req.destroy(); });
+    req.on('end', () => {
+      const file = path.join(probeDir, 'logs', `${new Date().toISOString().replace(/[:.]/g, '-')}-phone-web.json`);
+      fs.writeFileSync(file, body);
+      console.log(`probe log saved: ${path.relative(root, file)}`);
+      res.writeHead(204); res.end();
+    });
+    return;
+  }
+  if (p === '/probe' || p === '/probe/') {
+    const html = fs.readFileSync(path.join(probeDir, 'probe.html'), 'utf8')
+      .replace('<script src="probe.js"></script>', `${PROBE_SHIM}\n  <script src="/probe/probe.js"></script>\n  ${PROBE_SEND}`);
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });
+    res.end(html);
+    return;
+  }
+  if (p === '/probe/probe.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' });
+    res.end(fs.readFileSync(path.join(probeDir, 'probe.js')));
+    return;
+  }
   if (p === '/') p = '/sidepanel.html';
   if (p === '/preview-stub.js') {
     res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' });
@@ -31,5 +73,5 @@ http.createServer((req, res) => {
   res.end(body);
 }).listen(PORT, '0.0.0.0', () => {
   const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address);
-  console.log(`Preview running. On your phone (same Wi-Fi), open:\n${ips.map((ip) => `  http://${ip}:${PORT}/`).join('\n')}`);
+  console.log(`Preview running. On your phone (same Wi-Fi), open:\n${ips.map((ip) => `  http://${ip}:${PORT}/   (embed probe: /probe/)`).join('\n')}`);
 });
