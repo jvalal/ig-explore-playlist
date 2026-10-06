@@ -22,7 +22,10 @@ New in v0.6.0:
   older misses are retried.
 - Token refresh is single-flight.
 - The playlist is saved before songs are added, so a failed add can't orphan it.
-- Bridge writes are batched.
+- Bridge writes are batched for responses without music. Since v0.6.10 captures with songs are
+  written at once. Measured: storage write → row on screen in the panel is 10–20 ms. No
+  keep-alive is needed: the service worker isn't in the capture path (content script →
+  storage → open panel).
 - The panel shows songs only: the Original audio tab is gone. Original audio is still captured,
   stored and included in the CSV.
 - "Debug data" is a small muted link next to the version, no longer a button.
@@ -51,7 +54,8 @@ extension/          the unpacked extension (load this folder in chrome://extensi
                     responses for music, posts results with window.postMessage.
                     MUST stay wrapped in an IIFE: it can be injected twice into one page.
   bridge.js         ISOLATED-world content script. Receives postMessages, merges into
-                    chrome.storage.local (batched, ≤ 1 write / 500 ms). Detaches itself when
+                    chrome.storage.local. Captures with songs are written at once; responses
+                    without music are batched (≤ 1 write / 500 ms). Detaches itself when
                     the extension context dies.
   background.js     Side panel opens on toolbar click. On install/update, re-injects
                     inject.js + bridge.js into open Instagram tabs.

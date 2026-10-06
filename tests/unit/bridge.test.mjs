@@ -35,15 +35,20 @@ function loadBridge() {
 
 {
   const b = loadBridge();
+  const quiet = () => { const m = b.msg('none'); m.data.hits = []; return m; };
+  for (let i = 0; i < 5; i++) b.send(quiet());
+  await tick(100);
+  check('responses without music wait for the batch window', b.sets() === 0);
+  await tick(600);
+  check('...and a burst of them becomes one storage write', b.sets() === 1, `writes: ${b.sets()}`);
   b.send(b.msg('One'));
+  await tick(30);
+  check('a song is saved right away, not after the batch window', !!(b.store.tracks && b.store.tracks['song|one|x']), `writes: ${b.sets()}`);
   b.send(b.msg('Two'));
   b.send(b.msg('Three', '/reels/'));
   b.send(b.msg('One'));
   await tick(100);
-  check('nothing is written before the batch window ends', b.sets() === 0);
-  await tick(600);
-  check('a burst of captures becomes one storage write', b.sets() === 1, `writes: ${b.sets()}`);
-  check('every Explore capture in the burst was merged, every response logged', Object.keys(b.store.tracks || {}).length === 2 && b.store.log.length === 4);
+  check('every Explore capture in the burst was merged, every response logged', Object.keys(b.store.tracks || {}).length === 2 && b.store.log.length === 9);
   check('a repeat capture counts toward its area', b.store.tracks['song|one|x'].areas.explore === 2);
   check('songs captured on Reels are not kept (Explore only)', !b.store.tracks['song|three|x'] && b.store.log.some((l) => l.area === 'reels'));
   // Real case: on /explore/, Instagram also loads the home feed; that is not an Explore find.
@@ -69,10 +74,11 @@ function loadBridge() {
   check('a post loaded directly is not kept', !b.store.tracks['song|direct|x']);
   check('the log counts songs separately from original audio', b.store.log.every((l) => typeof l.songs === 'number'));
   check('the log records where a post was opened from', b.store.log.some((l) => l.via === '/explore/' && l.area === 'explore'));
+  const before = b.sets();
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });
   await tick(600);
-  check('messages from other sources or without the tag are ignored', b.sets() === 3);
+  check('messages from other sources or without the tag are ignored', b.sets() === before);
 
   delete b.runtime.id; // extension reloaded underneath this tab
   b.send(b.msg('After Reload'));

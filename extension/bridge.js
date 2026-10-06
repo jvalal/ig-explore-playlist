@@ -140,7 +140,10 @@
     if (e.source !== window || !e.data || e.data[TAG] !== true) return;
     if (!alive()) { detach(); return; }
     queue.push(e.data);
-    if (!timer) timer = setTimeout(flush, FLUSH_MS);
+    // Songs are saved right away so they show up while scrolling; only the log entries for
+    // responses without music wait for the batch (at most FLUSH_MS).
+    if ((e.data.hits || []).length) { clearTimeout(timer); flush(); }
+    else if (!timer) timer = setTimeout(flush, FLUSH_MS);
   }
   window.addEventListener('message', onMessage);
 
