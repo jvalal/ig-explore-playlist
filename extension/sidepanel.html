@@ -37,7 +37,16 @@
   </details>
 
   <div class="controls">
-    <p class="count" id="n-song">0 songs</p>
+    <div class="count-row">
+      <p class="count" id="n-song">0 songs</p>
+      <label class="goal">Goal
+        <select id="goal" aria-label="Song goal">
+          <option value="0">Off</option><option value="10">10</option><option value="20">20</option>
+          <option value="30">30</option><option value="50">50</option><option value="100">100</option>
+        </select>
+      </label>
+    </div>
+    <div class="goal-bar" id="goal-bar" hidden><span id="goal-fill"></span></div>
   </div>
 
   <ol class="list" id="list" aria-live="polite"></ol>
@@ -69,6 +78,7 @@
     </div>
     <div id="build-existing" hidden>
       <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="pill"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button></p>
+      <label class="toggle"><input type="checkbox" id="auto-sync" autocomplete="off"> Add new songs to this playlist automatically</label>
     </div>
     <div class="row-actions">
       <button class="primary" id="build-btn">Create playlist</button>

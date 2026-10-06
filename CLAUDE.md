@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.6.0, rebuild)
+## Current status (v0.7.0)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -42,6 +42,18 @@ New in v0.6.0:
   embed moves through the playlist by itself (Prev/Next are off). Pressing a song's Play takes
   over.
 
+New in v0.7.0 (2026-10-05, built overnight, **not yet tried in the user's Chrome**):
+- **Song goal** (goal.js): a Goal menu (Off/10/20/30/50/100) beside the count. It shows "18 of 30
+  songs", a thin progress bar, and plays one soft chime when the count *crosses* the goal (not on
+  load, not again on later renders). Nothing scrolls Instagram; that was ruled out (Meta's terms on
+  automated collection, and account risk).
+- **Auto-add** (`syncMatched` in build.js): a checkbox under the playlist line. When on, songs
+  that are already matched are added to the existing playlist ~1.5 s after they change. It skips
+  unchecked songs and misses, never creates a playlist and never searches Spotify itself (prematch
+  does). After an error it pauses 60 s instead of retrying on every capture. Build waits for an
+  auto-add in flight, so nothing is added twice.
+- Both settings live in storage key `prefs` ({goal, autoSync}), which Clear keeps.
+
 Verified so far:
 - **Embed protocol:** verified in the user's real Chrome (side panel, logged in) and in headless
   Chrome.
@@ -66,7 +78,8 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     store.js        in-memory copy of storage, kept current from onChanged deltas
     list.js         keyed list render (rows rebuilt only when their content changes)
     match-queue.js  one matching queue for background prematch, Play and Build
-    build.js        playlist create / add
+    build.js        playlist create / add, and auto-add (syncMatched)
+    goal.js         song goal: count, progress bar, chime
     setup.js, exports.js, dom.js
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
     player.js       drives the embed iframe (protocol below)
@@ -81,7 +94,7 @@ tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/
 legacy/             v0.5.0 extension + tests, reference only.
 ```
 
-Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `matches`, `excluded`,
+Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`

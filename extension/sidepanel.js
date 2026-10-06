@@ -4,7 +4,8 @@ import { $, setMsg, ago } from './dom.js';
 import { createStore, connected, list, matchOf, pending } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { renderList, resetList } from './list.js';
-import { buildPlaylist, defaultName } from './build.js';
+import { buildPlaylist, syncMatched, defaultName } from './build.js';
+import { renderGoal } from './goal.js';
 import { renderSetup, wireSetup, openSetup } from './setup.js';
 import { downloadCsv, downloadDebug } from './exports.js';
 import { Player } from './player.js';
@@ -167,6 +168,7 @@ function renderBuild() {
     $('#pl-play span').textContent = p.label;
     $('#pl-play path').setAttribute('d', p.label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
     $('#pl-play').disabled = p.disabled;
+    $('#auto-sync').checked = !!st.prefs.autoSync;
     $('#pl-play').setAttribute('aria-label', `${p.label} playlist ${pl.name}`);
   }
   if (!$('#pl-name').value) $('#pl-name').value = defaultName();
@@ -204,10 +206,9 @@ function render() {
   renderQueued = true;
   requestAnimationFrame(() => {
     renderQueued = false;
-    const n = list(st, 'song').length;
-    $('#n-song').textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
-
     const items = list(st, 'song');
+    renderGoal(items.length, Number(st.prefs.goal) || 0);
+
     renderList({
       st,
       items,
@@ -243,6 +244,7 @@ async function build() {
   ui.busy = true;
   render();
   try {
+    await syncing; // an auto-add in flight finishes first, so nothing is added twice
     await buildPlaylist({ store, queue, name: $('#pl-name').value, report: setMsg });
   } catch (err) {
     handleError(err);
@@ -253,6 +255,33 @@ async function build() {
 }
 
 $('#build-btn').addEventListener('click', build);
+
+// ---------- auto-add (optional) ----------
+// Adds matched songs to the current playlist shortly after they're captured and matched.
+// Spotify side only: it never creates a playlist and never touches Instagram.
+let syncTimer = null;
+let syncing = null;          // promise of the auto-add in flight
+let syncPausedUntil = 0;     // after an error, wait before trying again
+const autoSyncOn = () => !!(st.prefs.autoSync && st.playlist && connected(st));
+
+function scheduleSync(delay = 1500) {
+  if (!autoSyncOn()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(runSync, Math.max(delay, syncPausedUntil - Date.now()));
+}
+function runSync() {
+  if (!autoSyncOn()) return;
+  if (ui.busy || syncing) { scheduleSync(2000); return; }
+  syncing = syncMatched({ store, report: setMsg })
+    .catch((err) => { syncPausedUntil = Date.now() + 60_000; handleError(err); })
+    .finally(() => { syncing = null; render(); });
+}
+
+$('#auto-sync').addEventListener('change', async (e) => {
+  await store.set({ prefs: { ...st.prefs, autoSync: e.target.checked } });
+  if (e.target.checked) { syncPausedUntil = 0; scheduleSync(0); }
+});
+$('#goal').addEventListener('change', (e) => store.set({ prefs: { ...st.prefs, goal: Number(e.target.value) || 0 } }));
 $('#pl-new').addEventListener('click', async () => {
   $('#pl-name').value = defaultName();
   await store.set({ playlist: null });
@@ -299,6 +328,7 @@ $('#clear').addEventListener('click', async (e) => {
 store.subscribe((keys) => {
   render();
   if (keys.has('tracks') || keys.has('spotify')) prematch();
+  if (['matches', 'tracks', 'excluded', 'playlist', 'prefs'].some((k) => keys.has(k))) scheduleSync();
 });
 $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;
 setInterval(render, 30_000); // keep "Last … ago" fresh

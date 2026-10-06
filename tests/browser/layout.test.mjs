@@ -47,6 +47,25 @@ try {
   check('picker lists Spotify candidates with Use buttons', (await page.$$eval('#list > li.picker li button', (l) => l.length)) >= 1);
   check('no page errors', t.errors.length === 0, t.errors.join(' | '));
   await t.close();
+
+  // Goal and auto-add controls, with a playlist and a goal set.
+  const g = await open({ songs: 12, store: { prefs: { goal: 20, autoSync: false }, playlist: { id: 'PL1', url: 'u', name: 'Explore finds, Oct 5', keys: [], uris: [] } } });
+  await waitFor(g.page, () => document.querySelector('#n-song').textContent.startsWith('12 of 20'));
+  check('goal: count and menu share one line', await g.page.evaluate(() => {
+    const a = document.querySelector('#n-song').getBoundingClientRect(); const b = document.querySelector('.goal').getBoundingClientRect();
+    return Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < 6 && b.left > a.right;
+  }));
+  check('goal: progress bar visible and 60% full', await onScreen(g.page, '#goal-bar') &&
+    (await g.page.$eval('#goal-fill', (e) => Math.round(e.getBoundingClientRect().width / e.parentElement.getBoundingClientRect().width * 100))) === 60);
+  check('auto-add toggle shows under the playlist line', await onScreen(g.page, '#auto-sync') &&
+    await g.page.evaluate(() => document.querySelector('.toggle').getBoundingClientRect().top >= document.querySelector('.pl-line').getBoundingClientRect().bottom));
+  check('auto-add checkbox sits right next to its words', await g.page.evaluate(() => {
+    const box = document.querySelector('#auto-sync').getBoundingClientRect(); const label = document.querySelector('.toggle').getBoundingClientRect();
+    return box.width < 24 && box.left - label.left < 4;
+  }));
+  check('goal/auto-add: no page errors', g.errors.length === 0, g.errors.join(' | '));
+  await g.page.screenshot({ path: new URL('./last-run-goal.png', import.meta.url).pathname });
+  await g.close();
 } catch (err) {
   check('browser test crashed', false, err.stack);
 }

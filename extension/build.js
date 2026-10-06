@@ -55,3 +55,28 @@ export async function buildPlaylist({ store, queue, name, report }) {
   const added = `Added ${uris.length} ${uris.length === 1 ? 'song' : 'songs'} to "${pl.name}".`;
   report(missing ? `${added} ${missing} need you to pick them with Choose.` : added);
 }
+
+// Auto-sync: adds songs that are already matched to the existing playlist. It never creates a
+// playlist and never searches Spotify itself (background matching does that); unchecked songs
+// and misses are skipped, as with Build. Returns how many songs were added.
+export async function syncMatched({ store, report }) {
+  const { st } = store;
+  const pl = st.playlist;
+  if (!pl) return 0;
+  const have = new Set(pl.uris);
+  const uris = [];
+  const keys = [];
+  for (const t of pending(st)) {
+    const m = matchOf(st, t);
+    if (!m || m.status !== 'matched') continue;
+    keys.push(t.key);
+    if (!have.has(m.uri)) { have.add(m.uri); uris.push(m.uri); }
+  }
+  if (!keys.length) return 0;
+  if (uris.length) await S.addItems(pl.id, uris);
+  const latest = store.st.playlist;
+  if (!latest || latest.id !== pl.id) return 0; // "Start a new playlist" was pressed meanwhile
+  await store.set({ playlist: { ...latest, keys: [...latest.keys, ...keys], uris: [...latest.uris, ...uris] } });
+  if (uris.length) report(`Added ${uris.length} new ${uris.length === 1 ? 'song' : 'songs'} to "${latest.name}".`);
+  return uris.length;
+}
