@@ -14,7 +14,6 @@ const store = createStore();
 const { st } = store;
 
 const ui = {
-  exploreOnly: false,
   busy: false,                       // building a playlist
   picker: { key: null, items: null }, // manual-match picker (items null while loading)
 };
@@ -204,7 +203,7 @@ function render() {
     const n = list(st, 'song').length;
     $('#n-song').textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
 
-    const items = list(st, 'song', { exploreOnly: ui.exploreOnly });
+    const items = list(st, 'song');
     renderList({
       st,
       items,
@@ -267,7 +266,6 @@ wireSetup({
 });
 
 // ---------- list controls & exports ----------
-$('#explore-only').addEventListener('change', (e) => { ui.exploreOnly = e.target.checked; render(); });
 
 $('#dl-csv').addEventListener('click', () => downloadCsv(st));
 $('#dl-json').addEventListener('click', () =>

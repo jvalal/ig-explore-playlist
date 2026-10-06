@@ -80,10 +80,11 @@ export function createStore() {
 
 export const connected = (st) => !!(st.spotify && st.spotify.refresh_token);
 
-// Newest finds first. first_seen never changes, so existing rows never reshuffle.
-export function list(st, kind, { exploreOnly = false } = {}) {
+// Explore finds, newest first. first_seen never changes, so existing rows never reshuffle.
+// (Captures from other pages saved before v0.6.4 stay in storage but aren't listed.)
+export function list(st, kind) {
   return Object.values(st.tracks)
-    .filter((t) => t.kind === kind && (!exploreOnly || (t.areas && t.areas.explore)))
+    .filter((t) => t.kind === kind && t.areas && t.areas.explore)
     .sort((a, b) => b.first_seen - a.first_seen || a.key.localeCompare(b.key));
 }
 
@@ -91,8 +92,8 @@ export const matchOf = (st, t) => st.matches[t.key];
 export const inPlaylist = (st, t) => !!(st.playlist && st.playlist.keys.includes(t.key));
 
 // Songs the next Build would add.
-export function pending(st, opts) {
-  return list(st, 'song', opts).filter((t) => {
+export function pending(st) {
+  return list(st, 'song').filter((t) => {
     const m = matchOf(st, t);
     return !st.excluded[t.key] && !inPlaylist(st, t) && !(m && m.status === 'none');
   });

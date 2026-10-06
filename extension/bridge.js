@@ -50,7 +50,9 @@
     const { tracks, log, samples } = store;
     const area = areaOf(msg.page, msg.name, msg.url);
 
-    for (const h of msg.hits || []) {
+    // Explore finds only. Capture runs on every instagram.com page, and the Explore page also
+    // loads the home feed; those responses are logged but their songs aren't kept.
+    for (const h of area === 'explore' ? msg.hits || [] : []) {
       const k = trackKey(h);
       const t = tracks[k] || (tracks[k] = {
         key: k,

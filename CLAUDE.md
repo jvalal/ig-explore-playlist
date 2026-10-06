@@ -26,6 +26,7 @@ New in v0.6.0:
 - The panel shows songs only: the Original audio tab is gone. Original audio is still captured,
   stored and included in the CSV.
 - "Debug data" is a small muted link next to the version, no longer a button.
+- Explore only: songs from the home feed, Reels and other pages are no longer kept or listed.
 - **Play playlist** is back as an understated pill button with a play/pause icon (`.pill`), a little
   to the right of the playlist name. It plays the playlist built by this panel in Spotify. Its
   label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
@@ -84,10 +85,17 @@ responses (no requests of its own, no credentials). Signals: any object with `ti
 `display_artist` = licensed song; any non-null `original_sound_info` = creator audio. The nearest
 ancestor with `code` + `media_type`/`product_type` is the post.
 
-Areas (explore / home / reels / post / other) come from the page path, **except** that a
-home-feed response is always `home`: the Explore page also fetches the first page of the home
+**Explore only (since v0.6.4).** Capture runs on every instagram.com page, but the bridge keeps
+songs only when the area is `explore`, and the panel lists only tracks with `areas.explore`.
+Every response is still logged with its area. The area comes from the page path, except that a
+home-feed response is always `home`. The Explore page also fetches the first page of the home
 feed (`PolarisFeedTimelineRootV2Query`, `xdt_api__v1__feed__timeline__connection`), including
-suggested reels (`explore_story`). Before v0.6.3 those were counted as Explore on every refresh. First real session: ~25% of
+suggested reels (`explore_story`). Before v0.6.3 those were counted as Explore on every refresh.
+There is no "Only from Explore" checkbox any more.
+
+Open question: a post opened from the Explore grid changes the URL to `/p/…` or `/reel/…`
+(area `post`), so its songs are not kept. Check a debug export after real scrolling to see
+whether the grid responses themselves carry music. First real session: ~25% of
 Explore audio was licensed songs.
 
 ## Spotify constraints (verified Oct 2026, re-check if something breaks)

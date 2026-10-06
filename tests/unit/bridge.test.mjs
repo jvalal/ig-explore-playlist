@@ -43,9 +43,9 @@ function loadBridge() {
   check('nothing is written before the batch window ends', b.sets() === 0);
   await tick(600);
   check('a burst of captures becomes one storage write', b.sets() === 1, `writes: ${b.sets()}`);
-  check('every capture in the burst was merged', Object.keys(b.store.tracks || {}).length === 3 && b.store.log.length === 4);
+  check('every Explore capture in the burst was merged, every response logged', Object.keys(b.store.tracks || {}).length === 2 && b.store.log.length === 4);
   check('a repeat capture counts toward its area', b.store.tracks['song|one|x'].areas.explore === 2);
-  check('captures on Reels are tagged as reels', b.store.tracks['song|three|x'].areas.reels === 1);
+  check('songs captured on Reels are not kept (Explore only)', !b.store.tracks['song|three|x'] && b.store.log.some((l) => l.area === 'reels'));
   // Real case: on /explore/, Instagram also loads the home feed; that is not an Explore find.
   const home = b.msg('Friend', '/explore/');
   home.data.name = 'PolarisFeedTimelineRootV2Query';
@@ -54,10 +54,9 @@ function loadBridge() {
   home2.data.url = 'https://www.instagram.com/api/v1/feed/timeline/';
   b.send(home2);
   await tick(600);
-  check('home-feed response on the Explore page is tagged home, not explore',
-    JSON.stringify(b.store.tracks['song|friend|x'].areas) === '{"home":1}', JSON.stringify(b.store.tracks['song|friend|x'].areas));
-  check('home-feed REST endpoint is tagged home too', JSON.stringify(b.store.tracks['song|friend2|x'].areas) === '{"home":1}');
-  check('the log records the corrected area', b.store.log.filter((l) => l.area === 'home').length === 2);
+  check('home-feed response on the Explore page is not kept as a find', !b.store.tracks['song|friend|x'], JSON.stringify(b.store.tracks['song|friend|x']));
+  check('home-feed REST endpoint is not kept either', !b.store.tracks['song|friend2|x']);
+  check('both are logged as home', b.store.log.filter((l) => l.area === 'home').length === 2);
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });
   await tick(600);

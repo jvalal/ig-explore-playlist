@@ -17,9 +17,12 @@ sim.searchOverride = (q) => (q.includes('Mystery') ? [sim.tracks.x] : undefined)
 const { storage, $, external } = await boot(sim, { tracks: { k1: track('k1', 'Song A', 'Artist A', 1000) } });
 const data = storage.data;
 await tick(100);
-await external({ tracks: { ...data.tracks, k2: track('k2', 'Song B', 'Artist B', 2000), k3: track('k3', 'Mystery Tune', 'Unknown', 3000) } });
+// k0 was saved before v0.6.4 from the home feed: kept in storage, never listed.
+await external({ tracks: { ...data.tracks, k0: { ...track('k0', "You've Got a Friend in Me", 'Randy Newman', 2500), areas: { home: 1 } },
+  k2: track('k2', 'Song B', 'Artist B', 2000), k3: track('k3', 'Mystery Tune', 'Unknown', 3000) } });
 await tick(100);
 const titles = rows().map((li) => li.querySelector('.title').textContent + (li.classList.contains('enter') ? '*' : ''));
+check('a song captured only outside Explore is not listed', !rowBy("You've Got a Friend in Me") && $('#n-song').textContent === '3 songs', $('#n-song').textContent);
 check('new songs roll in at the top, existing row not re-animated', JSON.stringify(titles) === '["Mystery Tune*","Song B*","Song A"]', JSON.stringify(titles));
 const manifestVersion = JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')).version;
 check('version label shows the manifest version', $('#version').textContent === `Version ${manifestVersion}`, $('#version').textContent);
@@ -84,7 +87,7 @@ rowBy('Song B').querySelector('.play').click();
 await waitUntil(() => !$('#dock').hidden);
 $('#clear').click();
 await tick(50);
-check('first click on Clear only arms it', $('#clear').textContent === 'Confirm clear' && Object.keys(data.tracks).length === 4);
+check('first click on Clear only arms it', $('#clear').textContent === 'Confirm clear' && Object.keys(data.tracks).length === 5);
 $('#clear').click();
 await waitUntil(() => !data.tracks);
 await tick(100);
