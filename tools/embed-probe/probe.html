@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Embed probe</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; padding: 10px; font: 12px/1.35 system-ui, sans-serif; display: grid; gap: 8px; }
+    h1 { margin: 0; font-size: 15px; }
+    fieldset { border: 1px solid #8884; border-radius: 8px; padding: 6px 8px; margin: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    legend { font-weight: 600; padding: 0 4px; }
+    button { font: inherit; padding: 3px 7px; border-radius: 6px; border: 1px solid #8886; cursor: pointer; }
+    input[type=text], textarea { font: 11px ui-monospace, monospace; width: 100%; box-sizing: border-box; }
+    label.w { display: flex; gap: 4px; align-items: center; width: 100%; }
+    label.w input { flex: 1; }
+    iframe { width: 100%; height: 80px; border: 0; border-radius: 12px; background: #8882; }
+    #log { font: 10.5px/1.3 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; max-height: 45vh; overflow: auto; border: 1px solid #8884; border-radius: 6px; padding: 4px; margin: 0; }
+    .recv { color: #2a7; } .send { color: #c60; } .frame { color: #58f; } .ui, .note { color: #a5c; }
+    #summary { color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Embed probe <small id="ver"></small></h1>
+
+  <fieldset>
+    <legend>Songs</legend>
+    <label class="w">A <input type="text" id="trackA" value="https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl"></label>
+    <label class="w">B <input type="text" id="trackB" value="https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Load</legend>
+    <button data-load="A">Load A</button>
+    <button data-load="B">Load B</button>
+    <button data-load="A" data-then="resume" data-when="load">Load A + resume on load</button>
+    <button data-load="B" data-then="resume" data-when="first">Load B + resume on first message</button>
+    <button data-load="B" data-then="toggle" data-when="first">Load B + toggle on first message</button>
+    <button data-load="B" data-then="resume" data-when="delay">Load B, resume 8 s later (no click)</button>
+    <button id="unload">Unload</button>
+    <label><input type="checkbox" id="noAutoplay"> iframe without autoplay permission</label>
+  </fieldset>
+
+  <iframe id="frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
+
+  <fieldset>
+    <legend>Send command</legend>
+    <button data-cmd='{"command":"toggle"}'>toggle</button>
+    <button data-cmd='{"command":"pause"}'>pause</button>
+    <button data-cmd='{"command":"resume"}'>resume</button>
+    <button data-cmd='{"command":"play"}'>play</button>
+    <button data-cmd='{"command":"seek","timestamp":0}'>seek 0</button>
+    <button id="resumeLater">resume in 8 s (no click)</button>
+    <button id="loadUriB">loadUri B</button>
+    <textarea id="custom" rows="2">{"command":"resume"}</textarea>
+    <button id="sendCustom">Send custom</button>
+    <label><input type="checkbox" id="asString"> send as JSON string</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Notes</legend>
+    <label class="w"><input type="text" id="note" placeholder="e.g. step 2: clicked play inside the player"> <button id="addNote">Add note</button></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Log</legend>
+    <button id="download">Download full log</button>
+    <button id="copy">Copy compact log</button>
+    <button id="clear">Clear log</button>
+    <span id="summary"></span>
+  </fieldset>
+  <pre id="log"></pre>
+
+  <script src="probe.js"></script>
+</body>
+</html>

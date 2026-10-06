@@ -7,8 +7,8 @@ const AUTH_URL = 'https://accounts.spotify.com/authorize';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const API = 'https://api.spotify.com/v1';
 const SCOPES = 'playlist-modify-private playlist-modify-public';
-export const MATCHER_VERSION = 2;
-export const hasPlaybackScope = (auth) => !!(auth && auth.scope && auth.scope.includes('user-modify-playback-state'));
+// Bump when matching changes, so songs an older matcher gave up on get another try.
+export const MATCHER_VERSION = 3;
 
 export const redirectUri = () => chrome.identity.getRedirectURL();
 
@@ -23,6 +23,12 @@ const randomString = (bytes = 48) => {
 const pkceChallenge = async (v) =>
   b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function codedError(message, code) {
+  const e = new Error(message);
+  if (code) e.code = code;
+  return e;
+}
 
 async function getAuth() {
   return (await chrome.storage.local.get('spotify')).spotify || {};
@@ -49,13 +55,13 @@ async function tokenRequest(body) {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {
-    const e = new Error(j.error_description || j.error || `Spotify login failed (${r.status}).`);
-    if (j.error === 'invalid_grant') e.code = 'AUTH';
-    throw e;
+    throw codedError(j.error_description || j.error || `Spotify login failed (${r.status}).`,
+      j.error === 'invalid_grant' ? 'AUTH' : undefined);
   }
   const prev = await getAuth();
   return setAuth({
     access_token: j.access_token,
+    // Spotify may rotate the refresh token; keep the old one only if it didn't send a new one.
     refresh_token: j.refresh_token || prev.refresh_token,
     expires_at: Date.now() + (j.expires_in || 3600) * 1000,
     scope: j.scope || prev.scope || null,
@@ -64,11 +70,7 @@ async function tokenRequest(body) {
 
 export async function connect() {
   const { clientId } = await getAuth();
-  if (!clientId) {
-    const e = new Error('Paste your Spotify Client ID first.');
-    e.code = 'INPUT';
-    throw e;
-  }
+  if (!clientId) throw codedError('Paste your Spotify Client ID first.', 'INPUT');
   const verifier = randomString(48);
   const state = randomString(12);
   const url = new URL(AUTH_URL);
@@ -86,14 +88,12 @@ export async function connect() {
   const params = new URL(back).searchParams;
   const authError = params.get('error');
   if (authError) {
-    const e = new Error(
-      authError === 'server_error' || authError === 'access_denied'
-        ? (authError === 'access_denied'
-          ? 'Spotify login was cancelled or denied. Try Connect again.'
-          : "Spotify rejected the login. In your Spotify app's settings, open User Management and add the email of the Spotify account you're logging in with, then try again.")
-        : `Spotify returned: ${authError}`);
-    e.code = 'INPUT';
-    throw e;
+    const message = authError === 'access_denied'
+      ? 'Spotify login was cancelled or denied. Try Connect again.'
+      : authError === 'server_error'
+        ? "Spotify rejected the login. In your Spotify app's settings, open User Management and add the email of the Spotify account you're logging in with, then try again."
+        : `Spotify returned: ${authError}`;
+    throw codedError(message, 'INPUT');
   }
   if (params.get('state') !== state) throw new Error('Login response did not match. Try connecting again.');
 
@@ -108,53 +108,66 @@ export async function connect() {
   await setAuth({ user: me.display_name || me.id });
 }
 
-async function accessToken(force = false) {
+// One refresh at a time. Callers that need a token while a refresh is running wait for
+// it instead of starting their own: with refresh-token rotation, a second parallel refresh
+// could store a token that is already dead.
+let refreshing = null;
+
+// Returns a usable access token. `rejected` is a token the API just answered 401 to:
+// it is never returned again, but if someone else already replaced it, that newer token is used.
+async function accessToken(rejected = null) {
+  if (refreshing) return (await refreshing).access_token;
   const a = await getAuth();
-  if (!force && a.access_token && a.expires_at - 60_000 > Date.now()) return a.access_token;
-  if (!a.refresh_token) {
-    const e = new Error('Connect Spotify first.');
-    e.code = 'AUTH';
-    throw e;
-  }
-  const n = await tokenRequest({ grant_type: 'refresh_token', refresh_token: a.refresh_token, client_id: a.clientId });
-  return n.access_token;
+  if (refreshing) return (await refreshing).access_token;
+  const fresh = a.access_token && a.expires_at - 60_000 > Date.now();
+  if (fresh && a.access_token !== rejected) return a.access_token;
+  if (!a.refresh_token) throw codedError('Connect Spotify first.', 'AUTH');
+  refreshing = tokenRequest({ grant_type: 'refresh_token', refresh_token: a.refresh_token, client_id: a.clientId })
+    .finally(() => { refreshing = null; });
+  return (await refreshing).access_token;
 }
 
+// Recent API calls (method, path, status) for the debug export. Never holds tokens.
 export const callLog = [];
+const MAX_429_RETRIES = 4;
 
-export async function api(path, { method = 'GET', body, query } = {}, attempt = 0) {
+export async function api(path, { method = 'GET', body, query } = {}) {
   const url = new URL(API + path);
   if (query) for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
-  const r = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${await accessToken(attempt > 0 && api._lastWas401)}`,
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  api._lastWas401 = r.status === 401;
-  callLog.push({ at: Date.now(), method, path: path + (query && query.device_id ? ' (to device)' : ''), status: r.status });
-  if (callLog.length > 60) callLog.shift();
 
-  if (r.status === 401 && attempt === 0) return api(path, { method, body, query }, 1);
-  if (r.status === 429 && attempt < 4) {
-    const wait = Math.min(30, Number(r.headers.get('Retry-After')) || 2);
-    await sleep(wait * 1000);
-    return api(path, { method, body, query }, attempt + 1);
+  let token = await accessToken();
+  let refreshed = false;
+  let waits = 0;
+  let r;
+  for (;;) {
+    r = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    callLog.push({ at: Date.now(), method, path, status: r.status });
+    if (callLog.length > 60) callLog.shift();
+
+    if (r.status === 401 && !refreshed) {
+      refreshed = true;
+      token = await accessToken(token);
+      continue;
+    }
+    if (r.status === 429 && waits < MAX_429_RETRIES) {
+      waits++;
+      const after = Number(r.headers.get('Retry-After'));
+      await sleep(Math.min(30, Number.isFinite(after) && after >= 0 ? after : 2) * 1000);
+      continue;
+    }
+    break;
   }
-  const isPlayer = path.startsWith('/me/player');
-  if (isPlayer && r.status === 404) {
-    const e = new Error('Spotify has no active device for that command.');
-    e.code = 'NO_DEVICE';
-    throw e;
-  }
+
+  if (r.status === 401) throw codedError('Spotify needs you to connect again.', 'AUTH');
   if (r.status === 403) {
-    const e = new Error(isPlayer
-      ? 'Spotify blocked playback control (403). This needs Premium on the connected account.'
-      : 'Spotify refused the request (403). In your Spotify developer app, check that your account is listed under User Management and that Premium is active.');
-    if (isPlayer) e.code = 'PLAYER_FORBIDDEN';
-    throw e;
+    throw new Error('Spotify refused the request (403). In your Spotify developer app, check that your account is listed under User Management and that Premium is active.');
   }
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
@@ -165,18 +178,25 @@ export async function api(path, { method = 'GET', body, query } = {}, attempt = 
 
 // ---------- Matching Instagram tracks to Spotify ----------
 
-const JUNK = /\b(karaoke|tribute|cover|instrumental|sped up|slowed|nightcore|8d audio|made famous|originally performed)\b/;
+// Versions that are not the song the post used. A hit on one of these costs a lot.
+const JUNK = /\b(karaoke|tribute|cover|nightcore|8d audio|made famous|originally performed)\b/;
+// Real versions of the song (still acceptable), but the plain original should win.
+// Remasters are treated as the same recording, so "remaster" is deliberately absent.
+const VERSION = /\b(remix|mix|live|acoustic|sped up|slowed|reverb|instrumental|edit|extended|demo|unplugged|a cappella|acapella|re recorded)\b/g;
+const JUNK_PENALTY = 0.5;
+const VERSION_PENALTY = 0.1;
 
 export function normalize(s) {
   return (s || '')
-    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/&/g, ' and ')
-    .replace(/['\u2019]/g, '')
+    .replace(/['’]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
 const compact = (s) => normalize(s).replace(/ /g, '');
+const words = (s) => s.split(' ').filter(Boolean);
 
 // Title without (Album Version), [Remastered], " - Live", "feat. X".
 export function coreTitle(s) {
@@ -197,8 +217,8 @@ export const splitArtists = (s) => (s || '').split(ARTIST_SPLIT).map(normalize).
 const rawArtists = (s) => (s || '').split(ARTIST_SPLIT).map((a) => a.replace(/"/g, '').trim()).filter(Boolean);
 
 function jaccard(a, b) {
-  const A = new Set(a.split(' ').filter(Boolean));
-  const B = new Set(b.split(' ').filter(Boolean));
+  const A = new Set(words(a));
+  const B = new Set(words(b));
   if (!A.size || !B.size) return 0;
   let inter = 0;
   for (const x of A) if (B.has(x)) inter++;
@@ -208,6 +228,14 @@ function jaccard(a, b) {
 // Whole-word containment: "artist 1" is not inside "artist 10".
 const hasWords = (long, short) => !!short && ` ${long} `.includes(` ${short} `);
 
+// One title inside the other only counts when the shorter one is substantial:
+// at least two words and at least half the longer title. "love" is not "love me do".
+function contains(a, b) {
+  const [lo, sh] = words(a).length >= words(b).length ? [a, b] : [b, a];
+  const ns = words(sh).length;
+  return ns >= 2 && ns / words(lo).length >= 0.5 && hasWords(lo, sh);
+}
+
 function sameArtist(a, b) {
   if (a === b || a.replace(/ /g, '') === b.replace(/ /g, '')) return true;
   // "joy crookes" vs "joy crookes and the band", but not "future" vs "future islands"
@@ -215,36 +243,62 @@ function sameArtist(a, b) {
   return sh.length >= 4 && sh.length / lo.length >= 0.6 && hasWords(lo, sh);
 }
 
+const versionWords = (s) => new Set(normalize(s).match(VERSION) || []);
+
+// Penalty for a candidate that is a different version than the one on Instagram.
+function versionPenalty(igTitle, candName) {
+  const ig = normalize(igTitle);
+  const cand = normalize(candName);
+  if (JUNK.test(cand) && !JUNK.test(ig)) return JUNK_PENALTY;
+  const igv = versionWords(igTitle);
+  for (const w of versionWords(candName)) if (!igv.has(w)) return VERSION_PENALTY;
+  return 0;
+}
+
+// Without an artist the title is the only evidence, so only an exact core-title match
+// counts, and pickBest only considers the top search result (see there). In practice
+// inject.js only reports songs that have display_artist, so this is a safety net.
+const NO_ARTIST_SCORE = 0.75;
+
 export function scoreCandidate(track, cand) {
   const ct = coreTitle(track.title);
   const cc = coreTitle(cand.name);
   let tScore;
   if (ct === cc || ct.replace(/ /g, '') === cc.replace(/ /g, '')) tScore = 1;
-  else if (ct && cc && (hasWords(ct, cc) || hasWords(cc, ct))) tScore = 0.8;
+  else if (ct && cc && contains(ct, cc)) tScore = 0.8;
   else tScore = jaccard(ct, cc);
 
   const ig = splitArtists(track.artist);
-  const sp = (cand.artists || []).map((a) => normalize(a.name));
-  let aScore;
-  if (!ig.length) aScore = tScore === 1 ? 0.6 : 0;
-  else if (ig.some((a) => sp.some((b) => sameArtist(a, b)))) aScore = 1;
-  else aScore = jaccard(ig.join(' '), sp.join(' '));
-
-  // A confirmed artist lets the title be looser; otherwise both must be solid.
-  if (aScore === 1 ? tScore < 0.6 : (tScore < 0.7 || aScore < 0.67)) return 0;
-  let s = tScore * 0.6 + aScore * 0.4;
+  let s;
+  if (!ig.length) {
+    if (tScore < 1) return 0;
+    s = NO_ARTIST_SCORE;
+  } else {
+    const sp = (cand.artists || []).map((a) => normalize(a.name));
+    let aScore;
+    if (ig.some((a) => sp.some((b) => sameArtist(a, b)))) aScore = 1;
+    else aScore = jaccard(ig.join(' '), sp.join(' '));
+    // A confirmed artist lets the title be looser; otherwise both must be solid.
+    if (aScore === 1 ? tScore < 0.6 : (tScore < 0.7 || aScore < 0.67)) return 0;
+    s = tScore * 0.6 + aScore * 0.4;
+  }
   if (compact(cand.name) === compact(track.title)) s += 0.05; // exact version, e.g. the live cut
-  if (JUNK.test(normalize(cand.name)) && !JUNK.test(normalize(track.title))) s -= 0.5;
-  return s;
+  return s - versionPenalty(track.title, cand.name);
 }
 
 const ACCEPT = 0.72;
+// A match this good has the same core title, a confirmed artist and no version words,
+// so no cleaner version can exist: further searches could only add the cosmetic +0.05
+// exact-title bonus (for example "Song" over "Song - 2011 Remaster").
+const CONFIDENT = 1;
 
 export function pickBest(track, candidates) {
+  const list = (candidates || []).filter((c) => c && c.uri);
+  // No artist: only trust Spotify's own top result.
+  const pool = splitArtists(track.artist).length ? list : list.slice(0, 1);
   let best = null;
   let bestScore = 0;
-  for (const c of candidates || []) {
-    if (!c || !c.uri) continue;
+  for (const c of pool) {
     const s = scoreCandidate(track, c);
     if (s > bestScore) { best = c; bestScore = s; }
   }
@@ -284,14 +338,14 @@ export function buildQueries(track) {
   return q.filter(([s]) => (seen.has(s) ? false : seen.add(s)));
 }
 
-export async function matchTrack(track) {
+export async function matchTrack(track, { pause = 100 } = {}) {
   let best = null;
   for (const [q, limit] of buildQueries(track)) {
     const res = await api('/search', { query: { q, type: 'track', limit: String(limit) } });
     const hit = pickBest(track, res && res.tracks && res.tracks.items);
     if (hit && (!best || hit.score > best.score)) best = hit;
-    if (best && best.score >= 0.95) break;
-    await sleep(100);
+    if (best && best.score >= CONFIDENT) break;
+    if (pause) await sleep(pause);
   }
   return best ? toMatch(best.track) : { status: 'none', at: Date.now(), v: MATCHER_VERSION };
 }
@@ -326,26 +380,3 @@ export async function addItems(playlistId, uris) {
     });
   }
 }
-
-// ---------- Playback on the user's Spotify devices (Premium) ----------
-// Spotify Connect helpers (not used by the in-panel player; kept for reference).
-// Every command names its device explicitly; the old player.js handled
-// waking the device and confirming that audio really started.
-
-const dq = (deviceId) => (deviceId ? { device_id: deviceId } : undefined);
-
-export async function getDevices() {
-  const r = await api('/me/player/devices');
-  return (r && r.devices) || [];
-}
-export const getPlaybackState = () => api('/me/player');
-export const transferPlayback = (deviceId, play = false) =>
-  api('/me/player', { method: 'PUT', body: { device_ids: [deviceId], play } });
-export const playUris = (uris, deviceId) =>
-  api('/me/player/play', { method: 'PUT', query: dq(deviceId), body: { uris } });
-export const playContext = (contextUri, deviceId) =>
-  api('/me/player/play', { method: 'PUT', query: dq(deviceId), body: { context_uri: contextUri } });
-export const resume = (deviceId) => api('/me/player/play', { method: 'PUT', query: dq(deviceId) });
-export const pause = (deviceId) => api('/me/player/pause', { method: 'PUT', query: dq(deviceId) });
-export const next = (deviceId) => api('/me/player/next', { method: 'POST', query: dq(deviceId) });
-export const previous = (deviceId) => api('/me/player/previous', { method: 'POST', query: dq(deviceId) });

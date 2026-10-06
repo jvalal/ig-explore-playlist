@@ -13,5 +13,8 @@ npm install
 npm test            # unit + browser (puppeteer)
 HEADFUL=1 npm run test:browser   # needed to judge autoplay behavior
 ```
+Browser tests drive your installed Google Chrome (override with `CHROME_PATH`).
+
+`legacy/` holds v0.5.0 for reference; it is never loaded.
 
 See `CLAUDE.md` for architecture, constraints, and the current open issue.

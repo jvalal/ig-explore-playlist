@@ -149,17 +149,24 @@
       );
     };
 
+    // Raw samples are only for the debug export, and the bridge keeps just a few.
+    // Copying up to 300 KB through postMessage on every response is wasted work.
+    const MAX_SAMPLES = 5;
+    let samplesSent = 0;
+
     const handle = (url, text, name) => {
       setTimeout(() => {
         try {
           const relevant = IGMP.looksRelevant(text);
           const hits = relevant ? IGMP.extractFromText(text) : [];
+          const withSample = hits.length > 0 && samplesSent < MAX_SAMPLES;
+          if (withSample) samplesSent++;
           send({
             url,
             name: name || null,
             relevant,
             hits,
-            sample: hits.length ? text.slice(0, 300_000) : null,
+            sample: withSample ? text.slice(0, 300_000) : null,
           });
         } catch (err) {
           console.warn('[Explore Finds]', err);

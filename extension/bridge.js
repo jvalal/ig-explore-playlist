@@ -1,4 +1,6 @@
 // Receives captures from inject.js and merges them into extension storage.
+// Captures are batched: at most one storage write every FLUSH_MS, because every write
+// wakes the side panel and the stored tracks object grows with every session.
 (() => {
   // One live bridge per extension instance, even if injected more than once.
   try {
@@ -11,6 +13,7 @@
   const MAX_LOG = 300;
   const MAX_SAMPLES = 5;
   const MAX_POSTS = 20;
+  const FLUSH_MS = 500;
 
   const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -37,11 +40,8 @@
     }
   };
 
-  async function merge(msg) {
-    const store = await chrome.storage.local.get(['tracks', 'log', 'samples']);
-    const tracks = store.tracks || {};
-    const log = store.log || [];
-    const samples = store.samples || [];
+  function apply(store, msg) {
+    const { tracks, log, samples } = store;
     const area = areaOf(msg.page);
 
     for (const h of msg.hits || []) {
@@ -81,9 +81,16 @@
     if (msg.sample && samples.length < MAX_SAMPLES) {
       samples.push({ at: msg.at, page: msg.page, url: msg.url, name: msg.name || null, text: msg.sample });
     }
-
-    await chrome.storage.local.set({ tracks, log, samples });
   }
+
+  // One read and one write for any number of captures.
+  async function mergeBatch(msgs) {
+    const s = await chrome.storage.local.get(['tracks', 'log', 'samples']);
+    const store = { tracks: s.tracks || {}, log: s.log || [], samples: s.samples || [] };
+    for (const m of msgs) apply(store, m);
+    await chrome.storage.local.set(store);
+  }
+  const merge = (msg) => mergeBatch([msg]);
 
   // After the extension is reloaded, this copy of the script can no longer
   // reach storage. It steps aside quietly; background.js injects a fresh one.
@@ -95,20 +102,38 @@
     }
   };
 
+  let queue = [];
+  let timer = null;
   let chain = Promise.resolve();
-  const onMessage = (e) => {
-    if (e.source !== window || !e.data || e.data[TAG] !== true) return;
-    if (!alive()) {
-      window.removeEventListener('message', onMessage);
-      return;
-    }
-    const msg = e.data;
-    chain = chain.then(() => merge(msg)).catch((err) => {
-      if (!alive()) window.removeEventListener('message', onMessage);
+
+  const detach = () => {
+    window.removeEventListener('message', onMessage);
+    clearTimeout(timer);
+    timer = null;
+    queue = [];
+  };
+
+  const flush = () => {
+    timer = null;
+    if (!queue.length) return;
+    if (!alive()) { detach(); return; }
+    const batch = queue;
+    queue = [];
+    chain = chain.then(() => mergeBatch(batch)).catch((err) => {
+      if (!alive()) detach();
       else console.warn('[Explore Finds]', err);
     });
   };
+
+  function onMessage(e) {
+    if (e.source !== window || !e.data || e.data[TAG] !== true) return;
+    if (!alive()) { detach(); return; }
+    queue.push(e.data);
+    if (!timer) timer = setTimeout(flush, FLUSH_MS);
+  }
   window.addEventListener('message', onMessage);
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { merge, trackKey, areaOf };
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { merge, mergeBatch, trackKey, areaOf, flush, FLUSH_MS };
+  }
 })();

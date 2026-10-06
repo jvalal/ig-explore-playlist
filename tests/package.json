@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:unit": "node unit/extract.test.mjs && node unit/inject-realm.test.mjs && node unit/bridge.test.mjs && node unit/css.test.mjs && node unit/regress.test.mjs",
-    "test:browser": "node browser/embed-player.test.js",
-    "test": "npm run test:unit && npm run test:browser"
+    "test:unit": "node run.mjs unit",
+    "test:browser": "node run.mjs browser",
+    "test": "node run.mjs unit browser"
   },
   "devDependencies": {
     "jsdom": "^24.0.0",

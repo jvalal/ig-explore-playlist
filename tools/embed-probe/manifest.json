@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Embed Probe (temporary)",
+  "version": "0.1.0",
+  "description": "Logs every message between a side panel and the Spotify embed. Temporary diagnostic for Explore Finds.",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Open embed probe" },
+  "side_panel": { "default_path": "probe.html" }
+}

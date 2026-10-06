@@ -30,9 +30,7 @@
     </div>
     <div class="setup-body" id="setup-done" hidden>
       <p>Connected as <strong id="sp-user"></strong>.</p>
-      <p id="scope-note" hidden>Reconnect once to turn on one-click play. It lets the panel start songs in your Spotify app.</p>
       <div class="row-actions">
-        <button class="primary" id="reconnect" hidden>Reconnect Spotify</button>
         <button id="disconnect">Disconnect</button>
       </div>
     </div>
@@ -75,11 +73,10 @@
       <label class="field">Playlist name <input id="pl-name"></label>
     </div>
     <div id="build-existing" hidden>
-      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a></p>
+      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="text-btn">Play</button></p>
     </div>
     <div class="row-actions">
       <button class="primary" id="build-btn">Create playlist</button>
-      <button id="pl-play" hidden>Play playlist</button>
       <button id="pl-new" class="quiet" hidden>Start a new playlist</button>
     </div>
     <p class="msg" id="msg" role="status"></p>

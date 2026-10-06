@@ -1,0 +1,57 @@
+// Create the playlist, or add the songs found since the last build.
+import * as S from './spotify.js';
+import { pending, matchOf } from './store.js';
+
+export const defaultName = () => `Explore finds, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+
+// report(text, isError) shows progress. Returns nothing; throws on Spotify errors.
+export async function buildPlaylist({ store, queue, name, report }) {
+  const { st } = store;
+  const todo = pending(st);
+  if (!todo.length) return;
+
+  let i = 0;
+  for (const t of todo) {
+    i++;
+    if (matchOf(st, t)) continue;
+    report(`Finding songs on Spotify, ${i} of ${todo.length}…`);
+    await queue.request(t, { urgent: true });
+  }
+
+  let pl = st.playlist;
+  const have = new Set(pl ? pl.uris : []);
+  const uris = [];
+  const keys = [];
+  let missing = 0;
+  for (const t of todo) {
+    const m = matchOf(st, t);
+    if (m && m.status === 'matched') {
+      keys.push(t.key);
+      if (!have.has(m.uri)) { have.add(m.uri); uris.push(m.uri); }
+    } else missing++;
+  }
+
+  if (!keys.length) {
+    report(`None of those ${missing} songs were found automatically. Use Choose on each to pick them.`, true);
+    return;
+  }
+
+  if (!pl) {
+    report('Creating the playlist…');
+    const finalName = (name || '').trim() || defaultName();
+    const created = await S.createPlaylist(finalName, 'Songs found on Instagram Explore, collected by Explore Finds.');
+    pl = { id: created.id, url: created.url, name: finalName, keys: [], uris: [] };
+    // Saved before adding songs: if adding fails, the next build adds to this playlist
+    // instead of creating a second one.
+    await store.set({ playlist: pl });
+  }
+  if (uris.length) {
+    report('Adding songs to Spotify…');
+    await S.addItems(pl.id, uris);
+  }
+  pl = { ...pl, keys: [...pl.keys, ...keys], uris: [...pl.uris, ...uris] };
+  await store.set({ playlist: pl });
+
+  const added = `Added ${uris.length} ${uris.length === 1 ? 'song' : 'songs'} to "${pl.name}".`;
+  report(missing ? `${added} ${missing} need you to pick them with Choose.` : added);
+}

@@ -6,15 +6,33 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.5.0)
+## Current status (v0.6.0, rebuild)
 
-Working: capture from Explore, list with roll-in animation, Spotify connect (PKCE), background
-matching, manual "Choose" picker for misses, playlist create / add-new-songs, CSV/debug export,
-Clear, auto re-attach to open Instagram tabs after an extension update.
+v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
+it is never loaded and its tests aren't maintained.
 
-**Open problem: the in-panel Play button is temperamental.** Sometimes pressing Play starts the
-song, sometimes the docked player loads but doesn't play. This is the top priority. See
-"Playback" below before touching it.
+Carried over from v0.5.0: capture from Explore, list with roll-in animation, Spotify connect
+(PKCE), background matching, manual "Choose" picker for misses, playlist create / add-new-songs,
+CSV/debug export, Clear, auto re-attach to open Instagram tabs after an extension update.
+
+New in v0.6.0:
+- The player is rebuilt from the observed embed protocol (below).
+- The matcher prefers originals over remix/live versions, rejects karaoke/cover, and no longer
+  matches a one-word title inside a longer one ("Love" ≠ "Love Me Do"). `MATCHER_VERSION` is 3, so
+  older misses are retried.
+- Token refresh is single-flight.
+- The playlist is saved before songs are added, so a failed add can't orphan it.
+- Bridge writes are batched.
+- **Play playlist** is back as a strong text control (`.text-btn`) right after the playlist name.
+  Its label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
+  embed moves through the playlist by itself (Prev/Next are off). Pressing a song's Play takes
+  over.
+
+Verified so far:
+- **Embed protocol:** verified in the user's real Chrome (side panel, logged in) and in headless
+  Chrome.
+- **The v0.6.0 extension:** verified only by the automated tests. Not yet loaded in the user's
+  Chrome as of 2026-10-05.
 
 ## Layout
 
@@ -25,22 +43,31 @@ extension/          the unpacked extension (load this folder in chrome://extensi
                     responses for music, posts results with window.postMessage.
                     MUST stay wrapped in an IIFE: it can be injected twice into one page.
   bridge.js         ISOLATED-world content script. Receives postMessages, merges into
-                    chrome.storage.local. Detaches itself when the extension context dies.
+                    chrome.storage.local (batched, ≤ 1 write / 500 ms). Detaches itself when
+                    the extension context dies.
   background.js     Side panel opens on toolbar click. On install/update, re-injects
                     inject.js + bridge.js into open Instagram tabs.
-  sidepanel.html/css/js   The UI. ES modules.
-  spotify.js        Spotify Web API: PKCE auth via chrome.identity, search + matching,
-                    playlists. Also contains unused Spotify Connect helpers.
-  embed.js          EmbedPlayer: drives the Spotify embed iframe docked at the bottom.
-tests/
-  sim/spotify-sim.mjs     Simulated Spotify Web API (search, playlists, Connect quirks).
-  unit/*.test.mjs         jsdom + vm tests (parser, re-injection, bridge, CSS, panel flows).
-  browser/*.test.js       Real Chrome via puppeteer with a fake Spotify embed (fake-embed.html)
-                          served by request interception.
+  sidepanel.html/css   The panel. sidepanel.js is the controller; it wires these ES modules:
+    store.js        in-memory copy of storage, kept current from onChanged deltas
+    list.js         keyed list render (rows rebuilt only when their content changes)
+    match-queue.js  one matching queue for background prematch, Play and Build
+    build.js        playlist create / add
+    setup.js, exports.js, dom.js
+    playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
+    player.js       drives the embed iframe (protocol below)
+  spotify.js        Spotify Web API: PKCE auth via chrome.identity, search + matching, playlists.
+tests/              npm test = unit + browser. run.mjs fails on any FAIL line or non-zero exit.
+  unit/*.test.mjs   jsdom/vm/node: parser, re-injection, bridge, CSS, matcher, auth, panel
+                    flows, player (replays message sequences from the real-Chrome log).
+  browser/          Real Chrome via puppeteer: layout, and playback against fake-embed.html,
+                    which reproduces the observed protocol. Uses the installed Chrome.
+  sim/              Spotify Web API sim (token, /me, search, playlists) + chrome.storage stub.
+tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/ has the runs.
+legacy/             v0.5.0 extension + tests, reference only.
 ```
 
 Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `matches`, `excluded`,
-`spotify` (clientId + tokens), `playlist`, `playbackDevice` (legacy).
+`spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`
 Spotify Redirect URI: `https://adnfnkniiefhlojabhejngpkefohmnhg.chromiumapp.org/`
@@ -63,48 +90,115 @@ Explore audio was licensed songs.
 - `error=server_error` at /authorize usually means the account isn't in the app's
   User Management list.
 
-## Playback — history and current hypotheses
+## Playback
 
-1. v0.2: Spotify embed iframe. Worked, but the user had to press play inside the embed.
-2. v0.3–v0.4.6: Spotify Connect (play on the desktop app via Web API). Failed repeatedly on the
-   user's Mac: idle device accepted play but didn't start; /me/player reported no active device
-   after a transfer; added wake/escalation/confirmation logic. Still unreliable. Abandoned.
-3. v0.5.0 (current): back to the embed, docked at the bottom. `embed.js` loads
-   `https://open.spotify.com/embed/track/{id}` and sends `postMessage({command:'toggle'})`.
-   `toggle` (and `pause`) are confirmed by Spotify's embed team in their forum. The message
-   shapes we LISTEN for (`{type:'ready'}`, `{type:'playback_update', payload:{isPaused, position,
-   duration}}`) are guesses based on the iFrame API docs and have NOT been verified against the
-   real embed.
+History:
+1. **v0.2:** Spotify embed. It worked, but the user had to press play inside it.
+2. **v0.3–v0.4.6:** Spotify Connect. Never reliable on the user's Mac; abandoned.
+3. **v0.5.0:** the embed again, with a blind `toggle` and guessed message shapes. It was
+   "temperamental". REVIEW.md lists the causes found.
+4. **v0.6.0:** the embed, driven by the protocol below, which was observed rather than guessed.
 
-Ranked hypotheses for "temperamental":
-1. **State desync with a non-idempotent toggle.** If the real embed's messages don't match what
-   embed.js expects, `state.playing` stays false; the next click sends `toggle` again and pauses
-   a song that was actually playing.
-2. **Toggle sent too early.** With no recognized `ready`, embed.js waits iframe `load` + 800ms;
-   the embed may not be ready, so the command is dropped.
-3. **Autoplay policy.** Chrome's transient user activation (~5s) can expire while the iframe
-   reloads for each song. Each song creates a new iframe document.
-4. Commands like `resume`/`play` may exist and be idempotent; unverified.
+### Spotify embed protocol (observed 2026-10-05, Chrome 154)
 
-**Do this first: observe, don't guess.** In the real side panel (right-click inside the panel →
-Inspect), log every message whose origin is `https://open.spotify.com` while (a) pressing play
-inside the embed by hand and (b) pressing our Play button. Write the exact message shapes into
-this file. Then update `tests/browser/fake-embed.html` to match reality before changing code.
+Sources:
+- `tools/embed-probe/logs/2026-10-05-real-chrome-sidepanel.json`: the user's Chrome, inside an
+  extension side panel, logged in to Spotify.
+- `…-headless-logged-out.txt`: headless Chrome, logged out.
 
-Candidate fixes once the protocol is known:
-- Use idempotent commands if they exist; never send `toggle` blind.
-- Keep one persistent embed iframe and switch songs without reloading it (the official iFrame
-  API has `loadUri`; its script is remote, which MV3 extension pages can't load — check whether a
-  sandboxed extension page with a custom sandbox CSP may load it, and whether that is allowed).
-- Heavier but fully controllable: Spotify Web Playback SDK in a sandboxed page (needs the
-  `streaming` scope + Premium; the panel becomes its own Connect device).
+Re-run the probe if anything here stops matching.
+
+Embed URL: `https://open.spotify.com/embed/track/{id}?utm_source=generator`, with iframe
+`allow="autoplay; encrypted-media; …"`. All messages have origin `https://open.spotify.com`.
+
+**From the embed:**
+
+| Message | When |
+|---|---|
+| `{type:'ready'}` | Once per document, ~150–1300 ms after setting `src`. It can arrive before or after the iframe's `load` event. |
+| `{type:'playback_update', payload:{isPaused, isBuffering, duration, position, playingURI}}` | Times are in ms. Sent every ~250 ms in real Chrome (~1 s headless) while playing, and on every change. `duration` wobbles by tens of ms between updates. |
+| `{type:'playback_started', payload:{playingURI}}` | When playback starts from 0:00 (first start, or a restart after the end). Not sent on resume after a pause. |
+
+- **No state messages are sent until something starts playback.** After `ready` the song is
+  loaded and paused at 0:00.
+- **Placeholder update:** the first update after a command can be
+  `{isPaused:false, isBuffering:true, duration:0, position:0, playingURI:''}`. Ignore it.
+- **Stale update:** after `src` changes, the *outgoing* document can still deliver one more
+  `playback_update`, ~250 ms later and before the new `ready`. In real Chrome it passed the
+  `e.source === iframe.contentWindow` check, and when the same song is reloaded it has the same
+  `playingURI`.
+- **Pause:** one trailing update with `isPaused:false`, then about three with `isPaused:true`.
+- **End of a full track (logged in):** a last update with `position == duration` and
+  `isPaused:false`, then about five updates with `isPaused:true, position:0`.
+- **End of a preview (logged out, ~30 s):** a last update at `position == duration`, then nothing.
+- **Pressing play/pause inside the embed** produces the same messages, so our state stays in
+  sync.
+
+**Playlist embed** (`/embed/playlist/{id}`, observed headless, logged out):
+- The same messages, but `playingURI` is the *track* playing, not the playlist.
+- At a track's end it starts the next track itself: a new `playback_started` and new
+  `playingURI`, with no pause in between.
+- `resume` and `pause` behave as for a track.
+
+**Commands (`iframe.contentWindow.postMessage({command}, 'https://open.spotify.com')`):**
+
+| Command | Behaviour |
+|---|---|
+| `resume` | Starts or continues. A no-op while playing (nothing is sent back). After the end it restarts from 0:00. |
+| `pause` | Pauses. A no-op while paused, and nothing is sent back. |
+| `play` | **Restarts at 0:00.** Don't use it to continue. |
+| `toggle` | Flips. Don't use it: it isn't idempotent. |
+| `loadUri`, `seek {timestamp}` | Ignored, so changing songs means reloading the iframe. |
+| Anything sent as a JSON string | Ignored. |
+| Anything sent before the new document's `ready` | Lost. |
+
+**Autoplay (user's Chrome, side panel, logged in):** `resume` started audio with sound in every
+case tried:
+- right after a click
+- 8 s after the last click, with no user activation (`navigator.userActivation.isActive` was false)
+- in a freshly loaded iframe 8 s after load, with no click
+
+So auto-advance and Next don't need a fresh click there. This has not been verified on a fresh
+profile or a logged-out Spotify session. The player still reports `blocked` if starting fails.
+
+### How player.js uses it
+- One iframe, reloaded for each song.
+- Ignore everything before this document's `ready`, then only updates whose `playingURI` is the
+  loaded song.
+- Send only `resume` and `pause`, and only when the reported state says it's needed. Play =
+  load if needed → wait for `ready` → `resume` → wait up to 5 s for `isPaused:false`, else
+  `blocked` (the panel says "Press play in the player once").
+- Playlist mode (`play(id, 'playlist')`): any `spotify:track:` URI counts as ours, and "ended"
+  is never detected (the embed advances by itself). `state.nowPlaying` holds the reported track.
+- End = paused at 0 right after being within 2 s of the end, or no updates for 2.5 s after
+  `position == duration`. Then the next song in list order starts.
+- The panel re-renders only on a status or song change, never on position updates (see
+  "Things that broke before").
+
+### Fallback: Web Playback SDK (not built)
+If the embed ever stops working, the alternative is the Web Playback SDK. It runs in a sandboxed
+extension page, needs the `streaming` scope (re-consent) and Premium, and makes the panel its
+own Spotify Connect device. That gives full control and real state events, but it's a much
+larger build, adds an extra OAuth scope, and depends on Spotify allowing the SDK inside an
+extension sandbox. That last point is unverified.
 
 ## Testing rules (learned the hard way)
 
-- Run `cd tests && npm install && npm test`. Browser tests use full puppeteer by default.
+- Run `cd tests && npm install && npm test`.
+- **Browser tests use the installed Google Chrome** (`CHROME_PATH`, default
+  `/Applications/Google Chrome.app/...`). Puppeteer's bundled Chrome fails macOS code-signature
+  checks on this Mac (it's killed on launch), probably because npm 12 doesn't run install scripts.
 - **Headless Chrome does not enforce the autoplay policy** (verified: audio plays without any
   click under every flag). Autoplay can only be judged with `HEADFUL=1` or in the real extension.
-- jsdom does no layout: anything about visibility/scroll must be checked in the browser tests.
+- jsdom does no layout: anything about visibility, scroll or overlap must be checked in the
+  browser tests. The docked player covers the rows behind it, so scroll a row into view before
+  clicking it in a test.
+- **The fake embed must match the real one.** It's built from the probe logs. If the real
+  protocol changes, re-run `tools/embed-probe`, update the protocol section above, then the fake.
+  Some real behaviour can't be reproduced in puppeteer (a stale message passing the
+  `e.source` check). `tests/unit/player.test.mjs` replays those sequences instead.
+- Plant the bug: a new test should fail when the behaviour it guards is broken on purpose
+  (done for toggle, stale messages, the URI filter, end detection and the swallowed clicks).
 - Real Spotify is never reached by tests. A fix is not "done" until it's verified in the real
   extension on the user's Mac. Say plainly what was and wasn't verified.
 
@@ -117,7 +211,17 @@ Candidate fixes once the protocol is known:
 - Loading the extension from a new folder used to change its ID and wipe storage → the manifest
   `key` fixes this. Removing the extension in Chrome still deletes its storage.
 - Matcher accepted "Song 1" for "Song 10" and "Future Islands" for "Future" → whole-word
-  matching only.
+  matching only. It also accepted "Love Me Do" for "Love" → a contained title needs ≥ 2 words and at
+  least half the longer title.
+- Clicks on Play were lost while a song played. The whole list re-rendered on every position
+  report (~4/s), replacing the buttons between mousedown and mouseup → render only on a
+  status/song change, and update row buttons in place (list.js).
+- Blind `toggle` with guessed state paused songs that were playing → resume/pause only,
+  driven by reported state.
+- Stale embed messages were taken as current (same `contentWindow` across navigations) → ready
+  gate + `playingURI` filter.
+- Auto-advance waited for `isPaused:true` at the end, which a preview never sends → see the
+  end rule in "How player.js uses it".
 
 ## Conventions
 
