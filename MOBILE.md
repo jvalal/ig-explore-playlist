@@ -77,6 +77,11 @@ Verified without Xcode:
 - The popup page passes the desktop layout and playback tests in Chrome.
 - At iPhone width (390 px) the popup has no sideways scroll.
 
+Phone preview, no Xcode needed: `node tools/preview-server.mjs` serves the popup page on your
+Wi-Fi with sample songs (tools/preview-stub.js stands in for the extension APIs). It shows the real
+layout and the real Spotify player on the phone, as an ordinary web page. There's no capture and
+no login.
+
 Needs Xcode (then `tools/ios-sim.sh` builds and installs it in the iPhone Simulator):
 1. Enable it: Simulator → Settings → Apps → Safari → Extensions → Explore Finds → on. Allow it
    on instagram.com, accounts.spotify.com and 127.0.0.1.
