@@ -55,7 +55,8 @@
       }
     }
 
-    function extract(root) {
+    // codes (optional Set): collects the shortcode of every post seen, with or without music.
+    function extract(root, codes) {
       const hits = [];
       const seen = new Set();
       const stack = [{ node: root, media: null, depth: 0 }];
@@ -76,6 +77,7 @@
             product_type: str(node.product_type),
             owner: str(node.user && node.user.username) || str(node.owner && node.owner.username),
           };
+          if (codes) codes.add(node.code);
         }
 
         const add = (h) => {
@@ -117,9 +119,9 @@
       return hits;
     }
 
-    function extractFromText(text) {
+    function extractFromText(text, codes) {
       let hits = [];
-      for (const obj of parseLoose(text)) hits = hits.concat(extract(obj));
+      for (const obj of parseLoose(text)) hits = hits.concat(extract(obj, codes));
       return hits;
     }
 
@@ -206,12 +208,13 @@
       setTimeout(() => {
         try {
           const relevant = IGMP.looksRelevant(text);
-          const hits = relevant ? IGMP.extractFromText(text) : [];
+          const codes = new Set();
+          const hits = relevant ? IGMP.extractFromText(text, codes) : [];
           const withSample = relevant && samplesSent < MAX_SAMPLES;
           if (withSample) samplesSent++;
           let sample = null;
           if (withSample) sample = hits.length ? text.slice(0, 300_000) : IGMP.diagnose(text).slice(0, 20_000);
-          send(at, { url, name: name || null, relevant, hits, sample });
+          send(at, { url, name: name || null, relevant, hits, posts: [...codes].slice(0, 500), sample });
         } catch (err) {
           console.warn('[Explore Finds]', err);
         }

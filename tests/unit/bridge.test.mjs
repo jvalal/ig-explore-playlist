@@ -74,6 +74,15 @@ function loadBridge() {
   check('a post loaded directly is not kept', !b.store.tracks['song|direct|x']);
   check('the log counts songs separately from original audio', b.store.log.every((l) => typeof l.songs === 'number'));
   check('the log records where a post was opened from', b.store.log.some((l) => l.via === '/explore/' && l.area === 'explore'));
+  const withPosts = b.msg('Seen', '/explore/');
+  withPosts.data.posts = ['Q1', 'Q2', 'Seen'];
+  b.send(withPosts);
+  const homePosts = b.msg('Ignored', '/'); homePosts.data.posts = ['H1'];
+  b.send(homePosts);
+  await tick(600);
+  check('Explore posts checked are recorded once each; other pages are not',
+    ['Q1', 'Q2', 'Seen', 'One'].every((c) => b.store.seen.includes(c)) && !b.store.seen.includes('H1') &&
+    new Set(b.store.seen).size === b.store.seen.length, JSON.stringify(b.store.seen));
   const before = b.sets();
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });

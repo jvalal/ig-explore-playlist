@@ -1,12 +1,13 @@
 // The panel's copy of chrome.storage.local. Loaded once, then kept current from
 // storage.onChanged deltas (only the keys that changed), instead of re-reading everything
 // on every capture the bridge writes.
-export const KEYS = ['tracks', 'log', 'samples', 'matches', 'excluded', 'spotify', 'playlist'];
+export const KEYS = ['tracks', 'log', 'samples', 'seen', 'matches', 'excluded', 'spotify', 'playlist'];
 
 const DEFAULTS = {
   tracks: () => ({}),
   log: () => [],
   samples: () => [],
+  seen: () => [],
   matches: () => ({}),
   excluded: () => ({}),
   spotify: () => ({}),

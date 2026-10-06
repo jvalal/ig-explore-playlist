@@ -32,9 +32,15 @@ await external({ log: [
   { at: Date.now(), page: '/explore/', area: 'explore', relevant: false, hits: 0 },
 ] });
 await tick(50);
-check('status: Explore responses only, and the same song count as the list',
-  $('#status').textContent.startsWith(`3 Explore responses checked, ${rows().length} songs found.`) && $('#n-song').textContent === `${rows().length} songs`,
+check('status: posts behind the listed songs count as checked; songs match the list',
+  $('#status').textContent.startsWith(`${rows().length} Explore posts checked, ${rows().length} songs found.`) && $('#n-song').textContent === `${rows().length} songs`,
   `${$('#status').textContent} / ${$('#n-song').textContent}`);
+// Real case: "12 Explore responses checked, 22 songs found". Posts without music count too.
+await external({ seen: ['k1', 'k2', 'x1', 'x2', 'x3', 'x4', 'x5'] });
+await tick(50);
+const shown = $('#status').textContent.match(/^(\d+) Explore posts checked, (\d+) songs found/);
+check('posts checked counts posts without music too, and is never below songs found',
+  shown && Number(shown[1]) === rows().length + 5 && Number(shown[1]) >= Number(shown[2]), $('#status').textContent);
 const manifestVersion = JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')).version;
 check('version label shows the manifest version', $('#version').textContent === `Version ${manifestVersion}`, $('#version').textContent);
 

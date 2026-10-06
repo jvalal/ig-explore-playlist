@@ -185,15 +185,17 @@ function renderBuild() {
 }
 
 function renderStatus() {
-  // The song number is the list's own count, so the two always agree (one response can
-  // carry several songs, so counting responses with songs didn't match the list).
+  // Posts, not responses: one response carries many posts. Posts behind listed songs count
+  // too (finds saved before v0.6.11 have no `seen` entries), so posts ≥ songs.
   const log = (st.log || []).filter((l) => l.area === 'explore');
-  if (!log.length) $('#status').textContent = 'Waiting for Instagram Explore';
-  else {
-    const n = list(st, 'song').length;
-    $('#status').textContent = `${log.length} Explore responses checked, ${n} ${n === 1 ? 'song' : 'songs'} found. ` +
-      `Last ${ago(log[log.length - 1].at)}.`;
-  }
+  const songs = list(st, 'song');
+  if (!log.length && !songs.length) { $('#status').textContent = 'Waiting for Instagram Explore'; return; }
+  const posts = new Set(st.seen || []);
+  for (const t of songs) for (const p of t.posts || []) posts.add(p.code);
+  const n = songs.length;
+  const last = log.length ? ` Last ${ago(log[log.length - 1].at)}.` : '';
+  $('#status').textContent = `${posts.size} Explore ${posts.size === 1 ? 'post' : 'posts'} checked, ` +
+    `${n} ${n === 1 ? 'song' : 'songs'} found.${last}`;
 }
 
 let renderQueued = false;
@@ -289,7 +291,7 @@ $('#clear').addEventListener('click', async (e) => {
   stopPlayback();
   ui.picker = { key: null, items: null };
   resetList(); // songs captured after this roll in
-  await store.remove(['tracks', 'log', 'samples', 'matches', 'excluded']);
+  await store.remove(['tracks', 'log', 'samples', 'seen', 'matches', 'excluded']);
   setMsg('Cleared. Your Spotify connection and playlist are kept.');
 });
 

@@ -135,6 +135,9 @@ const songJson = (title) => ({ items: [{ code: 'P1', media_type: 2, music_asset_
   check('songs in JSON-inside-a-string are found', r.map((h) => h.title).join('|') === "Bohemian Rhapsody|Ain't No Mountain High Enough" ||
     r.map((h) => h.title).sort().join('|') === "Ain't No Mountain High Enough|Bohemian Rhapsody", JSON.stringify(r.map((h) => h.title)));
   check('...each with its post', r.every((h) => h.post && /^A[12]$/.test(h.post.code)), JSON.stringify(r.map((h) => h.post)));
+  const codes = new Set();
+  IGMP.extractFromText(JSON.stringify({ items: [media('B1', 'S', 'A'), { code: 'B2', media_type: 1 }, { code: 'B3', product_type: 'clips' }] }), codes);
+  check('every post seen is collected, with or without music', [...codes].sort().join(',') === 'B1,B2,B3', [...codes].join(','));
   check('a plain string that merely mentions display_artist is left alone', IGMP.extractFromText(JSON.stringify({ q: 'fields: title, display_artist' })).length === 0);
 }
 

@@ -11,6 +11,7 @@
   }
   const TAG = '__igMusicProbe';
   const MAX_LOG = 300;
+  const MAX_SEEN = 20000; // shortcodes of Explore posts checked, for the panel's count
   const MAX_SAMPLES = 5;
   const MAX_POSTS = 20;
   const FLUSH_MS = 500;
@@ -51,6 +52,13 @@
     const { tracks, log, samples } = store;
     const area = areaOf(msg.page, msg.name, msg.url, msg.via);
 
+    // Every Explore post looked at, with or without music (posts with songs included).
+    if (area === 'explore') {
+      const codes = [...(msg.posts || []), ...(msg.hits || []).map((h) => h.post && h.post.code)];
+      for (const c of codes) if (c && !store.seenSet.has(c)) { store.seenSet.add(c); store.seen.push(c); }
+      if (store.seen.length > MAX_SEEN) store.seen.splice(0, store.seen.length - MAX_SEEN);
+    }
+
     // Explore finds only. Capture runs on every instagram.com page, and the Explore page also
     // loads the home feed; those responses are logged but their songs aren't kept.
     for (const h of area === 'explore' ? msg.hits || [] : []) {
@@ -86,6 +94,7 @@
       relevant: !!msg.relevant,
       hits: (msg.hits || []).length,
       songs: (msg.hits || []).filter((h) => h.kind === 'song').length,
+      posts: (msg.posts || []).length,
     });
     if (log.length > MAX_LOG) log.splice(0, log.length - MAX_LOG);
 
@@ -96,10 +105,12 @@
 
   // One read and one write for any number of captures.
   async function mergeBatch(msgs) {
-    const s = await chrome.storage.local.get(['tracks', 'log', 'samples']);
-    const store = { tracks: s.tracks || {}, log: s.log || [], samples: s.samples || [] };
+    const s = await chrome.storage.local.get(['tracks', 'log', 'samples', 'seen']);
+    const seen = s.seen || [];
+    const store = { tracks: s.tracks || {}, log: s.log || [], samples: s.samples || [], seen, seenSet: new Set(seen) };
     for (const m of msgs) apply(store, m);
-    await chrome.storage.local.set(store);
+    const { seenSet, ...out } = store;
+    await chrome.storage.local.set(out);
   }
   const merge = (msg) => mergeBatch([msg]);
 

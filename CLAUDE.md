@@ -30,9 +30,12 @@ New in v0.6.0:
   stored and included in the CSV.
 - "Debug data" is a small muted link next to the version, no longer a button.
 - Explore only: songs from the home feed, Reels and other pages are no longer kept or listed.
-- The status line counts only Explore responses, and its song number is the list's count ("N
-  Explore responses checked, M songs found"). Log entries carry `songs` (song hits) next to
-  `hits` (all audio), for the debug export.
+- The status line reads "N Explore posts checked, M songs found". M is the list's own count. N is
+  distinct Explore post shortcodes: inject.js collects every post code it walks (`posts` on the
+  message), the bridge keeps them in storage key `seen` (Explore only, ≤ 20 000, cleared by Clear),
+  and the panel adds the posts behind listed songs, so N ≥ M. Responses without music keywords
+  aren't parsed, so their posts aren't counted. Log entries carry `songs`, `hits` and `posts`
+  counts for the debug export.
 - **Play playlist** is back as an understated pill button with a play/pause icon (`.pill`), a little
   to the right of the playlist name. It plays the playlist built by this panel in Spotify. Its
   label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
@@ -78,7 +81,7 @@ tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/
 legacy/             v0.5.0 extension + tests, reference only.
 ```
 
-Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `matches`, `excluded`,
+Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `matches`, `excluded`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`
