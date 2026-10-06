@@ -54,6 +54,20 @@ New in v0.7.0 (2026-10-05, built overnight, **not yet tried in the user's Chrome
   auto-add in flight, so nothing is added twice.
 - Both settings live in storage key `prefs` ({goal, autoSync}), which Clear keeps.
 
+New in v0.7.1: **Spotify setup helper** (spotify-dashboard.js, content script on
+developer.spotify.com/dashboard*). It's the main step in bring-your-own-Client-ID setup, the way
+around Spotify's 5-users-per-Client-ID cap.
+- On *Create app* it fills empty fields: name, description, Redirect URI (via Spotify's own Add
+  button) and the Web API box. It **never ticks Spotify's terms and never clicks Save**: accepting
+  the terms is the person's own act.
+- On an app page, `/dashboard/{32-hex Client ID}` (read from the URL, not the page), it offers
+  "Use this app", which saves the Client ID like the panel's Save.
+- Field ids come from the live page on 2026-10-06 (`#name`, `#description`, `#newRedirectUri`,
+  `button[aria-label="Add redirect URI"]`, checkbox labelled "Web API", `#termsAccepted`).
+  Verified once on the real page via Claude in Chrome: React accepted the values and the URI
+  was listed. The form was not saved. If Spotify changes the page, the helper says it couldn't
+  fill the form, and the manual steps in the panel still apply.
+
 Verified so far:
 - **Embed protocol:** verified in the user's real Chrome (side panel, logged in) and in headless
   Chrome.
@@ -84,6 +98,7 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
     player.js       drives the embed iframe (protocol below)
   spotify.js        Spotify Web API: PKCE auth via chrome.identity, search + matching, playlists.
+  spotify-dashboard.js  Content script on developer.spotify.com/dashboard*: setup helper.
 tests/              npm test = unit + browser. run.mjs fails on any FAIL line or non-zero exit.
   unit/*.test.mjs   jsdom/vm/node: parser, re-injection, bridge, CSS, matcher, auth, panel
                     flows, player (replays message sequences from the real-Chrome log).
