@@ -269,7 +269,7 @@ wireSetup({
 
 $('#dl-csv').addEventListener('click', () => downloadCsv(st));
 $('#dl-json').addEventListener('click', () =>
-  downloadDebug(st, { playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog }));
+  downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog }));
 
 let armTimer = null;
 $('#clear').addEventListener('click', async (e) => {

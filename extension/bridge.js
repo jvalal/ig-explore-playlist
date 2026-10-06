@@ -27,12 +27,13 @@
   // under xdt_api__v1__feed__timeline__connection), so the same home-feed posts were being
   // counted as Explore on every refresh (seen in a debug export, 2026-10-05).
   const HOME_FEED = /FeedTimeline|feed__timeline|\/feed\/timeline/i;
-  const areaOf = (path, name, url) => {
+  // A post opened from the Explore grid (URL /p/… or /reel/…, `via` /explore…) is Explore.
+  const areaOf = (path, name, url, via) => {
     if (HOME_FEED.test(name || '') || HOME_FEED.test(url || '')) return 'home';
     if (!path) return 'other';
     if (path.startsWith('/explore')) return 'explore';
     if (path.startsWith('/reels')) return 'reels';
-    if (path.startsWith('/reel/') || path.startsWith('/p/')) return 'post';
+    if (path.startsWith('/reel/') || path.startsWith('/p/')) return via && via.startsWith('/explore') ? 'explore' : 'post';
     if (path === '/') return 'home';
     return 'other';
   };
@@ -48,7 +49,7 @@
 
   function apply(store, msg) {
     const { tracks, log, samples } = store;
-    const area = areaOf(msg.page, msg.name, msg.url);
+    const area = areaOf(msg.page, msg.name, msg.url, msg.via);
 
     // Explore finds only. Capture runs on every instagram.com page, and the Explore page also
     // loads the home feed; those responses are logged but their songs aren't kept.
@@ -78,6 +79,7 @@
     log.push({
       at: msg.at,
       page: msg.page,
+      via: msg.via || null,
       area,
       url: shortUrl(msg.url),
       name: msg.name || null,

@@ -57,10 +57,21 @@ function loadBridge() {
   check('home-feed response on the Explore page is not kept as a find', !b.store.tracks['song|friend|x'], JSON.stringify(b.store.tracks['song|friend|x']));
   check('home-feed REST endpoint is not kept either', !b.store.tracks['song|friend2|x']);
   check('both are logged as home', b.store.log.filter((l) => l.area === 'home').length === 2);
+
+  // Real case (export 2026-10-05): posts opened from the Explore grid have URL /p/… .
+  const opened = (title, page, via) => { const m = b.msg(title, page); m.data.via = via; return m; };
+  b.send(opened('From Explore', '/p/DeC17p2CNcH/', '/explore/'));
+  b.send(opened('From Home', '/p/DeIlg59mkaz/', '/'));
+  b.send(opened('Direct', '/reel/Dd_9_UGOyE7/', null));
+  await tick(600);
+  check('a post opened from Explore is kept as an Explore find', JSON.stringify((b.store.tracks['song|from explore|x'] || {}).areas) === '{"explore":1}');
+  check('a post opened from the home feed is not kept', !b.store.tracks['song|from home|x']);
+  check('a post loaded directly is not kept', !b.store.tracks['song|direct|x']);
+  check('the log records where a post was opened from', b.store.log.some((l) => l.via === '/explore/' && l.area === 'explore'));
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });
   await tick(600);
-  check('messages from other sources or without the tag are ignored', b.sets() === 2);
+  check('messages from other sources or without the tag are ignored', b.sets() === 3);
 
   delete b.runtime.id; // extension reloaded underneath this tab
   b.send(b.msg('After Reload'));

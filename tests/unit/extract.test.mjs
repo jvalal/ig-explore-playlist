@@ -73,6 +73,27 @@ function makePage({ embedded = [] } = {}) {
 const songJson = (title) => ({ items: [{ code: 'P1', media_type: 2, music_asset_info: { title, display_artist: 'Artist' } }] });
 
 {
+  // Opening a post changes the URL to /p/…; each capture says which page it was opened from.
+  const { page, posted } = makePage();
+  const xhrAt = (path, title) => {
+    page.location.pathname = path;
+    const x = new page.XMLHttpRequest();
+    x.open('GET', 'https://www.instagram.com/api/v1/media/1/info/');
+    x.send(null);
+    x.finish('json', songJson(title));
+  };
+  xhrAt('/p/AAA/', 'Opened from Explore');
+  xhrAt('/reel/BBB/', 'Next post in the same modal');
+  xhrAt('/', 'Home feed');
+  xhrAt('/p/CCC/', 'Opened from Home');
+  await tick(20);
+  const via = Object.fromEntries(posted.map((m) => [m.hits[0].title, `${m.page} via ${m.via}`]));
+  check('a post opened from Explore reports via /explore/', via['Opened from Explore'] === '/p/AAA/ via /explore/', JSON.stringify(via));
+  check('moving to the next post keeps via /explore/', via['Next post in the same modal'] === '/reel/BBB/ via /explore/');
+  check('a post opened from Home reports via /', via['Opened from Home'] === '/p/CCC/ via /');
+}
+
+{
   const { page, posted } = makePage();
   const x = new page.XMLHttpRequest();
   x.open('POST', 'https://www.instagram.com/api/v1/discover/web/explore_grid/');

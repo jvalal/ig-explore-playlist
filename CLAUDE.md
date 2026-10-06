@@ -96,8 +96,15 @@ There is no "Only from Explore" checkbox any more.
 The grid responses fetched while scrolling Explore carry the music, so nothing has to be opened
 (the user's experience with earlier builds, 2026-10-05). The first screen of the grid arrives in
 the page HTML (`#embedded`); in two exports it held the music keywords but yielded no songs, so
-captures start once scrolling fetches more. Songs seen in a post opened from the grid (`/p/…`,
-`/reel/…`, area `post`) are not kept. First real session: ~25% of
+captures start once scrolling fetches more. Opening a post from the grid changes the URL to `/p/…` or `/reel/…`. Since v0.6.6 inject.js
+sends `via`, the last non-post page, so a post opened from Explore counts as `explore`. One
+opened from Home or a profile, or loaded directly (`via` null), is `post` and isn't kept. `page` and
+`via` are recorded when the request is made, not when the response is parsed. Before v0.6.6 a
+slow response could be labelled with the page the person had moved on to.
+
+The debug export includes the extension `version`. When a response mentions music fields but
+yields no songs, its sample holds short excerpts around those fields (`[no songs extracted]`)
+instead of raw text. First real session: ~25% of
 Explore audio was licensed songs.
 
 ## Spotify constraints (verified Oct 2026, re-check if something breaks)

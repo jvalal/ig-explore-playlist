@@ -161,11 +161,25 @@
       return null;
     };
 
-    const send = (payload) => {
-      window.postMessage(
-        { [IGMP.TAG]: true, page: location.pathname, at: Date.now(), ...payload },
-        location.origin
-      );
+    // Opening a post from a grid changes the URL to /p/… or /reel/… while the grid stays
+    // underneath. `via` is the last page that wasn't a single post, so the bridge can tell a
+    // post opened from Explore from one opened elsewhere (or loaded directly: via null).
+    const isPostPath = (p) => p.startsWith('/p/') || p.startsWith('/reel/');
+    let lastBrowse = isPostPath(location.pathname) ? null : location.pathname;
+    const noteLocation = () => {
+      const p = location.pathname;
+      if (!isPostPath(p)) lastBrowse = p;
+    };
+    window.addEventListener('popstate', noteLocation);
+    // Taken when the request is made: by the time the response is parsed the person may have
+    // moved on to another page.
+    const where = () => {
+      noteLocation();
+      return { page: location.pathname, via: lastBrowse };
+    };
+
+    const send = (at, payload) => {
+      window.postMessage({ [IGMP.TAG]: true, ...at, at: Date.now(), ...payload }, location.origin);
     };
 
     // Raw samples are only for the debug export, and the bridge keeps just a few.
@@ -173,7 +187,7 @@
     const MAX_SAMPLES = 5;
     let samplesSent = 0;
 
-    const handle = (url, text, name) => {
+    const handle = (url, text, name, at) => {
       setTimeout(() => {
         try {
           const relevant = IGMP.looksRelevant(text);
@@ -182,7 +196,7 @@
           if (withSample) samplesSent++;
           let sample = null;
           if (withSample) sample = hits.length ? text.slice(0, 300_000) : IGMP.diagnose(text).slice(0, 20_000);
-          send({ url, name: name || null, relevant, hits, sample });
+          send(at, { url, name: name || null, relevant, hits, sample });
         } catch (err) {
           console.warn('[Explore Finds]', err);
         }
@@ -193,11 +207,12 @@
     window.fetch = function (input, init) {
       const p = origFetch.apply(this, arguments);
       try {
+        const at = where();
         const reqUrl = typeof input === 'string' ? input : (input && input.url) || String(input);
         if (shouldInspect(reqUrl)) {
           const name = friendlyName(init && init.body);
           p.then((res) => res.clone().text())
-            .then((t) => handle(reqUrl, t, name))
+            .then((t) => handle(reqUrl, t, name, at))
             .catch(() => {});
         }
       } catch (_) {}
@@ -212,6 +227,7 @@
     };
     XMLHttpRequest.prototype.send = function (body) {
       try {
+        const at = where();
         const url = this.__igmpUrl && String(this.__igmpUrl);
         if (url && shouldInspect(url)) {
           const name = friendlyName(body);
@@ -220,7 +236,7 @@
               let text = null;
               if (this.responseType === '' || this.responseType === 'text') text = this.responseText;
               else if (this.responseType === 'json' && this.response) text = JSON.stringify(this.response);
-              if (text) handle(url, text, name);
+              if (text) handle(url, text, name, at);
             } catch (_) {}
           });
         }
@@ -234,7 +250,7 @@
         if (s.__igmpDone) return;
         s.__igmpDone = true;
         const t = s.textContent;
-        if (IGMP.looksRelevant(t)) handle(location.href + '#embedded', t, 'embedded-html');
+        if (IGMP.looksRelevant(t)) handle(location.href + '#embedded', t, 'embedded-html', where());
       });
     };
     document.addEventListener('DOMContentLoaded', scanEmbedded);
