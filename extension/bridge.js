@@ -85,6 +85,7 @@
       name: msg.name || null,
       relevant: !!msg.relevant,
       hits: (msg.hits || []).length,
+      songs: (msg.hits || []).filter((h) => h.kind === 'song').length,
     });
     if (log.length > MAX_LOG) log.splice(0, log.length - MAX_LOG);
 

@@ -185,12 +185,14 @@ function renderBuild() {
 }
 
 function renderStatus() {
-  const log = st.log || [];
-  if (!log.length) $('#status').textContent = 'Waiting for Instagram';
+  // Counts only what the list can show: Explore responses, and songs (not original audio).
+  // Entries logged before v0.6.7 have no `songs` count; their `hits` stands in.
+  const log = (st.log || []).filter((l) => l.area === 'explore');
+  if (!log.length) $('#status').textContent = 'Waiting for Instagram Explore';
   else {
-    const withHits = log.filter((l) => l.hits > 0).length;
+    const withSongs = log.filter((l) => (l.songs ?? l.hits) > 0).length;
     $('#status').textContent =
-      `${log.length} responses checked, ${withHits} had music. Last ${ago(log[log.length - 1].at)}.`;
+      `${log.length} Explore responses checked, ${withSongs} had songs. Last ${ago(log[log.length - 1].at)}.`;
   }
 }
 

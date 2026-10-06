@@ -27,6 +27,8 @@ New in v0.6.0:
   stored and included in the CSV.
 - "Debug data" is a small muted link next to the version, no longer a button.
 - Explore only: songs from the home feed, Reels and other pages are no longer kept or listed.
+- The status line counts only Explore responses and those with songs ("N Explore responses
+  checked, M had songs"). Log entries carry `songs` (song hits) next to `hits` (all audio).
 - **Play playlist** is back as an understated pill button with a play/pause icon (`.pill`), a little
   to the right of the playlist name. It plays the playlist built by this panel in Spotify. Its
   label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the

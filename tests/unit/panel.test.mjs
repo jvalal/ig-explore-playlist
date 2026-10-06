@@ -24,6 +24,15 @@ await tick(100);
 const titles = rows().map((li) => li.querySelector('.title').textContent + (li.classList.contains('enter') ? '*' : ''));
 check('a song captured only outside Explore is not listed', !rowBy("You've Got a Friend in Me") && $('#n-song').textContent === '3 songs', $('#n-song').textContent);
 check('new songs roll in at the top, existing row not re-animated', JSON.stringify(titles) === '["Mystery Tune*","Song B*","Song A"]', JSON.stringify(titles));
+// Status counts only what the list can show (real case: "3 had music", 1 song listed).
+await external({ log: [
+  { at: Date.now(), page: '/explore/', area: 'home', name: 'PolarisFeedTimelineRootV2Query', relevant: true, hits: 2, songs: 1 },
+  { at: Date.now(), page: '/explore/', area: 'explore', relevant: true, hits: 1, songs: 0 },
+  { at: Date.now(), page: '/p/X/', via: '/explore/', area: 'explore', relevant: true, hits: 1, songs: 1 },
+  { at: Date.now(), page: '/explore/', area: 'explore', relevant: false, hits: 0 },
+] });
+await tick(50);
+check('status counts Explore responses and songs only', $('#status').textContent.startsWith('3 Explore responses checked, 1 had songs.'), $('#status').textContent);
 const manifestVersion = JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')).version;
 check('version label shows the manifest version', $('#version').textContent === `Version ${manifestVersion}`, $('#version').textContent);
 

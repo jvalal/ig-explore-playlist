@@ -67,6 +67,7 @@ function loadBridge() {
   check('a post opened from Explore is kept as an Explore find', JSON.stringify((b.store.tracks['song|from explore|x'] || {}).areas) === '{"explore":1}');
   check('a post opened from the home feed is not kept', !b.store.tracks['song|from home|x']);
   check('a post loaded directly is not kept', !b.store.tracks['song|direct|x']);
+  check('the log counts songs separately from original audio', b.store.log.every((l) => typeof l.songs === 'number'));
   check('the log records where a post was opened from', b.store.log.some((l) => l.via === '/explore/' && l.area === 'explore'));
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });
