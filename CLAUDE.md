@@ -82,7 +82,12 @@ The Spotify Client ID lives in the user's extension storage, not in code.
 Instagram's web app already fetches post data while the user scrolls. inject.js reads those
 responses (no requests of its own, no credentials). Signals: any object with `title` +
 `display_artist` = licensed song; any non-null `original_sound_info` = creator audio. The nearest
-ancestor with `code` + `media_type`/`product_type` is the post. First real session: ~25% of
+ancestor with `code` + `media_type`/`product_type` is the post.
+
+Areas (explore / home / reels / post / other) come from the page path, **except** that a
+home-feed response is always `home`: the Explore page also fetches the first page of the home
+feed (`PolarisFeedTimelineRootV2Query`, `xdt_api__v1__feed__timeline__connection`), including
+suggested reels (`explore_story`). Before v0.6.3 those were counted as Explore on every refresh. First real session: ~25% of
 Explore audio was licensed songs.
 
 ## Spotify constraints (verified Oct 2026, re-check if something breaks)

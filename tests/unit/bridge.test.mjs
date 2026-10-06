@@ -46,10 +46,22 @@ function loadBridge() {
   check('every capture in the burst was merged', Object.keys(b.store.tracks || {}).length === 3 && b.store.log.length === 4);
   check('a repeat capture counts toward its area', b.store.tracks['song|one|x'].areas.explore === 2);
   check('captures on Reels are tagged as reels', b.store.tracks['song|three|x'].areas.reels === 1);
+  // Real case: on /explore/, Instagram also loads the home feed; that is not an Explore find.
+  const home = b.msg('Friend', '/explore/');
+  home.data.name = 'PolarisFeedTimelineRootV2Query';
+  b.send(home);
+  const home2 = b.msg('Friend2', '/explore/');
+  home2.data.url = 'https://www.instagram.com/api/v1/feed/timeline/';
+  b.send(home2);
+  await tick(600);
+  check('home-feed response on the Explore page is tagged home, not explore',
+    JSON.stringify(b.store.tracks['song|friend|x'].areas) === '{"home":1}', JSON.stringify(b.store.tracks['song|friend|x'].areas));
+  check('home-feed REST endpoint is tagged home too', JSON.stringify(b.store.tracks['song|friend2|x'].areas) === '{"home":1}');
+  check('the log records the corrected area', b.store.log.filter((l) => l.area === 'home').length === 2);
   b.send({ source: {}, data: { __igMusicProbe: true } });
   b.send({ source: b.msg('x').source, data: { other: true } });
   await tick(600);
-  check('messages from other sources or without the tag are ignored', b.sets() === 1);
+  check('messages from other sources or without the tag are ignored', b.sets() === 2);
 
   delete b.runtime.id; // extension reloaded underneath this tab
   b.send(b.msg('After Reload'));

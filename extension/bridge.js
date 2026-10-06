@@ -22,7 +22,13 @@
       ? `song|${norm(h.title)}|${norm(h.artist)}`
       : `orig|${h.audio_id || `${norm(h.title)}|${norm(h.artist)}`}`;
 
-  const areaOf = (path) => {
+  // Where a capture came from. The request itself wins over the page: Instagram's Explore
+  // page also fetches the first page of the home feed (PolarisFeedTimelineRootV2Query, data
+  // under xdt_api__v1__feed__timeline__connection), so the same home-feed posts were being
+  // counted as Explore on every refresh (seen in a debug export, 2026-10-05).
+  const HOME_FEED = /FeedTimeline|feed__timeline|\/feed\/timeline/i;
+  const areaOf = (path, name, url) => {
+    if (HOME_FEED.test(name || '') || HOME_FEED.test(url || '')) return 'home';
     if (!path) return 'other';
     if (path.startsWith('/explore')) return 'explore';
     if (path.startsWith('/reels')) return 'reels';
@@ -42,7 +48,7 @@
 
   function apply(store, msg) {
     const { tracks, log, samples } = store;
-    const area = areaOf(msg.page);
+    const area = areaOf(msg.page, msg.name, msg.url);
 
     for (const h of msg.hits || []) {
       const k = trackKey(h);
