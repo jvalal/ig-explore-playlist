@@ -34,7 +34,10 @@ export class Player {
     this.lastPos = 0;
     this.endTimer = null;
     this.waiters = new Set();
-    window.addEventListener('message', (e) => this._onMessage(e));
+    // Listen on the window that contains the iframe: the embed posts to its parent, which is not
+    // this page's window when the player lives in another document (e.g. a picture-in-picture
+    // window opened from the mini player).
+    ((frame.ownerDocument && frame.ownerDocument.defaultView) || window).addEventListener('message', (e) => this._onMessage(e));
   }
 
   get uri() {

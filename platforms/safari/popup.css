@@ -1,3 +1,6 @@
 /* Safari build only. On macOS a popup sizes to its content, so give it the side panel's width;
    on iPhone the popup is a full-width sheet and this has no effect. */
 body { min-width: min(380px, 100vw); }
+
+/* No pop-out mini player on iPhone. */
+#dock-popout { display: none !important; }

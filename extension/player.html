@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Explore finds player</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="mini.css">
+</head>
+<body class="mini">
+  <div class="mini-wrap" id="mini-wrap">
+    <div class="mini-top">
+      <p class="mini-now" id="mini-now">Nothing playing</p>
+      <span class="mini-pos" id="mini-pos"></span>
+    </div>
+    <iframe id="mini-frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
+    <div class="mini-controls">
+      <button id="mini-prev" aria-label="Previous song">Prev</button>
+      <button id="mini-next" aria-label="Next song">Next</button>
+      <span class="mini-grow"></span>
+      <button id="mini-pip" class="linkish" hidden>Keep on top</button>
+      <button id="mini-back" class="linkish">Back to panel</button>
+    </div>
+    <p class="mini-hint" id="mini-hint" role="status"></p>
+  </div>
+  <script type="module" src="mini.js"></script>
+</body>
+</html>

@@ -15,7 +15,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(root, 'extension');
 const plat = path.join(root, 'platforms', 'safari');
 const out = path.join(root, 'dist', 'safari');
-const DESKTOP_ONLY = new Set(['spotify-dashboard.js']);
+// Desktop-only: the Spotify dashboard helper, and the pop-out mini player (no windows API on iPhone).
+const DESKTOP_ONLY = new Set(['spotify-dashboard.js', 'player.html', 'mini.js', 'mini.css']);
 const REPLACED = new Set(['manifest.json', 'background.js', 'platform.js']);
 
 fs.rmSync(out, { recursive: true, force: true });

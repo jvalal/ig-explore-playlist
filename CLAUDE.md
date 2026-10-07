@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.7.0)
+## Current status (v0.8.0)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -70,6 +70,30 @@ around Spotify's 5-users-per-Client-ID cap.
   was listed. The form was not saved. If Spotify changes the page, the helper says it couldn't
   fill the form, and the manual steps in the panel still apply.
 
+New in v0.8.0: **pop-out mini player**, so music keeps playing after the side panel closes
+(Chrome unloads the panel's page, and the embed with it).
+- **The window:** `player.html` is a popup window (360x200). background.js opens it on
+  `{type:'ef-open-mini', key | playlist, from}` and keeps its id in `storage.session.miniWindowId`.
+  It checks the window still exists, and focuses it instead of opening a second one.
+- **Shared code:** it uses the same `Player` (embed control) and `Playback` (queue, Next/Prev,
+  auto-advance) as the panel. The queue is the song list in storage, so Next and auto-advance work
+  with the panel closed.
+- **Who plays:** while the mini player is open it is the only player. The panel sends Play
+  presses as `{type:'ef-player', cmd: play|toggle|playlist|next|prev|close, key}`, and its rows
+  mirror storage `nowPlaying` ({host:'mini', key, playlist, status}), which the mini player writes.
+- **Pop out:** the "Pop out" button by the docked player stops it and opens the mini player on the
+  same song. The song restarts at 0:00, because the embed ignores seek.
+- **Back to panel:** opens the side panel in the window the mini player came from.
+- **Keep on top:** Document Picture-in-Picture works from player.html (Chrome for Testing 155). It
+  moves the player into an always-on-top window and back. Moving an iframe reloads it, so the
+  song restarts there. In a fresh profile, Chrome's autoplay rules held the start in the new
+  window for ~10 s (the "press play" hint shows meanwhile). It started at once with autoplay
+  allowed.
+- **Real-browser test:** `tests/real/mini-player.real.mjs`, with real Spotify embeds and not
+  in `npm test`. It uses Chrome for Testing (~/.cache/cft, unpacked with `ditto` so the app
+  launches), because branded Chrome no longer loads unpacked extensions from the command line.
+- Safari build: excluded (no windows API on iPhone); the Pop out button is hidden there.
+
 Verified so far:
 - **Embed protocol:** verified in the user's real Chrome (side panel, logged in) and in headless
   Chrome.
@@ -98,7 +122,8 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     goal.js         song goal: count, progress bar, chime
     setup.js, exports.js, dom.js
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
-    player.js       drives the embed iframe (protocol below)
+    player.js       drives the embed iframe (protocol below); shared with the mini player
+  player.html, mini.js, mini.css   pop-out mini player window (desktop only)
   spotify.js        Spotify Web API: PKCE auth via chrome.identity, search + matching, playlists.
   spotify-dashboard.js  Content script on developer.spotify.com/dashboard*: setup helper.
 tests/              npm test = unit + browser. run.mjs fails on any FAIL line or non-zero exit.

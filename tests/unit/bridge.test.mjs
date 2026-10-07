@@ -111,7 +111,8 @@ const bg = {
   console, Promise,
   chrome: {
     sidePanel: { setPanelBehavior: async () => {} },
-    runtime: { onStartup: { addListener: () => {} }, onInstalled: { addListener: (f) => { listeners.installed = f; } } },
+    runtime: { onStartup: { addListener: () => {} }, onInstalled: { addListener: (f) => { listeners.installed = f; } }, onMessage: { addListener: () => {} } },
+    windows: { onRemoved: { addListener: () => {} } },
     tabs: { query: async (q) => (q.url === 'https://www.instagram.com/*' ? [{ id: 7 }, { id: 9 }] : []) },
     scripting: { executeScript: async (o) => injected.push(`${o.target.tabId}:${o.files[0]}:${o.world || 'ISOLATED'}`) },
   },

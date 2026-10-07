@@ -97,13 +97,64 @@ async function startSong(run) {
   }
 }
 
+// ---------- mini player (pop-out window) ----------
+// While it's open it is the only player: Play presses go there as messages, and the rows show
+// what it reports in storage (`nowPlaying`). The docked player stays closed meanwhile.
+let miniOpen = false;
+async function readMini() {
+  try {
+    miniOpen = !!(await chrome.storage.session.get('miniWindowId')).miniWindowId;
+  } catch (_) {
+    miniOpen = false;
+  }
+  render();
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'session' && 'miniWindowId' in changes) readMini();
+});
+const remote = () => (miniOpen && st.nowPlaying && st.nowPlaying.host === 'mini' ? st.nowPlaying : null);
+const tellMini = (cmd, key) => {
+  if (miniOpen) chrome.runtime.sendMessage({ type: 'ef-player', cmd, key }).catch(() => {});
+};
+
+function remoteRowState(t) {
+  const np = remote();
+  if (!np || np.playlist || np.key !== t.key) return { label: 'Play', on: false, disabled: false };
+  if (np.status === 'loading') return { label: 'Starting…', on: false, disabled: true };
+  if (np.status === 'playing') return { label: 'Playing', on: true, disabled: false };
+  if (np.status === 'paused') return { label: 'Paused', on: false, disabled: false };
+  return { label: 'Play', on: false, disabled: false };
+}
+function remotePlaylistState() {
+  const np = remote();
+  if (!np || !np.playlist) return { label: 'Play', disabled: false };
+  return { loading: { label: 'Starting…', disabled: true }, playing: { label: 'Pause', disabled: false },
+    paused: { label: 'Resume', disabled: false } }[np.status] || { label: 'Play', disabled: false };
+}
+
+function playRow(t) {
+  if (!miniOpen) return startSong(() => playback.click(t));
+  if (!connected(st)) return startSong(async () => undefined); // shows the connect prompt
+  const np = remote();
+  return tellMini(np && !np.playlist && np.key === t.key ? 'toggle' : 'play', t.key);
+}
+
+async function popOut() {
+  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key || playback.wantKey };
+  if (!what.playlist && !what.key) return;
+  stopPlayback(); // one player at a time; the mini player starts the song again
+  const win = await chrome.windows.getCurrent();
+  const r = await chrome.runtime.sendMessage({ type: 'ef-open-mini', ...what, from: win.id });
+  if (r && r.error) setMsg(`Couldn't open the mini player: ${r.error}`, true);
+}
+
 function stopPlayback() {
   playback.stop();
   $('#dock-hint').textContent = '';
 }
 
 function renderDock() {
-  const on = !!(playback.key || playback.wantKey || playback.playlistLoaded);
+  const on = !miniOpen && !!(playback.key || playback.wantKey || playback.playlistLoaded);
   $('#dock').hidden = !on;
   if (!on) return;
   if (playback.playlistLoaded && !playback.wantKey) {
@@ -121,7 +172,12 @@ function renderDock() {
 $('#dock-prev').addEventListener('click', () => startSong(() => playback.step(-1)));
 $('#dock-next').addEventListener('click', () => startSong(() => playback.step(1)));
 $('#dock-close').addEventListener('click', stopPlayback);
-$('#pl-play').addEventListener('click', () => { if (st.playlist) startSong(() => playback.clickPlaylist(st.playlist)); });
+$('#pl-play').addEventListener('click', () => {
+  if (!st.playlist) return;
+  if (miniOpen) tellMini('playlist');
+  else startSong(() => playback.clickPlaylist(st.playlist));
+});
+$('#dock-popout').addEventListener('click', popOut);
 
 // ---------- picker ----------
 async function togglePicker(t) {
@@ -164,7 +220,7 @@ function renderBuild() {
   if (pl) {
     $('#pl-link').textContent = pl.name;
     $('#pl-link').href = pl.url || '#';
-    const p = playback.playlistState();
+    const p = miniOpen ? remotePlaylistState() : playback.playlistState();
     $('#pl-play span').textContent = p.label;
     $('#pl-play path').setAttribute('d', p.label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
     $('#pl-play').disabled = p.disabled;
@@ -214,14 +270,14 @@ function render() {
       items,
       picker: ui.picker,
       finding: (key) => queue.isFinding(key),
-      rowPlayback: (t) => playback.rowState(t),
+      rowPlayback: (t) => (miniOpen ? remoteRowState(t) : playback.rowState(t)),
       onToggleExclude: (t, include) => {
         const excluded = { ...st.excluded };
         if (include) delete excluded[t.key];
         else excluded[t.key] = true;
         store.set({ excluded });
       },
-      onPlayButton: (t) => startSong(() => playback.click(t)),
+      onPlayButton: playRow,
       onChoose: togglePicker,
       onUse: useCandidate,
     });
@@ -293,6 +349,7 @@ wireSetup({
   store,
   onError: handleError,
   onDisconnect: async () => {
+    tellMini('close');
     queue.cancelAll();
     stopPlayback();
   },
@@ -318,6 +375,7 @@ $('#clear').addEventListener('click', async (e) => {
   b.textContent = 'Clear captures';
   queue.cancelAll();
   stopPlayback();
+  tellMini('close');
   ui.picker = { key: null, items: null };
   resetList(); // songs captured after this roll in
   await store.remove(['tracks', 'log', 'samples', 'seen', 'matches', 'excluded']);
@@ -335,3 +393,4 @@ $('#open-explore').href = EXPLORE_URL;
 setInterval(render, 30_000); // keep "Last … ago" fresh
 await store.load();
 store.watch();
+readMini();

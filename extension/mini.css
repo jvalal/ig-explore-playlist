@@ -1,0 +1,11 @@
+/* Pop-out mini player (player.html), sized for a ~360x200 window. Tokens from sidepanel.css. */
+body.mini { display: block; min-height: 0; background: var(--surface); }
+.mini-wrap { display: grid; gap: 6px; padding: 8px 10px; }
+.mini-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.mini-now { margin: 0; flex: 1; min-width: 0; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-pos { flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mini iframe { display: block; width: 100%; height: 80px; border: 0; border-radius: 12px; background: var(--bg); }
+.mini-controls { display: flex; align-items: center; gap: 6px; }
+.mini-grow { flex: 1; }
+.mini-hint { margin: 0; font-size: 11px; color: var(--muted); }
+.mini-hint:empty { display: none; }
