@@ -18,7 +18,7 @@ const fromWindow = Number(params.get('from')) || null; // the browser window the
 const songs = () => list(st, 'song');
 const byKey = (key) => songs().find((t) => t.key === key);
 // Found once: with "Keep on top" these elements move to another document, where $ can't see them.
-const ui = Object.fromEntries(['wrap', 'now', 'pos', 'frame', 'prev', 'next', 'pip', 'back', 'hint']
+const ui = Object.fromEntries(['wrap', 'now', 'pos', 'frame', 'prev', 'next', 'pip', 'back', 'hint', 'start', 'start-btn', 'away', 'away-btn']
   .map((id) => [id, $(`#mini-${id}`)]));
 
 const queue = new MatchQueue({
@@ -29,17 +29,22 @@ const queue = new MatchQueue({
 });
 
 const HINTS = {
-  blocked: 'It didn\'t start. Press play in the player once.',
   error: 'The Spotify player didn\'t load. Try Next or Play again.',
 };
 const hint = (text) => { ui.hint.textContent = text || ''; };
+// A new window hasn't been clicked yet, and Chrome may refuse to start sound in it (seen when
+// popping out from the side panel). Our own Play button gives it that click; after one click
+// the window may start songs by itself, so Next and auto-advance keep going.
+const needClick = (on) => { ui.start.hidden = !on; };
 
 // Runs a playback action and explains a failed start, like the panel's startSong.
 async function run(action) {
   hint('');
+  needClick(false);
   try {
     const status = await action();
-    if (HINTS[status]) hint(HINTS[status]);
+    if (status === 'blocked') needClick(true);
+    else if (HINTS[status]) hint(HINTS[status]);
   } catch (err) {
     hint((err && err.message) || 'Something went wrong.');
   }
@@ -48,7 +53,7 @@ async function run(action) {
 function makePlayer(frame) {
   return new Player(frame, {
     onChange: (state) => {
-      if (state.status === 'playing') hint('');
+      if (state.status === 'playing') { hint(''); needClick(false); }
       changed();
     },
     onEnded: () => run(() => playback.step(1)),
@@ -99,14 +104,23 @@ function render() {
 }
 
 // ---------- controls ----------
+ui['away-btn'].addEventListener('click', () => {
+  if (window.documentPictureInPicture && documentPictureInPicture.window) documentPictureInPicture.window.close();
+});
+ui['start-btn'].addEventListener('click', () => run(() => playback.player.resume()));
 ui.prev.addEventListener('click', () => run(() => playback.step(-1)));
 ui.next.addEventListener('click', () => run(() => playback.step(1)));
 ui.back.addEventListener('click', () => {
   // Called straight from the click: sidePanel.open needs the user's gesture.
-  if (fromWindow) {
-    chrome.sidePanel.open({ windowId: fromWindow }).catch(() => {});
+  // The reverse of Pop out: open the side panel, hand the song back to its docked player
+  // (storage key `popIn`), and close this window.
+  if (!fromWindow) { hint('No browser window to go back to.'); return; }
+  chrome.sidePanel.open({ windowId: fromWindow }).catch((err) => hint(`Couldn't open the panel: ${err.message}`));
+  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key };
+  chrome.storage.local.set({ popIn: { ...what, windowId: fromWindow, at: Date.now() } }).then(() => {
     chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
-  }
+    window.close();
+  });
 });
 
 // ---------- commands from the side panel ----------
@@ -152,9 +166,17 @@ if ('documentPictureInPicture' in window) {
       pip.document.title = document.title;
       ui.pip.hidden = true;
       replay(rehost(pip.document.body));
+      // The floating window lives only as long as this one, so this window can't close. It gets
+      // out of the way instead (minimized), saying where the player went if someone finds it.
+      document.body.append(ui.away);
+      ui.away.hidden = false;
+      const me = await chrome.windows.getCurrent();
+      chrome.windows.update(me.id, { state: 'minimized' }).catch(() => {});
       pip.addEventListener('pagehide', () => {
         ui.pip.hidden = false;
+        ui.away.hidden = true;
         replay(rehost(document.body));
+        chrome.windows.update(me.id, { state: 'normal', focused: true }).catch(() => {});
       });
     } catch (err) {
       hint(`Keep on top didn't open: ${err.message}`);

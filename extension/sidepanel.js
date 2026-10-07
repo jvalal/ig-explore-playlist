@@ -139,6 +139,23 @@ function playRow(t) {
   return tellMini(np && !np.playlist && np.key === t.key ? 'toggle' : 'play', t.key);
 }
 
+// Back to panel (from the mini player): it leaves `popIn` in storage and closes itself; the
+// panel in that window picks the song up in its docked player once the mini window is gone.
+async function takePopIn() {
+  const { popIn } = await chrome.storage.local.get('popIn');
+  if (!popIn || Date.now() - popIn.at > 15000) return;
+  const me = await chrome.windows.getCurrent();
+  if (popIn.windowId && popIn.windowId !== me.id) return;
+  await chrome.storage.local.remove('popIn');
+  for (let i = 0; i < 30 && miniOpen; i++) await new Promise((r) => setTimeout(r, 100));
+  if (popIn.playlist && st.playlist) return startSong(() => playback.clickPlaylist(st.playlist));
+  const t = songs().find((x) => x.key === popIn.key);
+  return t ? startSong(() => playback.playSong(t)) : undefined;
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.popIn && changes.popIn.newValue) takePopIn();
+});
+
 async function popOut() {
   const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key || playback.wantKey };
   if (!what.playlist && !what.key) return;
@@ -393,4 +410,5 @@ $('#open-explore').href = EXPLORE_URL;
 setInterval(render, 30_000); // keep "Last … ago" fresh
 await store.load();
 store.watch();
-readMini();
+await readMini();
+takePopIn(); // the side panel may have just been opened by Back to panel

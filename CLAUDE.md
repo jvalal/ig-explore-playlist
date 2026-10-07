@@ -83,9 +83,18 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   mirror storage `nowPlaying` ({host:'mini', key, playlist, status}), which the mini player writes.
 - **Pop out:** the "Pop out" button by the docked player stops it and opens the mini player on the
   same song. The song restarts at 0:00, because the embed ignores seek.
-- **Back to panel:** opens the side panel in the window the mini player came from.
+- **Back to panel** (v0.8.1) is the reverse of Pop out. It opens the side panel in the window the
+  mini player came from, leaves `popIn` ({key | playlist, windowId, at}) in storage, and closes
+  the mini window. The panel picks the song up in its docked player.
+- **When Chrome refuses to start sound** (`blocked`) in the mini or floating window, it shows its
+  own **Play** button. One click in that window starts it, and Next works without another click
+  (verified in Chrome for Testing). The user saw the mini window not auto-start in their own
+  Chrome when popping out from the side panel. In Chrome for Testing it started by itself, even
+  from the real side panel, so the cause in their Chrome is unknown.
 - **Keep on top:** Document Picture-in-Picture works from player.html (Chrome for Testing 155). It
-  moves the player into an always-on-top window and back. Moving an iframe reloads it, so the
+  moves the player into an always-on-top window and back. The floating window closes with the
+  window that opened it, so the mini window minimizes itself meanwhile, with a "playing in the
+  floating window" note, and comes back when the floating window closes (v0.8.1). Moving an iframe reloads it, so the
   song restarts there. In a fresh profile, Chrome's autoplay rules held the start in the new
   window for ~10 s (the "press play" hint shows meanwhile). It started at once with autoplay
   allowed.

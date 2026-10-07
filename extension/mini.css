@@ -9,3 +9,7 @@ body.mini { display: block; min-height: 0; background: var(--surface); }
 .mini-grow { flex: 1; }
 .mini-hint { margin: 0; font-size: 11px; color: var(--muted); }
 .mini-hint:empty { display: none; }
+.mini-start { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+.mini-away { padding: 14px 12px; font-size: 12px; color: var(--muted); display: grid; gap: 8px; justify-items: start; }
+.mini-away p { margin: 0; }
+.mini-start .pill { margin-left: 0; font-size: 13px; padding: 5px 14px 5px 11px; }

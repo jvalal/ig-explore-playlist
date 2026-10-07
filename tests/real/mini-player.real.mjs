@@ -47,6 +47,7 @@ const advancing = async (page, uri, ms = 6000) => {
   return { ok: pos.length >= 3 && pos[pos.length - 1] > pos[0] + 2000, first: pos[0], last: pos[pos.length - 1], n: pos.length };
 };
 
+const startTargets = new Set((await browser.pages()).map((p) => p.target())); // the empty first tab
 try {
   // ---- set up the panel with two matched songs
   let panel = await browser.newPage();
@@ -130,17 +131,33 @@ try {
       // A fresh profile's autoplay rules make the start in a new floating window slow or blocked.
       // Measure it; if it never starts, the player must at least say to press play.
       const t0 = Date.now();
-      const inPip = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 30000);
+      let inPip = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 12000);
       const secs = Math.round((Date.now() - t0) / 1000);
-      const hintText = await mini.evaluate(() => documentPictureInPicture.window.document.querySelector('#mini-hint').textContent);
-      check(`floating window: song starts by itself (took ~${secs} s) or the player says to press play`, inPip || /Press play in the player/.test(hintText), hintText);
+      if (inPip) check(`floating window: the song starts by itself (took ~${secs} s)`, true);
+      else {
+        // Chrome refused to start sound in the new window: our own Play button must show, and
+        // one click on it must start the song (the fix for "pop-out doesn't auto-resume").
+        const btnShown = await mini.evaluate(() => !documentPictureInPicture.window.document.querySelector('#mini-start').hidden);
+        check('floating window refused to start: our Play button shows', btnShown);
+        const pipTarget = browser.targets().find((t) => t.type() === 'page' && t.url() === 'about:blank' && !startTargets.has(t));
+        const pp = pipTarget && await pipTarget.page();
+        if (pp) await pp.click('#mini-start-btn');
+        inPip = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 15000);
+        check('one click on our Play button starts it', inPip, pp ? '' : 'could not reach the floating window');
+      }
       const cont3 = await advancing(mini, `spotify:track:${curId}`);
       if (inPip) check('...and the song plays inside the floating window', cont3.ok, JSON.stringify(cont3));
       const pipControls = await mini.evaluate(() => !!documentPictureInPicture.window.document.querySelector('#mini-next'));
       check('...with the controls moved into it', pipControls);
+      const state = await mini.evaluate(async () => (await chrome.windows.getCurrent()).state);
+      check('the original mini window gets out of the way (minimized), no blank window left', state === 'minimized', state);
+      check('...and says where the player went if someone opens it', await mini.evaluate(() => !document.querySelector('#mini-away').hidden));
       await mini.evaluate(() => documentPictureInPicture.window.close());
       const back = await waitFor(() => mini.evaluate(async () => !!document.querySelector('#mini-next') && ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 20000);
       check('closing it puts the player back in the mini window, still playing', back);
+      const state2 = await mini.evaluate(async () => (await chrome.windows.getCurrent()).state);
+      check('...and the mini window comes back (not minimized)', state2 === 'normal', state2);
+      check('...without the "playing in the floating window" note', await mini.evaluate(() => document.querySelector('#mini-away').hidden));
     }
   }
 
@@ -150,6 +167,49 @@ try {
   await tick(800);
   const after = await panel.evaluate(async () => ({ np: (await chrome.storage.local.get('nowPlaying')).nowPlaying || null, win: (await chrome.storage.session.get('miniWindowId')).miniWindowId || null }));
   check('closing the mini window clears it; the panel goes back to its own player', !after.np && !after.win, JSON.stringify(after) + miniTarget.url());
+
+  // ---- Back to panel: the reverse of Pop out (side panel opens, song moves back, mini closes)
+  await panel.close(); // only the real side panel should pick the song up
+  const fresh = await browser.newPage();
+  await fresh.goto(`${BASE}/sidepanel.html`); // a panel tab, only to start a song and pop it out
+  await fresh.waitForSelector('#list > li.row:nth-child(1) .play');
+  await fresh.click('#list > li.row:nth-child(1) .play');
+  await waitFor(() => fresh.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 15000);
+  await fresh.click('#dock-popout');
+  const mini2 = await pageFor((u) => u.startsWith(`${BASE}/player.html`));
+  await waitFor(() => mini2.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 20000);
+  await fresh.close();
+  await tick(500);
+  const created = [];
+  browser.on('targetcreated', (t) => created.push(t));
+  await mini2.click('#mini-back');
+  await waitFor(() => created.some((t) => t.url().startsWith(`${BASE}/sidepanel.html`)), 8000);
+  const sideT = created.find((t) => t.url().startsWith(`${BASE}/sidepanel.html`));
+  const side = sideT && ((await sideT.page()) || (await sideT.asPage().catch(() => null)));
+  check('Back to panel opens the side panel', !!side, `new targets: ${created.map((t) => `${t.type()} ${t.url().slice(0, 60)}`).join(' | ')}`);
+  check('...and closes the mini window', await waitFor(() => !browser.targets().some((t) => t.url().startsWith(`${BASE}/player.html`)), 5000));
+  const resumed = side && await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 20000);
+  check('...and the docked player in the panel plays the same song', !!resumed && !(await side.$eval('#dock', (e) => e.hidden)),
+    side ? await side.$eval('#dock-hint', (e) => e.textContent) : 'no side panel');
+
+  // ---- your issue 1, from the real side panel: Pop out, then does the mini window start?
+  if (side) {
+    await side.click('#dock-popout');
+    const mini3 = await waitFor(() => browser.targets().some((t) => t.url().startsWith(`${BASE}/player.html`)), 8000)
+      && await browser.targets().find((t) => t.url().startsWith(`${BASE}/player.html`)).page();
+    const started = mini3 && await waitFor(() => mini3.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 12000);
+    if (started) check('from the real side panel, Pop out starts the song by itself', true);
+    else if (mini3) {
+      const btn = await mini3.evaluate(() => !document.querySelector('#mini-start').hidden);
+      check('from the real side panel the start was refused: our Play button shows', btn);
+      await mini3.click('#mini-start-btn');
+      const ok = await waitFor(() => mini3.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 15000);
+      check('...and one click on it starts the song', ok);
+      await mini3.click('#mini-next');
+      const auto = await waitFor(() => mini3.evaluate(async (k) => { const np = (await chrome.storage.local.get('nowPlaying')).nowPlaying || {}; return np.key === k && np.status === 'playing'; }, B.key), 20000);
+      check('...after that one click, Next plays without another click', auto);
+    } else check('Pop out from the real side panel opened the mini window', false);
+  }
 } catch (err) {
   check('real-browser run finished', false, err.stack);
 } finally {
