@@ -102,6 +102,7 @@ export class Player {
     clearTimeout(this.endTimer);
 
     const playlist = this.state.type === 'playlist';
+    this.posAt = Date.now();
     if (p.isPaused === false) {
       this.lastPos = position;
       this._set({ status: 'playing', position, duration, nowPlaying: p.playingURI });
@@ -123,22 +124,25 @@ export class Player {
     this.onEnded();
   }
 
-  _load(trackId, type) {
+  // startAt (seconds): the embed's own `t` URL parameter, as Spotify's iFrame API uses it.
+  // Used to carry a song over to another window without restarting it.
+  _load(trackId, type, startAt = 0) {
     this.gen++;
     this.ready = false;
     this.lastPos = 0;
     clearTimeout(this.endTimer);
     this._set({ trackId, type, status: 'loading', position: 0, duration: 0, nowPlaying: null });
-    this.frame.src = `${ORIGIN}/embed/${type}/${encodeURIComponent(trackId)}?utm_source=generator`;
+    const t = startAt > 0 ? `&t=${Math.floor(startAt)}` : '';
+    this.frame.src = `${ORIGIN}/embed/${type}/${encodeURIComponent(trackId)}?utm_source=generator${t}`;
     return this.gen;
   }
 
   // Loads the song (or playlist) if it isn't the one in the player, then starts it.
   // Resolves to the final status, or 'superseded' if something else took over meanwhile.
-  async play(trackId, type = 'track') {
+  async play(trackId, type = 'track', { startAt = 0 } = {}) {
     const fresh = trackId !== this.state.trackId || type !== this.state.type ||
       ['idle', 'error'].includes(this.state.status);
-    const gen = fresh ? this._load(trackId, type) : this.gen;
+    const gen = fresh ? this._load(trackId, type, startAt) : this.gen;
 
     if (!(await this._until(() => this.ready, READY_TIMEOUT_MS, gen))) {
       if (gen !== this.gen) return 'superseded';
@@ -165,6 +169,15 @@ export class Player {
     if (gen !== this.gen) return 'superseded';
     this._set({ status: this.ready ? 'blocked' : 'error' });
     return this.state.status;
+  }
+
+  // Where the song is now, in seconds: the last reported position plus the time since, while
+  // playing. For carrying the song over to another window.
+  currentSeconds() {
+    const { status, position } = this.state;
+    if (!['playing', 'paused', 'blocked'].includes(status)) return 0;
+    const since = status === 'playing' && this.posAt ? Date.now() - this.posAt : 0;
+    return (position + since) / 1000;
   }
 
   // Starts the loaded song again (from where it paused; after the end, from 0:00).

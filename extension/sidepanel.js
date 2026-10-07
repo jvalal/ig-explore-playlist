@@ -150,16 +150,18 @@ async function takePopIn() {
   for (let i = 0; i < 30 && miniOpen; i++) await new Promise((r) => setTimeout(r, 100));
   if (popIn.playlist && st.playlist) return startSong(() => playback.clickPlaylist(st.playlist));
   const t = songs().find((x) => x.key === popIn.key);
-  return t ? startSong(() => playback.playSong(t)) : undefined;
+  return t ? startSong(() => playback.playSong(t, { startAt: popIn.startAt || 0 })) : undefined;
 }
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.popIn && changes.popIn.newValue) takePopIn();
 });
 
 async function popOut() {
-  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key || playback.wantKey };
+  // The song continues where it is (startAt); a playlist starts again from its first song.
+  const what = playback.playlistLoaded ? { playlist: true }
+    : { key: playback.key || playback.wantKey, startAt: playback.player.currentSeconds() };
   if (!what.playlist && !what.key) return;
-  stopPlayback(); // one player at a time; the mini player starts the song again
+  stopPlayback(); // one player at a time
   const win = await chrome.windows.getCurrent();
   const r = await chrome.runtime.sendMessage({ type: 'ef-open-mini', ...what, from: win.id });
   if (r && r.error) setMsg(`Couldn't open the mini player: ${r.error}`, true);

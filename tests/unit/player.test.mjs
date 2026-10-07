@@ -159,6 +159,26 @@ function setup() {
   await t;
 }
 
+// 9c. Carrying a song to another window: load it at a position (embed URL parameter t).
+{
+  const { player, frame, deliver, upd } = setup();
+  const p = player.play('A', 'track', { startAt: 83.7 });
+  check('startAt loads the embed with t=<whole seconds>', /[?&]t=83(&|$)/.test(frame.src), frame.src);
+  deliver({ type: 'ready' }); await tick(5);
+  upd('A', false, 83000);
+  await p;
+  const before = player.currentSeconds();
+  await tick(300);
+  check('currentSeconds() runs on between the embed\'s reports while playing', player.currentSeconds() > before + 0.2, `${before} -> ${player.currentSeconds()}`);
+  upd('A', true, 84000);
+  const paused = player.currentSeconds();
+  await tick(200);
+  check('...and stands still while paused', player.currentSeconds() === paused && paused === 84);
+  const p2 = setup();
+  p2.player.play('B');
+  check('no startAt: no t parameter (starts at 0:00)', !/[?&]t=/.test(p2.frame.src), p2.frame.src);
+}
+
 // 10. If nothing happens after resume, the status says so (slow: waits for the timeout).
 {
   const { player, deliver } = setup();

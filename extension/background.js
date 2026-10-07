@@ -41,19 +41,20 @@ async function miniWindowId() {
   }
 }
 
-// what: { key } (a song) or { playlist: true }. from: the normal window the request came from,
+// what: { key, startAt? (seconds) } (a song) or { playlist: true }. from: the normal window the request came from,
 // so "Back to panel" can open the side panel there.
 async function openMini(what = {}, from = null) {
   const id = await miniWindowId();
   if (id) {
     await chrome.windows.update(id, { focused: true });
     if (what.key || what.playlist) {
-      chrome.runtime.sendMessage({ type: 'ef-player', cmd: what.playlist ? 'playlist' : 'play', key: what.key }).catch(() => {});
+      chrome.runtime.sendMessage({ type: 'ef-player', cmd: what.playlist ? 'playlist' : 'play', key: what.key, startAt: what.startAt }).catch(() => {});
     }
     return id;
   }
   const q = new URLSearchParams();
   if (what.key) q.set('key', what.key);
+  if (what.startAt > 0) q.set('t', String(Math.floor(what.startAt)));
   if (what.playlist) q.set('playlist', '1');
   if (from) q.set('from', String(from));
   const w = await chrome.windows.create({ type: 'popup', url: `player.html?${q}`, ...MINI_SIZE, focused: true });

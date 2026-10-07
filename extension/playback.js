@@ -65,7 +65,8 @@ export class Playback {
 
   // Resolves to the player's status, or 'none' if the song isn't on Spotify,
   // or 'superseded' if another song was pressed meanwhile.
-  async playSong(t) {
+  // startAt (seconds): continue from there, e.g. when the song moves to another window.
+  async playSong(t, { startAt = 0 } = {}) {
     this.wantKey = t.key;
     this.onChange();
     let m;
@@ -86,7 +87,7 @@ export class Playback {
     this.key = t.key;
     this.wantKey = null;
     this.onChange();
-    const status = await this.player.play(m.id);
+    const status = await this.player.play(m.id, 'track', { startAt });
     this.onChange();
     return status;
   }

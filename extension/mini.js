@@ -116,7 +116,7 @@ ui.back.addEventListener('click', () => {
   // (storage key `popIn`), and close this window.
   if (!fromWindow) { hint('No browser window to go back to.'); return; }
   chrome.sidePanel.open({ windowId: fromWindow }).catch((err) => hint(`Couldn't open the panel: ${err.message}`));
-  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key };
+  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key, startAt: playback.player.currentSeconds() };
   chrome.storage.local.set({ popIn: { ...what, windowId: fromWindow, at: Date.now() } }).then(() => {
     chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
     window.close();
@@ -127,7 +127,7 @@ ui.back.addEventListener('click', () => {
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || msg.type !== 'ef-player') return;
   const t = msg.key ? byKey(msg.key) : null;
-  if (msg.cmd === 'play' && t) run(() => playback.playSong(t));
+  if (msg.cmd === 'play' && t) run(() => playback.playSong(t, { startAt: msg.startAt || 0 }));
   else if (msg.cmd === 'toggle' && t) run(() => playback.click(t));
   else if (msg.cmd === 'playlist' && st.playlist) run(() => playback.clickPlaylist(st.playlist));
   else if (msg.cmd === 'next') run(() => playback.step(1));
@@ -136,11 +136,11 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // ---------- keep on top (Document Picture-in-Picture) ----------
-// Moving an iframe to another document reloads it, so the song restarts there (the embed
-// ignores seek). The player is rebuilt on a fresh iframe in whichever window shows it.
+// Moving an iframe to another document reloads it, so the player is rebuilt on a fresh iframe
+// in whichever window shows it, loaded at the position it had (embed URL parameter `t`).
 function rehost(container) {
   const old = playback.player;
-  const was = { key: playback.key, playlist: old.state.type === 'playlist' };
+  const was = { key: playback.key, playlist: old.state.type === 'playlist', startAt: old.currentSeconds() };
   const frame = old.frame.cloneNode(false);
   frame.removeAttribute('src');
   old.stop();
@@ -153,7 +153,7 @@ function replay(was) {
   if (was.playlist && st.playlist) return run(() => playback.clickPlaylist(st.playlist));
   const t = was.key && byKey(was.key);
   playback.key = null;
-  return t ? run(() => playback.playSong(t)) : changed();
+  return t ? run(() => playback.playSong(t, { startAt: was.startAt })) : changed();
 }
 
 if ('documentPictureInPicture' in window) {
@@ -189,6 +189,8 @@ store.subscribe(() => render());
 await store.load();
 store.watch();
 if (params.get('playlist') && st.playlist) run(() => playback.clickPlaylist(st.playlist));
-else if (params.get('key') && byKey(params.get('key'))) run(() => playback.playSong(byKey(params.get('key'))));
+else if (params.get('key') && byKey(params.get('key'))) {
+  run(() => playback.playSong(byKey(params.get('key')), { startAt: Number(params.get('t')) || 0 }));
+}
 else changed();
 addEventListener('pagehide', () => { chrome.storage.local.remove('nowPlaying').catch(() => {}); });

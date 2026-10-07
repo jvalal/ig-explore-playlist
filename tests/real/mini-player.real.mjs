@@ -40,6 +40,12 @@ const listen = (page) => page.evaluate(() => {
   add(window);
   window.__listenPip = () => { if (window.documentPictureInPicture && documentPictureInPicture.window) add(documentPictureInPicture.window); };
 });
+const lastPos = (page, uri) => page.evaluate((u) => { const p = window.__pos.filter((x) => x.uri === u && !x.paused); return p.length ? p[p.length - 1].pos : null; }, uri);
+const firstPos = async (page, uri, ms = 15000) => {
+  let v = null;
+  await waitFor(async () => { v = await page.evaluate((u) => { const p = window.__pos.filter((x) => x.uri === u && !x.paused && x.pos > 0); return p.length ? p[0].pos : null; }, uri); return v !== null; }, ms);
+  return v;
+};
 const advancing = async (page, uri, ms = 6000) => {
   await page.evaluate(() => { window.__pos = []; });
   await tick(ms);
@@ -65,16 +71,22 @@ try {
   await panel.waitForSelector('#list > li.row:nth-child(2) .play');
 
   // ---- play in the panel (docked)
+  await listen(panel);
   await panel.click('#list > li.row:nth-child(1) .play');
   const docked = await waitFor(() => panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 15000);
   check('panel: one click on Play starts the song in the docked player', docked,
     await panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent));
 
   // ---- pop out
+  await tick(4000); // let the song get a few seconds in
+  const panelAt = await lastPos(panel, `spotify:track:${A.id}`);
   await panel.click('#dock-popout');
   const mini = await pageFor((u) => u.startsWith(`${BASE}/player.html`));
   check('Pop out opens player.html in its own window', !!mini);
   await listen(mini);
+  const miniFrom = await firstPos(mini, `spotify:track:${A.id}`);
+  check('Pop out continues where the song was, not from 0:00', panelAt > 2000 && miniFrom !== null && miniFrom >= panelAt - 1500,
+    `panel was at ${panelAt} ms, mini started at ${miniFrom} ms`);
   const miniPlaying = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 20000);
   const np1 = await mini.evaluate(async () => (await chrome.storage.local.get('nowPlaying')).nowPlaying);
   check('the mini player plays the same song', miniPlaying && np1.key === A.key, JSON.stringify(np1) + ' hint: ' + (await mini.$eval('#mini-hint', (e) => e.textContent)));
@@ -121,6 +133,9 @@ try {
   const hasApi = await mini.evaluate(() => 'documentPictureInPicture' in window);
   check('Document PiP API exists in the extension page (player.html)', hasApi);
   if (hasApi) {
+    await mini.evaluate(() => { window.__pos = []; });
+    await tick(1500);
+    const beforePip = await mini.evaluate(() => { const p = window.__pos.filter((x) => !x.paused); return p.length ? { uri: p[p.length - 1].uri, pos: p[p.length - 1].pos } : null; });
     await mini.click('#mini-pip');
     const opened = await waitFor(() => mini.evaluate(() => !!(window.documentPictureInPicture && documentPictureInPicture.window)), 5000);
     check('"Keep on top" opens an always-on-top window from player.html', opened, await mini.$eval('#mini-hint', (e) => e.textContent).catch(() => ''));
@@ -144,6 +159,10 @@ try {
         if (pp) await pp.click('#mini-start-btn');
         inPip = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 15000);
         check('one click on our Play button starts it', inPip, pp ? '' : 'could not reach the floating window');
+      }
+      if (beforePip) {
+        const pipFrom = await firstPos(mini, beforePip.uri, 5000).catch(() => null);
+        check('Keep on top continues where the song was', pipFrom !== null && pipFrom >= beforePip.pos - 1500, `was ${beforePip.pos} ms, floating window started at ${pipFrom} ms`);
       }
       const cont3 = await advancing(mini, `spotify:track:${curId}`);
       if (inPip) check('...and the song plays inside the floating window', cont3.ok, JSON.stringify(cont3));
@@ -179,7 +198,9 @@ try {
   const mini2 = await pageFor((u) => u.startsWith(`${BASE}/player.html`));
   await waitFor(() => mini2.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 20000);
   await fresh.close();
-  await tick(500);
+  await listen(mini2);
+  await tick(3000);
+  const miniAt = await lastPos(mini2, `spotify:track:${A.id}`);
   const created = [];
   browser.on('targetcreated', (t) => created.push(t));
   await mini2.click('#mini-back');
@@ -191,6 +212,12 @@ try {
   const resumed = side && await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 20000);
   check('...and the docked player in the panel plays the same song', !!resumed && !(await side.$eval('#dock', (e) => e.hidden)),
     side ? await side.$eval('#dock-hint', (e) => e.textContent) : 'no side panel');
+  if (side) {
+    await listen(side);
+    const sideAt = await firstPos(side, `spotify:track:${A.id}`, 5000);
+    check('Back to panel continues where the song was, not from 0:00', miniAt > 2000 && sideAt !== null && sideAt >= miniAt - 1500,
+      `mini was at ${miniAt} ms, panel continued at ${sideAt} ms`);
+  }
 
   // ---- your issue 1, from the real side panel: Pop out, then does the mini window start?
   if (side) {

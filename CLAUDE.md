@@ -82,7 +82,9 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   presses as `{type:'ef-player', cmd: play|toggle|playlist|next|prev|close, key}`, and its rows
   mirror storage `nowPlaying` ({host:'mini', key, playlist, status}), which the mini player writes.
 - **Pop out:** the "Pop out" button by the docked player stops it and opens the mini player on the
-  same song. The song restarts at 0:00, because the embed ignores seek.
+  same song, continuing where it was (`startAt` from `Player.currentSeconds()` → embed `t`;
+  v0.8.2). Back to panel and Keep on top continue the same way. A playlist starts again from its
+  first song.
 - **Back to panel** (v0.8.1) is the reverse of Pop out. It opens the side panel in the window the
   mini player came from, leaves `popIn` ({key | playlist, windowId, at}) in storage, and closes
   the mini window. The panel picks the song up in its docked player.
@@ -94,8 +96,8 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
 - **Keep on top:** Document Picture-in-Picture works from player.html (Chrome for Testing 155). It
   moves the player into an always-on-top window and back. The floating window closes with the
   window that opened it, so the mini window minimizes itself meanwhile, with a "playing in the
-  floating window" note, and comes back when the floating window closes (v0.8.1). Moving an iframe reloads it, so the
-  song restarts there. In a fresh profile, Chrome's autoplay rules held the start in the new
+  floating window" note, and comes back when the floating window closes (v0.8.1). Moving an iframe reloads it; the
+  song is reloaded at its position. In a fresh profile, Chrome's autoplay rules held the start in the new
   window for ~10 s (the "press play" hint shows meanwhile). It started at once with autoplay
   allowed.
 - **Real-browser test:** `tests/real/mini-player.real.mjs`, with real Spotify embeds and not
@@ -244,6 +246,11 @@ Embed URL: `https://open.spotify.com/embed/track/{id}?utm_source=generator`, wit
 - **Pressing play/pause inside the embed** produces the same messages, so our state stays in
   sync.
 
+**Start position:** the embed URL takes `t=<seconds>` (from Spotify's iFrame API source,
+`appendCommonParams`). `?t=12` started at 12.0 s. player.js `play(id, type, { startAt })` uses it
+to carry a song to another window. After `ready`, Spotify's library also sends
+`{command:'load_complete_ack'}`; nothing we use seems to need it.
+
 **Playlist embed** (`/embed/playlist/{id}`, observed headless, logged out):
 - The same messages, but `playingURI` is the *track* playing, not the playlist.
 - At a track's end it starts the next track itself: a new `playback_started` and new
@@ -258,7 +265,8 @@ Embed URL: `https://open.spotify.com/embed/track/{id}?utm_source=generator`, wit
 | `pause` | Pauses. A no-op while paused, and nothing is sent back. |
 | `play` | **Restarts at 0:00.** Don't use it to continue. |
 | `toggle` | Flips. Don't use it: it isn't idempotent. |
-| `loadUri`, `seek {timestamp}` | Ignored, so changing songs means reloading the iframe. |
+| `seek {timestamp: <seconds>}` | **Works** (re-checked 2026-10-06: `timestamp: 8` jumped to 8.7 s). The first probe sent `timestamp: 0` and wrongly concluded seek was ignored. |
+| `loadUri` | Not an embed command: Spotify's own iFrame API "loadUri" just sets a new iframe `src`. Changing songs means reloading the iframe, as player.js does. |
 | Anything sent as a JSON string | Ignored. |
 | Anything sent before the new document's `ready` | Lost. |
 
