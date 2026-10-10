@@ -22,12 +22,16 @@ const START_TIMEOUT_MS = 5_000;
 const END_SILENCE_MS = 2_500;
 // A full-track end reports paused at position 0 right after the last update near the end.
 const END_WINDOW_MS = 2_000;
+// A song carried to another window that starts this far before where it was gets a seek.
+const START_SLACK_MS = 3_000;
 
 export class Player {
-  constructor(frame, { onChange = () => {}, onEnded = () => {} } = {}) {
+  // trace(event, details): optional diagnostic log of what the player and the embed did.
+  constructor(frame, { onChange = () => {}, onEnded = () => {}, trace = () => {} } = {}) {
     this.frame = frame;
     this.onChange = onChange;
     this.onEnded = onEnded;
+    this.trace = (ev, d) => { try { trace(ev, d); } catch (_) {} };
     this.state = { trackId: null, type: 'track', status: 'idle', position: 0, duration: 0, nowPlaying: null };
     this.gen = 0;          // bumps on every iframe navigation; stale async work checks it
     this.ready = false;    // this document has said 'ready'
@@ -38,6 +42,8 @@ export class Player {
     // this page's window when the player lives in another document (e.g. a picture-in-picture
     // window opened from the mini player).
     ((frame.ownerDocument && frame.ownerDocument.defaultView) || window).addEventListener('message', (e) => this._onMessage(e));
+    // Every document the iframe loads, including any it navigates to by itself.
+    if (frame.addEventListener) frame.addEventListener('load', () => this.trace('frame-load', { src: frame.src, ready: this.ready }));
   }
 
   get uri() {
@@ -51,6 +57,7 @@ export class Player {
   }
 
   _set(patch) {
+    if (patch.status && patch.status !== this.state.status) this.trace('status', { status: patch.status });
     this.state = { ...this.state, ...patch };
     for (const w of [...this.waiters]) w();
     this.onChange(this.state);
@@ -71,14 +78,21 @@ export class Player {
     });
   }
 
-  _send(command) {
+  _send(command, extra = {}) {
     const w = this.frame.contentWindow;
-    if (w) w.postMessage({ command }, ORIGIN);
+    this.trace('send', { command, ...extra, ready: this.ready });
+    if (w) w.postMessage({ command, ...extra }, ORIGIN);
   }
 
   _onMessage(e) {
-    if (e.origin !== ORIGIN || e.source !== this.frame.contentWindow) return;
+    if (e.origin !== ORIGIN) return;
     const d = e.data;
+    if (d && typeof d === 'object' && d.type) {
+      const p = d.payload || {};
+      this.trace('msg', { type: d.type, fromOurs: e.source === this.frame.contentWindow, ready: this.ready, paused: p.isPaused,
+        buffering: p.isBuffering, pos: p.position, dur: p.duration, uri: p.playingURI });
+    }
+    if (e.source !== this.frame.contentWindow) return;
     if (!d || typeof d !== 'object') return;
 
     if (d.type === 'ready') {
@@ -104,6 +118,15 @@ export class Player {
     const playlist = this.state.type === 'playlist';
     this.posAt = Date.now();
     if (p.isPaused === false) {
+      // Loaded at a position (startAt) but started earlier: the user saw Keep on top start at
+      // 0:00 in their Chrome (logged in), where Chrome first refuses to start the sound. The
+      // embed's own `t` didn't hold there; seek once, on the first real start.
+      if (this.startAt) {
+        const want = this.startAt;
+        this.startAt = 0;
+        this.trace('first-start', { pos: position, wanted: want * 1000 });
+        if (position < want * 1000 - START_SLACK_MS) this._send('seek', { timestamp: want });
+      }
       this.lastPos = position;
       this._set({ status: 'playing', position, duration, nowPlaying: p.playingURI });
       if (!playlist && duration > 0 && position >= duration - 300) {
@@ -132,8 +155,10 @@ export class Player {
     this.lastPos = 0;
     clearTimeout(this.endTimer);
     this._set({ trackId, type, status: 'loading', position: 0, duration: 0, nowPlaying: null });
+    this.startAt = type === 'track' && startAt > 0 ? startAt : 0;
     const t = startAt > 0 ? `&t=${Math.floor(startAt)}` : '';
     this.frame.src = `${ORIGIN}/embed/${type}/${encodeURIComponent(trackId)}?utm_source=generator${t}`;
+    this.trace('load', { src: this.frame.src, startAt });
     return this.gen;
   }
 
@@ -193,6 +218,7 @@ export class Player {
   stop() {
     this.gen++;
     this.ready = false;
+    this.startAt = 0;
     clearTimeout(this.endTimer);
     this.frame.src = 'about:blank';
     this._set({ trackId: null, type: 'track', status: 'idle', position: 0, duration: 0, nowPlaying: null });

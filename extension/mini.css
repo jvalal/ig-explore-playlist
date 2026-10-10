@@ -13,3 +13,19 @@ body.mini { display: block; min-height: 0; background: var(--surface); }
 .mini-away { padding: 14px 12px; font-size: 12px; color: var(--muted); display: grid; gap: 8px; justify-items: start; }
 .mini-away p { margin: 0; }
 .mini-start .pill { margin-left: 0; font-size: 13px; padding: 5px 14px 5px 11px; }
+
+/* Keep on top: our own controls in the floating window (the music stays in the mini window). */
+.float { display: flex; gap: 10px; align-items: center; padding: 10px; }
+.float-art { flex: none; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: var(--bg); }
+.float-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.float-title, .float-artist { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.float-title { font-size: 13px; font-weight: 600; }
+.float-artist { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; }
+.float-sub { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.float-sub .linkish { flex: none; }
+.float-controls { display: flex; align-items: center; gap: 6px; }
+.float-controls .pill { margin-left: 0; font-size: 12px; padding: 4px 12px 4px 10px; }
+.float-controls .icon { width: 10px; height: 10px; fill: currentColor; }
+.float-time { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.float-hint { margin: 0; font-size: 11px; color: var(--muted); }
+.float-hint:empty { display: none; }

@@ -28,8 +28,26 @@
     </div>
   </div>
   <div class="mini-away" id="mini-away" hidden>
-    <p>Playing in the floating window. Closing this window closes it too.</p>
-    <button id="mini-away-btn">Bring the player back here</button>
+    <p>The controls are in the floating window. The music plays from this one, so keep it open and not minimized.</p>
+    <button id="mini-away-btn">Bring the controls back here</button>
+  </div>
+  <!-- Keep on top: these controls move to the floating window; the music stays in this one. -->
+  <div class="float" id="mini-float" hidden>
+    <img class="float-art" id="mini-float-art" alt="">
+    <div class="float-main">
+      <p class="float-title" id="mini-float-title"></p>
+      <div class="float-sub">
+        <p class="float-artist" id="mini-float-artist"></p>
+        <button id="mini-float-back" class="linkish">Back to panel</button>
+      </div>
+      <div class="float-controls">
+        <button id="mini-float-prev" aria-label="Previous song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1h1.5v8H1zM9 1v8L3 5z"/></svg></button>
+        <button class="pill" id="mini-float-play"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button>
+        <button id="mini-float-next" aria-label="Next song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M7.5 1H9v8H7.5zM1 1v8l6-4z"/></svg></button>
+        <span class="float-time" id="mini-float-time"></span>
+      </div>
+      <p class="float-hint" id="mini-float-hint"></p>
+    </div>
   </div>
   <script type="module" src="mini.js"></script>
 </body>

@@ -179,6 +179,36 @@ function setup() {
   check('no startAt: no t parameter (starts at 0:00)', !/[?&]t=/.test(p2.frame.src), p2.frame.src);
 }
 
+// 9d. Carried over, but it starts from 0:00 anyway (the user saw this with Keep on top, where
+//     Chrome first refuses to start the sound): seek once to where the song was.
+{
+  const { player, sent, deliver, upd } = setup();
+  const p = player.play('A', 'track', { startAt: 83.7 });
+  deliver({ type: 'ready' }); await tick(5);
+  upd('', false, 0, 0); // placeholder: not a start
+  check('no seek on the placeholder update', !sent.some((s) => s.command === 'seek'), JSON.stringify(sent));
+  upd('A', false, 0);
+  await p;
+  const seeks = sent.filter((s) => s.command === 'seek');
+  check('started at 0:00 instead of 83 s: one seek to 83.7 s', seeks.length === 1 && seeks[0].timestamp === 83.7 && seeks[0].origin === ORIGIN, JSON.stringify(sent));
+  upd('A', false, 1000); upd('A', false, 2000);
+  check('...only once', sent.filter((s) => s.command === 'seek').length === 1);
+
+  const ok = setup();
+  const p2 = ok.player.play('A', 'track', { startAt: 83.7 });
+  ok.deliver({ type: 'ready' }); await tick(5);
+  ok.upd('A', false, 83000);
+  await p2;
+  check('started where it should: no seek', !ok.sent.some((s) => s.command === 'seek'), JSON.stringify(ok.sent));
+
+  const fresh = setup();
+  const p3 = fresh.player.play('A');
+  fresh.deliver({ type: 'ready' }); await tick(5);
+  fresh.upd('A', false, 0);
+  await p3;
+  check('a song started from the beginning on purpose: no seek', !fresh.sent.some((s) => s.command === 'seek'));
+}
+
 // 10. If nothing happens after resume, the status says so (slow: waits for the timeout).
 {
   const { player, deliver } = setup();

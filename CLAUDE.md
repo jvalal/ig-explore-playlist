@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.8.0)
+## Current status (v0.8.7)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -93,13 +93,41 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   (verified in Chrome for Testing). The user saw the mini window not auto-start in their own
   Chrome when popping out from the side panel. In Chrome for Testing it started by itself, even
   from the real side panel, so the cause in their Chrome is unknown.
-- **Keep on top:** Document Picture-in-Picture works from player.html (Chrome for Testing 155). It
-  moves the player into an always-on-top window and back. The floating window closes with the
-  window that opened it, so the mini window minimizes itself meanwhile, with a "playing in the
-  floating window" note, and comes back when the floating window closes (v0.8.1). Moving an iframe reloads it; the
-  song is reloaded at its position. In a fresh profile, Chrome's autoplay rules held the start in the new
-  window for ~10 s (the "press play" hint shows meanwhile). It started at once with autoplay
-  allowed.
+- **Keep on top** (rebuilt in v0.8.6): Document Picture-in-Picture from player.html. **The music
+  stays in the mini window's embed; only our controls move** to the floating window (cover from
+  the match's `image`, title, artist, time, Prev / Play-Pause / Next, Back to panel). The mini
+  window can't close (the floating window closes with it), so it goes behind the browser window
+  and comes forward again when the floating window closes. Nothing reloads either way.
+  Why: up to v0.8.5 the embed itself moved, which reloads it, and Chrome won't start sound in a
+  new window without a click there. Logged out it stayed paused (we showed a Play button);
+  in the user's Chrome, logged in, the trace showed the embed report `isPaused:false` for ~350 ms
+  without the position moving, then pause itself, so it looked like a successful start.
+- **Never minimize the mini window** (v0.8.7). Chrome doesn't start a newly loaded song in a
+  minimized window. v0.8.6 minimized it for Keep on top, and Next from the floating window then
+  showed the time running with no sound in the user's Chrome (our time display runs on from the
+  last report). Reproduced in Chrome for Testing, logged out: minimized, the embed sends only
+  the placeholder update and ends `blocked`; not minimized it starts, also behind another
+  window. mini.js `shown()` brings a minimized window back (without focus) before starting
+  anything, so it also covers someone minimizing it by hand.
+- **Back to panel in the floating window** (v0.8.7): a click there counts as the gesture
+  `sidePanel.open` needs (verified in Chrome for Testing).
+- **Window sizes vs zoom** (v0.8.3): window sizes are in screen points, page sizes in page
+  pixels, so with Chrome's zoom above 100% (the user's Chrome) the bottom row was cut off. In the
+  floating window this hid our Play button, and Chrome refuses to start sound there, so the
+  song sat paused. Chrome allows `resizeBy` in a Document PiP window only right after a click in
+  it ("requires user activation"), so the floating window opens already tall enough for the Play
+  row, scaled by `chrome.tabs.getZoom()`. The mini window follows the player's height (ResizeObserver
+  → `chrome.windows.update`, no click needed). `DEFZOOM=1.25` runs the real test at 125% zoom.
+- **Keep on top started at 0:00** in the user's Chrome (v0.8.3, logged in), though Pop out and
+  Back to panel continued. Not reproduced: logged out (Chrome for Testing) the floating window
+  continues at `t`, and in the user's Chrome a top-level embed with `t=60` started at 1:00 from
+  Spotify's own play button. Cause unknown. Since v0.8.4 player.js seeks once (`seek
+  {timestamp: startAt}`) when a song loaded with `startAt` first reports playing more than 3 s
+  before it. That didn't fix it in the user's Chrome.
+- **Diagnostic trace** (v0.8.5): the mini player records moves between windows, each embed load,
+  every embed message (with position, and whether it came from our iframe), commands sent, status
+  changes and iframe `load` events, in storage `playerTrace` (fresh per mini window, last 800
+  entries). The panel's Debug data includes it as `player_trace`.
 - **Real-browser test:** `tests/real/mini-player.real.mjs`, with real Spotify embeds and not
   in `npm test`. It uses Chrome for Testing (~/.cache/cft, unpacked with `ditto` so the app
   launches), because branded Chrome no longer loads unpacked extensions from the command line.

@@ -377,8 +377,10 @@ wireSetup({
 // ---------- list controls & exports ----------
 
 $('#dl-csv').addEventListener('click', () => downloadCsv(st));
-$('#dl-json').addEventListener('click', () =>
-  downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog }));
+$('#dl-json').addEventListener('click', async () => {
+  const { playerTrace = null } = await chrome.storage.local.get('playerTrace'); // the mini player's log
+  downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog, player_trace: playerTrace });
+});
 
 let armTimer = null;
 $('#clear').addEventListener('click', async (e) => {
