@@ -106,6 +106,62 @@ for (let i = 0; i < 3; i++) {
 const addCalls = sim.calls.filter((c) => /POST \/playlists\/PL1\/items -> 5/.test(c)).length;
 check('a failed add is reported and not retried right away', addCalls <= 1 && $('#msg').classList.contains('error'), `${addCalls} failed calls; ${$('#msg').textContent}`);
 
+// ---- the playlist was deleted on Spotify (the user saw a bare "Resource not found", v0.10.3)
+toggle('#auto-sync', false);
+await tick(60);
+sim.failAddItems = 0;
+delete sim.playlists.PL1;
+await external({ tracks: { ...data.tracks, k9: track('k9', 'Song B', 'Artist B', 9000) } });
+await waitUntil(() => /^Add \d+ new song/.test($('#build-btn').textContent) && !$('#build-btn').disabled);
+$('#build-btn').click();
+await waitUntil(() => !data.playlist, 4000).catch(() => {});
+check('a playlist that is gone from Spotify is forgotten, and the message says what happened',
+  !data.playlist && /"Mine" isn't on Spotify any more/.test($('#msg').textContent), `${JSON.stringify(data.playlist && data.playlist.id)}; ${$('#msg').textContent}`);
+check('...and there is an x to go back to it, in case it is there after all', !$('#pl-undo').hidden);
+check('...the box goes back to making a new playlist, with nothing lost from the list',
+  !$('#build-new').hidden && $('#build-existing').hidden && /^Create it on Spotify with \d+ songs$/.test($('#build-btn').textContent) && !$('#build-btn').disabled, $('#build-btn').textContent);
+
+// ---- a new playlist always starts with auto-add off
+toggle('#auto-sync', true); // (left on from somewhere: the box is hidden now, the setting is not)
+await tick(60);
+$('#build-btn').click();
+await waitUntil(() => data.playlist && data.playlist.uris.length > 0, 6000).catch(() => {});
+check('creating a playlist commits it to Spotify with the songs', !!data.playlist && sim.playlists[data.playlist.id].uris.length === data.playlist.uris.length && data.playlist.uris.length > 0, JSON.stringify(data.playlist));
+check('...and auto-add is off for it until it is ticked', data.prefs.autoSync === false && !$('#auto-sync').checked && !$('#build-existing').hidden);
+toggle('#auto-sync', true);
+await waitUntil(() => $('#build-btn').textContent === 'Songs added', 4000).catch(() => {});
+check('ticked: the button greys out and only reports', $('#build-btn').textContent === 'Songs added' && $('#build-btn').disabled, $('#build-btn').textContent);
+toggle('#auto-sync', false);
+await tick(60);
+check('unticked: it is a button again', !/Songs added|Adding/.test($('#build-btn').textContent), $('#build-btn').textContent);
+
+// ---- which songs are already in the playlist, and which are new
+const marks = () => ({ inPl: document.querySelectorAll('#list .in-pl-mark').length, fresh: document.querySelectorAll('#list .new').length,
+  boxes: document.querySelectorAll('#list input[type=checkbox]').length, rows: document.querySelectorAll('#list > li.row').length });
+const m0 = marks();
+check('songs in the playlist show a mark in place of the checkbox, and none is "New"', m0.inPl === data.playlist.keys.length && m0.inPl > 0 && m0.fresh === 0 && m0.boxes === m0.rows - m0.inPl, JSON.stringify(m0));
+await external({ tracks: { ...data.tracks, kn: track('kn', 'Song C', 'Artist C', 99000) } });
+await waitUntil(() => $('#build-btn').textContent === 'Add 1 new song', 5000).catch(() => {});
+const m1 = marks();
+check('a song captured afterwards is marked New, with a checkbox, and is the one the button counts',
+  $('#build-btn').textContent === 'Add 1 new song' && m1.fresh === 1 && !!rowBy('Song C') && m1.inPl === m0.inPl, `${$('#build-btn').textContent} ${JSON.stringify(m1)}`);
+toggle('#auto-sync', true);
+await tick(60);
+$('#pl-new').click();
+await waitUntil(() => !data.playlist, 3000).catch(() => {});
+check('Start a new playlist turns auto-add off too', !data.playlist && data.prefs.autoSync === false);
+
+// ---- the x: back out of "new playlist" without doing anything
+const wasId = Object.keys(sim.playlists).pop();
+await waitUntil(() => !$('#pl-undo').hidden, 2000).catch(() => {});
+check('the new-playlist box has an x to go back', !$('#pl-undo').hidden && !$('#build-new').hidden);
+$('#pl-undo').click();
+await waitUntil(() => !!data.playlist && $('#pl-undo').hidden, 3000).catch(() => {});
+check('the x brings the previous playlist back, nothing created, nothing added', !!data.playlist && data.playlist.id === wasId && Object.keys(sim.playlists).length === 1 && $('#pl-undo').hidden && !$('#build-existing').hidden,
+  JSON.stringify(data.playlist && data.playlist.id));
+toggle('#auto-sync', true); // for the check below
+await tick(60);
+
 // ---- Clear keeps the goal and auto-add settings
 $('#clear').click();
 $('#clear').click();

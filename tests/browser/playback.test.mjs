@@ -36,19 +36,20 @@ try {
     await page.click(`${row(5)} .play`);
     await waitFor(page, () => window.__fake.some((e) => e.event === 'started'));
     check('one click on Play starts the clicked song', (await started(page))[0] === id5, JSON.stringify(await fake(page)));
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 3000, `${row(5)} .play`);
-    check('row says Playing', (await label(page, 5)) === 'Playing');
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 3000, `${row(5)} .play`);
+    check('row says Playing', (await label(page, 5)) === 'Pause');
     check('player docked on screen', await onScreen(page, '#dock'));
     check('no hint when it started', (await page.$eval('#dock-hint', (e) => e.textContent)) === '');
 
     await page.click(`${row(5)} .play`);
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Paused', 3000, `${row(5)} .play`);
-    check('clicking Playing pauses (despite the trailing "still playing" update)', (await label(page, 5)) === 'Paused');
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Play', 3000, `${row(5)} .play`);
+    check('clicking Playing pauses (despite the trailing "still playing" update)', (await label(page, 5)) === 'Play');
     await tick(400);
-    check('stays Paused', (await label(page, 5)) === 'Paused');
+    check('stays Paused', (await label(page, 5)) === 'Play');
+    check('the paused song\'s row is still the outlined one', await page.$eval(row(5), (e) => e.classList.contains('current') && getComputedStyle(e).outlineStyle === 'solid' && parseFloat(getComputedStyle(e).outlineWidth) >= 2));
     await page.click(`${row(5)} .play`);
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 3000, `${row(5)} .play`);
-    check('clicking Paused resumes', (await label(page, 5)) === 'Playing');
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 3000, `${row(5)} .play`);
+    check('clicking Paused resumes', (await label(page, 5)) === 'Pause');
 
     // A slow click on another song while one plays: reports arrive between press and release.
     const id6 = await idOf(page, 6);
@@ -59,7 +60,7 @@ try {
     await page.mouse.down();
     await tick(600);
     await page.mouse.up();
-    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Playing', 5000, `${row(6)} .play`);
+    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Pause', 5000, `${row(6)} .play`);
     check('a slow click while another song plays still lands', (await started(page)).pop() === id6, (await started(page)).join(','));
 
     // Two songs pressed in quick succession: only the last one plays.
@@ -68,9 +69,9 @@ try {
     await page.click(`${row(2)} .play`);
     await tick(60);
     await page.click(`${row(3)} .play`);
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 5000, `${row(3)} .play`);
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 5000, `${row(3)} .play`);
     await tick(800);
-    check('quick switch: the last song pressed is Playing', (await label(page, 3)) === 'Playing');
+    check('quick switch: the last song pressed is Playing', (await label(page, 3)) === 'Pause');
     check('quick switch: the earlier one is not', (await label(page, 2)) === 'Play', await label(page, 2));
     const s = await started(page);
     check('quick switch: last start in the embed is the last song pressed', s[s.length - 1] === id3, `${id2}->${id3}: ${s.join(',')}`);
@@ -78,10 +79,10 @@ try {
     // Next / Prev move through the list in display order.
     const id4 = await idOf(page, 4);
     await page.click('#dock-next');
-    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Playing', 5000, `${row(4)} .play`);
+    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Pause', 5000, `${row(4)} .play`);
     check('Next plays the next song in the list', (await started(page)).pop() === id4);
     await page.click('#dock-prev');
-    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Playing', 5000, `${row(3)} .play`);
+    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Pause', 5000, `${row(3)} .play`);
     check('Prev goes back', (await started(page)).pop() === id3);
 
     const cmds = await commands(page);
@@ -99,8 +100,8 @@ try {
       await page.click(`${row(2)} .play`);
       const ok = await waitFor(page, (id) => window.__fake.filter((e) => e.event === 'started').map((e) => e.id).includes(id), 9000, next);
       check(`${mode} end: the next song starts by itself`, ok, JSON.stringify((await fake(page)).filter((e) => e.event !== 'cmd')));
-      await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 3000, `${row(3)} .play`);
-      check(`${mode} end: its row says Playing`, (await label(page, 3)) === 'Playing');
+      await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 3000, `${row(3)} .play`);
+      check(`${mode} end: its row says Playing`, (await label(page, 3)) === 'Pause');
     });
   }
 
@@ -115,10 +116,10 @@ try {
   await session({ name: 'replay same song', embed: { durationMs: 60000 } }, async (page) => {
     // Stale update: the outgoing document posts once more after the iframe navigates.
     await page.click(`${row(1)} .play`);
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 5000, `${row(1)} .play`);
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 5000, `${row(1)} .play`);
     const id2 = await idOf(page, 2);
     await page.click(`${row(2)} .play`);
-    await waitFor(page, (s) => document.querySelector(s).textContent === 'Playing', 5000, `${row(2)} .play`);
+    await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 5000, `${row(2)} .play`);
     await tick(500);
     check('after switching, the previous song is not shown as Playing', (await label(page, 1)) === 'Play', await label(page, 1));
     check('after switching, the embed really started the new song (a stale report did not fake it)',
@@ -126,42 +127,31 @@ try {
   });
 
   const playlist = { id: 'PL1', url: 'https://open.spotify.com/playlist/PL1', name: 'Explore finds, Oct 5', keys: [], uris: [] };
+  // The playlist line has no Play button any more (v0.10.2): it played in the panel's own player,
+  // and people couldn't tell where. The name links to the playlist on Spotify.
   await session({ name: 'playlist', embed: { durationMs: 1500 }, store: { playlist } }, async (page) => {
-    const pl = () => page.$eval('#pl-play', (e) => e.textContent);
-    check('Play sits on the playlist line, next to its name', await page.evaluate(() => {
-      const b = document.querySelector('#pl-play'); const a = document.querySelector('#pl-link');
-      const rb = b.getBoundingClientRect(); const ra = a.getBoundingClientRect();
-      return !!b.closest('.pl-line') && rb.left > ra.right - 1 && Math.abs((rb.top + rb.bottom) / 2 - (ra.top + ra.bottom) / 2) < 6;
+    check('the playlist line names the playlist on Spotify, with a link and no Play button', await page.evaluate(() => {
+      const line = document.querySelector('.pl-line');
+      return /^to playlist: Explore finds, Oct 5$/.test(line.textContent.trim()) && line.querySelector('a').href === 'https://open.spotify.com/playlist/PL1' && !line.querySelector('button');
+    }), await page.$eval('.pl-line', (e) => e.textContent));
+    check('the Add button comes first, the playlist name under it, the auto-add checkbox under that', await page.evaluate(() => {
+      const r = (q) => document.querySelector(q).getBoundingClientRect(); const b = r('#build-btn'); const l = r('#pl-to'); const c = r('.toggle');
+      return l.top >= b.bottom && l.top - b.bottom < 14 && Math.abs(l.left - b.left) < 2 && c.top >= l.bottom;
     }));
-    check('it is a small outlined button with a play icon', await page.evaluate(() => {
-      const b = document.querySelector('#pl-play'); const cs = getComputedStyle(b);
-      return cs.borderTopWidth === '1px' && !!b.querySelector('svg.icon') && b.getBoundingClientRect().height < 30;
+    check('...and a long playlist name shows in full (it wraps, it isn\'t cut off)', await page.evaluate(() => {
+      const a = document.querySelector('#pl-link'); const before = a.textContent;
+      a.textContent = 'Explore finds, Oct 6-902 and a much longer name than fits on one line';
+      const ok = a.scrollWidth <= a.parentElement.clientWidth + 1 && a.getBoundingClientRect().right <= innerWidth && getComputedStyle(a).textOverflow !== 'ellipsis';
+      a.textContent = before;
+      return ok;
     }));
-    check('a little space between the name and Play', await page.evaluate(() =>
-      document.querySelector('#pl-play').getBoundingClientRect().left - document.querySelector('#pl-link').getBoundingClientRect().right >= 12));
-    check('label starts as Play', (await pl()) === 'Play');
-    await page.click('#pl-play');
-    await waitFor(page, () => document.querySelector('#pl-play').textContent === 'Pause', 5000);
-    const f = await fake(page);
-    check('icon switches to pause while playing', (await page.$eval('#pl-play path', (e) => e.getAttribute('d'))).includes('h2.2'));
-    check('Play playlist loads the playlist embed and starts it', f.some((e) => e.event === 'started' && e.id === 'PL1'), JSON.stringify(f));
-    check('player shows "Playlist", Prev/Next off', (await page.$eval('#dock-pos', (e) => e.textContent)) === 'Playlist' &&
-      (await page.$eval('#dock-prev', (e) => e.disabled)) && (await page.$eval('#dock-next', (e) => e.disabled)));
-    await waitFor(page, () => window.__fake.some((e) => e.event === 'next-item'), 5000);
-    await tick(600);
-    check('the embed moves through the playlist by itself; still playing', (await pl()) === 'Pause');
-    check('no song from the list was started meanwhile', (await started(page)).every((id) => id === 'PL1'), (await started(page)).join(','));
-    await page.click('#pl-play');
-    await waitFor(page, () => document.querySelector('#pl-play').textContent === 'Resume', 3000);
-    check('Pause pauses the playlist', (await pl()) === 'Resume');
-    await page.click('#pl-play');
-    await waitFor(page, () => document.querySelector('#pl-play').textContent === 'Pause', 3000);
-    check('Resume continues it', (await pl()) === 'Pause');
-    await page.$eval(row(2), (e) => e.scrollIntoView({ block: 'center' }));
-    await page.click(`${row(2)} .play`);
-    await waitFor(page, (s2) => document.querySelector(s2).textContent === 'Playing', 5000, `${row(2)} .play`);
-    check('a song\'s Play takes over from the playlist', (await label(page, 2)) === 'Playing' && (await pl()) === 'Play');
-    check('only resume/pause were sent', (await commands(page)).every((c) => c === 'resume' || c === 'pause'));
+    const btn = () => page.$eval('#build-btn', (e) => ({ text: e.textContent, disabled: e.disabled }));
+    const b0 = await btn();
+    check('auto-add off: the button offers to add the new songs', /^Add \d+ new songs$/.test(b0.text) && !b0.disabled, JSON.stringify(b0));
+    await page.click('#auto-sync');
+    await waitFor(page, () => document.querySelector('#build-btn').textContent === 'Songs added', 8000);
+    const b1 = await btn();
+    check('auto-add on: the songs are added and the button only says so, greyed out', b1.text === 'Songs added' && b1.disabled, JSON.stringify(b1));
   });
 
   await session({ name: 'blocked', embed: { block: true } }, async (page) => {

@@ -1,5 +1,14 @@
 export const $ = (s) => document.querySelector(s);
 
+// When the extension is reloaded, Chrome closes its pages (the panel, the mini player). Whatever
+// they still try on the way out fails with "Extension context invalidated" and lands on the
+// extension's Errors page. There is nothing to do about it by then, so it isn't reported.
+export function quietWhenOrphaned() {
+  const gone = (reason) => /Extension context invalidated/i.test(String((reason && reason.message) || reason || ''));
+  window.addEventListener('error', (e) => { if (gone(e.error || e.message)) e.preventDefault(); });
+  window.addEventListener('unhandledrejection', (e) => { if (gone(e.reason)) e.preventDefault(); });
+}
+
 export function el(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;

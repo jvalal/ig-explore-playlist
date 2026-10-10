@@ -12,7 +12,7 @@
   <header>
     <h1>Explore finds</h1>
     <p class="status" id="status">Waiting for Instagram Explore</p>
-    <button class="icon-btn" id="open-settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.5 2l.4 2.1c.5.2 1 .5 1.400.800l2-.7 1.500 2.600-1.600 1.400c.1.500.1 1.100 0 1.600l1.600 1.400-1.500 2.600-2-.7c-.4.3-.9.6-1.400.800L11.500 18h-3l-.4-2.100c-.5-.2-1-.5-1.400-.8l-2 .7-1.500-2.600 1.600-1.400a5.600 5.600 0 010-1.600L3.200 8.800l1.500-2.600 2 .7c.4-.3.9-.6 1.400-.8L8.500 2h3zM10 7.300a2.700 2.700 0 100 5.400 2.700 2.700 0 000-5.400z"/></svg></button>
+    <button class="icon-btn" id="open-settings" aria-label="Settings" title="Settings"><svg class="sliders" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 12h1M11 12h9M4 17h9M19 17h1"/><circle cx="16" cy="7" r="2.500"/><circle cx="8" cy="12" r="2.500"/><circle cx="16" cy="17" r="2.500"/></svg></button>
   </header>
   <p class="connect-note" id="connect-note" hidden>Spotify isn't connected. <button class="linkish" id="connect-note-btn">Connect Spotify</button></p>
 
@@ -49,17 +49,20 @@
       <p class="dock-hint" id="dock-hint" role="status"></p>
     </section>
     <div id="build-new">
-      <label class="field">Playlist name <input id="pl-name"></label>
+      <button class="icon-btn" id="pl-undo" hidden aria-label="Go back to your playlist" title="Go back to your playlist"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.300 4.200L10 8.900l4.700-4.700 1.100 1.100L11.100 10l4.700 4.700-1.100 1.100L10 11.100l-4.700 4.700-1.100-1.100L8.900 10 4.200 5.300z"/></svg></button>
+      <label class="field">Add to a new Spotify playlist named <input id="pl-name"></label>
+    </div>
+    <!-- The button, and under it where the songs go (the whole playlist name fits there). -->
+    <div class="pl-go">
+      <button class="primary" id="build-btn">Create playlist</button>
+      <p class="pl-line" id="pl-to" hidden>to playlist: <a id="pl-link" target="_blank" rel="noopener"></a></p>
     </div>
     <div id="build-existing" hidden>
-      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="pill"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button></p>
       <label class="toggle"><input type="checkbox" id="auto-sync" autocomplete="off"> Add new songs to this playlist automatically</label>
-    </div>
-    <div class="row-actions">
-      <button class="primary" id="build-btn">Create playlist</button>
-      <button id="pl-new" class="quiet" hidden>Start a new playlist</button>
+      <button id="pl-new" class="linkish" hidden>Start a new playlist</button>
     </div>
     <p class="msg" id="msg" role="status"></p>
+    <label class="check-all" id="check-all-row" hidden><input type="checkbox" id="check-all" autocomplete="off"> <span id="check-all-text">Select all</span></label>
   </section>
 
   <ol class="list" id="list" aria-live="polite"></ol>

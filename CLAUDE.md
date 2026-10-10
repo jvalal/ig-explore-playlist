@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.10.1)
+## Current status (v0.10.9)
 
 **Side panel layout** (v0.10.0, the user's design): top to bottom it is now the title and status, the song count with Goal and **Clear
 captures**, the "Nothing captured yet" text while there are no songs, then the block with the
@@ -24,8 +24,12 @@ connected, the songs screen shows a one-line note with a Connect Spotify link, a
 Play or Create playlist opens Settings. A background "connect again" error only says so in
 the message line; it doesn't slide Settings in by itself.
 
-A mini window left open while the extension is reloaded used to log "Extension context
-invalidated" (mini.js `pagehide`); it's caught now. Harmless either way.
+Reloading the extension closes its pages, and what they still try on the way out fails with
+"Extension context invalidated", which showed up on the extension's Errors page (seen at
+mini.js `pagehide`). The panel and the mini player now swallow exactly that error
+(`quietWhenOrphaned` in dom.js). A page opened before the fix still logs it once, and old
+entries stay on the Errors page until "Clear all" is pressed there. The settings icon is three
+sliders (the gear didn't read well).
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -57,11 +61,39 @@ New in v0.6.0:
   and the panel adds the posts behind listed songs, so N ≥ M. Responses without music keywords
   aren't parsed, so their posts aren't counted. Log entries carry `songs`, `hits` and `posts`
   counts for the debug export.
-- **Play playlist** is back as an understated pill button with a play/pause icon (`.pill`), a little
-  to the right of the playlist name. It plays the playlist built by this panel in Spotify. Its
-  label is Play / Pause / Resume / Starting…. It loads the playlist embed in the dock, and the
-  embed moves through the playlist by itself (Prev/Next are off). Pressing a song's Play takes
-  over.
+- **Play playlist is gone from the panel** (v0.10.2, the user's call: it played, but nobody
+  could tell where). Before a playlist exists the box says "Add to a new Spotify playlist
+  named" and the button "Create it on Spotify with N songs". With a playlist: the button "Add N
+  new songs", under it "to playlist: <name>" (a link; on its own line since v0.10.7 so the
+  whole name shows), then the auto-add checkbox. With auto-add ticked the button only reports and can't be
+  pressed: "Adding N new songs…", then "Songs added" (misses aren't counted). Auto-add is
+  always off for a new playlist (v0.10.4): creating one, or Start a new playlist, turns it off.
+- **Row buttons say what they do** (v0.10.9): Play, or Pause while that song plays (they used
+  to read Playing / Paused). The row of the song in the player, playing or paused, has a thick
+  accent outline (`.row.current`, from `rowState().current`). **Select all / none**
+  (`#check-all`, at the bottom of the pinned block, in line with the rows' checkboxes) ticks
+  or unticks every song that has a checkbox; it shows a dash and "3 of 5 selected" when mixed.
+- **Rows say which songs are in the playlist** (v0.10.5, list.js). With a playlist, a song in
+  it shows a green outlined circle with a check where its checkbox was (`.in-pl-mark`), and a
+  song the Add button would add shows a dot and "New" in plain text (`.new`; as a pill it
+  looked like a button): checked, not in the playlist, and not a miss.
+  So "Add 2 new songs" matches two rows marked New, including after the panel is reopened.
+  "In the playlist" means this panel added it (`playlist.keys`); Spotify isn't asked.
+- **A playlist deleted on Spotify** (v0.10.4): adding to it answers 404 "Resource not found",
+  which the panel used to show as is (the user's stored playlist, "Explore finds, Oct 6-902";
+  that it was deleted is likely, not confirmed). `api()` marks 404 as `NOT_FOUND`;
+  `playlistGone()` in sidepanel.js then forgets the playlist, turns auto-add off and says so,
+  and the box goes back to creating a new one. The songs stay in the list.
+  **Doubt (2026-10-10):** the user then got this for "Explore finds, Oct 10", a playlist made
+  the same day. If they didn't delete it, 404 means something else (a bad URI in the batch?)
+  and forgetting the playlist is the wrong reaction. Needs `recent_spotify_calls` from a
+  Debug data export taken right after it happens.
+- **The x on the new-playlist box** (v0.10.8): shown when there was a playlist before (after
+  Start a new playlist, or after the case above). It puts that playlist back, nothing created
+  or added. The previous playlist is kept in storage key `playlistUndo` until a new playlist is
+  created. The code that plays a playlist embed is still there and
+  unreachable from the panel (`playback.clickPlaylist`, playlist mode in player.js, the mini
+  player's `playlist` command, `popIn.playlist`).
 
 New in v0.7.0 (2026-10-05, built overnight, **not yet tried in the user's Chrome**):
 - **Song goal** (goal.js): a Goal menu (Off/10/20/30/50/100) beside the count. It shows "18 of 30
@@ -199,6 +231,12 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   every embed message (with position, and whether it came from our iframe), commands sent, status
   changes and iframe `load` events, in storage `playerTrace` (fresh per mini window, last 800
   entries). The panel's Debug data includes it as `player_trace`.
+- **Real-browser test, open problem (2026-10-10 afternoon):** the two checks after "Back to
+  panel" fail because the real side panel's page doesn't answer (`asPage()`: "Network.enable
+  timed out", and no Spotify embed target appears). The committed v0.9.6 with its own test,
+  50/50 that morning, fails the same way now, so it is the machine or session, not the code;
+  the same hand-back works in a tab. Cause not found (the Chrome for Testing window not on
+  screen?). Re-run before trusting or blaming those two checks.
 - **Real-browser test:** `tests/real/mini-player.real.mjs`, with real Spotify embeds and not
   in `npm test`. It uses Chrome for Testing (~/.cache/cft, unpacked with `ditto` so the app
   launches), because branded Chrome no longer loads unpacked extensions from the command line.

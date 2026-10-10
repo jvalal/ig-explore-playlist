@@ -72,28 +72,40 @@ function fillRow(li, t, ctx) {
     else if (inPlaylist(st, t)) note = ['note', 'In playlist'];
   }
   const choose = isSong && m && m.status === 'none';
+  // With a playlist, a row says which side of it the song is on: already in it (a mark where
+  // the checkbox was), or new, which is what the Add button counts (checked, and on Spotify).
+  const inPl = isSong && inPlaylist(st, t);
+  const fresh = isSong && !!st.playlist && !inPl && !st.excluded[t.key] && !choose;
   const sig = JSON.stringify([isSong, !!st.excluded[t.key], t.title, t.artist, t.posts[0] && postUrl(t.posts[0]),
-    t.posts.length, note, choose, choose && ctx.picker.key === t.key]);
+    t.posts.length, note, choose, choose && ctx.picker.key === t.key, inPl, fresh]);
 
   if (li._sig !== sig) {
     li._sig = sig;
-    buildRow(li, t, { isSong, excluded: !!st.excluded[t.key], note, choose, pickerOpen: ctx.picker.key === t.key });
+    buildRow(li, t, { isSong, excluded: !!st.excluded[t.key], note, choose, pickerOpen: ctx.picker.key === t.key, inPl, fresh });
   }
   if (li._play) {
     const p = ctx.rowPlayback(t);
     if (li._play.textContent !== p.label) li._play.textContent = p.label;
     li._play.classList.toggle('on', !!p.on);
     li._play.disabled = !!p.disabled;
-  }
+    li.classList.toggle('current', !!p.current); // the song in the player: outlined
+  } else li.classList.remove('current');
 }
 
-function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen }) {
+function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fresh }) {
   const entering = li.classList.contains('enter');
-  li.className = `row${isSong ? '' : ' no-check'}${excluded ? ' skipped' : ''}${entering ? ' enter' : ''}`;
+  li.className = `row${isSong ? '' : ' no-check'}${excluded ? ' skipped' : ''}${entering ? ' enter' : ''}${li.classList.contains('current') ? ' current' : ''}`;
   li.replaceChildren();
   li._play = null;
 
-  if (isSong) {
+  if (inPl) {
+    const mark = el('span', 'in-pl-mark');
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', 'In your playlist');
+    mark.title = 'In your playlist';
+    mark.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7"/><path d="M4.800 8.300l2.200 2.200 4.200-4.600"/></svg>';
+    li.append(mark);
+  } else if (isSong) {
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = !excluded;
@@ -118,6 +130,11 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen }) {
 
   const side = el('div', 'side');
   if (t.posts.length > 1) side.append(el('span', 'seen', `${t.posts.length} posts`));
+  if (fresh) {
+    const badge = el('span', 'new', 'New');
+    badge.title = 'Not in your playlist yet';
+    side.append(badge);
+  }
   if (isSong) {
     if (choose) {
       const b = el('button', 'play', pickerOpen ? 'Close' : 'Choose');

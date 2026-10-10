@@ -93,6 +93,7 @@ export async function open({ songs = 30, misses = [], viewport = { width: 380, h
         const items = catalog.filter((t) => q.includes(t.name)).sort((a, b) => b.name.length - a.name.length).slice(0, 10);
         return json(200, { tracks: { items: q.includes('Mystery') ? [catalog[catalog.length - 1]] : items } });
       }
+      if (/^\/v1\/playlists\/[^/]+\/items$/.test(u.pathname) && o && o.method === 'POST') return json(201, { snapshot_id: 's' });
       return json(404, {});
     };
   }, songs, misses, manifest, store);

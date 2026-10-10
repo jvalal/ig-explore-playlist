@@ -28,6 +28,10 @@ try {
   check('order: count, then player and playlist, then the list, then Download CSV',
     order.count < order.build && order.build < order.list && order.list < order.csv, JSON.stringify(order));
 
+  // Select all/none sits in the block above the list, in line with the rows' checkboxes.
+  const col = await page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const a = r('#check-all'); const b = r('#list input[type=checkbox]'); return { all: Math.round(a.left), row: Math.round(b.left), inBuild: !!document.querySelector('#check-all').closest('#build'), above: a.bottom <= b.top }; });
+  check('Select all/none is above the list, lined up with the rows\' checkboxes', Math.abs(col.all - col.row) <= 1 && col.inBuild && col.above, JSON.stringify(col));
+
   // Settings: slides in from the right and pushes the songs out; the back arrow returns.
   const screens = () => page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const vis = (q) => getComputedStyle(document.querySelector(q)).visibility; return { main: Math.round(r('#main').left), settings: Math.round(r('#settings').left), w: innerWidth, mainVis: vis('#main'), setVis: vis('#settings'), back: Math.round(r('#settings-back').left + r('#settings-back').top) }; });
   const s0 = await screens();

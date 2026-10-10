@@ -5,12 +5,13 @@
 // runtime messages { type: 'ef-player', cmd, key }, and this page publishes what it's doing in
 // storage key `nowPlaying` ({ host: 'mini', key, playlist, status }) so the panel's rows match.
 import * as S from './spotify.js';
-import { $ } from './dom.js';
+import { $, quietWhenOrphaned } from './dom.js';
 import { createStore, list, matchOf } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
 
+quietWhenOrphaned();
 const store = createStore();
 const { st } = store;
 const params = new URLSearchParams(location.search);
@@ -162,7 +163,11 @@ ui['away-btn'].addEventListener('click', () => {
 // Removed by id, not window.close(): the user saw Back to panel in the floating window leave
 // this window open in their Chrome (v0.9.5; not reproduced, it closed in Chrome for Testing).
 function closePlayer() {
-  chrome.windows.getCurrent().then((w) => chrome.windows.remove(w.id)).catch(() => window.close());
+  try {
+    chrome.windows.getCurrent().then((w) => chrome.windows.remove(w.id)).catch(() => window.close());
+  } catch (_) {
+    window.close(); // the extension was reloaded under this window
+  }
 }
 ui['start-btn'].addEventListener('click', () => { trace('click-our-play'); run(() => playback.player.resume()); });
 ui.prev.addEventListener('click', () => run(() => playback.step(-1)));

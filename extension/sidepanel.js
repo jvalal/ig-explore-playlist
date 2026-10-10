@@ -1,7 +1,7 @@
 // Side panel controller: wires storage, the list, matching, playback and the playlist together.
 import * as S from './spotify.js';
-import { $, setMsg, ago, EXPLORE_URL } from './dom.js';
-import { createStore, connected, list, matchOf, pending } from './store.js';
+import { $, setMsg, ago, EXPLORE_URL, quietWhenOrphaned } from './dom.js';
+import { createStore, connected, list, matchOf, pending, inPlaylist } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { renderList, resetList } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
@@ -10,6 +10,8 @@ import { renderSetup, wireSetup, openSetup, openSettingsForSetup } from './setup
 import { downloadCsv, downloadDebug } from './exports.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
+
+quietWhenOrphaned();
 
 const store = createStore();
 const { st } = store;
@@ -31,6 +33,18 @@ function handleError(err) {
   } else {
     setMsg((err && err.message) || 'Something went wrong.', true);
   }
+}
+
+// Spotify answers 404 ("Resource not found") when the playlist we add to isn't there any more,
+// e.g. it was deleted in Spotify. The panel forgets it, so the next press makes a new one; the
+// songs stay in the list. Returns true if that was the problem.
+async function playlistGone(err) {
+  if (!(err && err.code === 'NOT_FOUND' && st.playlist)) return false;
+  const { name } = st.playlist;
+  await store.set({ playlist: null, playlistUndo: st.playlist, prefs: { ...st.prefs, autoSync: false } });
+  $('#pl-name').value = defaultName();
+  setMsg(`"${name}" isn't on Spotify any more. Press the button to put these songs in a new playlist.`, true);
+  return true;
 }
 
 // ---------- matching ----------
@@ -120,16 +134,10 @@ const tellMini = (cmd, key) => {
 function remoteRowState(t) {
   const np = remote();
   if (!np || np.playlist || np.key !== t.key) return { label: 'Play', on: false, disabled: false };
-  if (np.status === 'loading') return { label: 'Starting…', on: false, disabled: true };
-  if (np.status === 'playing') return { label: 'Playing', on: true, disabled: false };
-  if (np.status === 'paused') return { label: 'Paused', on: false, disabled: false };
+  if (np.status === 'loading') return { label: 'Starting…', on: false, disabled: true, current: true };
+  if (np.status === 'playing') return { label: 'Pause', on: true, disabled: false, current: true };
+  if (np.status === 'paused') return { label: 'Play', on: false, disabled: false, current: true };
   return { label: 'Play', on: false, disabled: false };
-}
-function remotePlaylistState() {
-  const np = remote();
-  if (!np || !np.playlist) return { label: 'Play', disabled: false };
-  return { loading: { label: 'Starting…', disabled: true }, playing: { label: 'Pause', disabled: false },
-    paused: { label: 'Resume', disabled: false } }[np.status] || { label: 'Play', disabled: false };
 }
 
 function playRow(t) {
@@ -191,11 +199,6 @@ function renderDock() {
 $('#dock-prev').addEventListener('click', () => startSong(() => playback.step(-1)));
 $('#dock-next').addEventListener('click', () => startSong(() => playback.step(1)));
 $('#dock-close').addEventListener('click', stopPlayback);
-$('#pl-play').addEventListener('click', () => {
-  if (!st.playlist) return;
-  if (miniOpen) tellMini('playlist');
-  else startSong(() => playback.clickPlaylist(st.playlist));
-});
 $('#dock-popout').addEventListener('click', popOut);
 
 // ---------- picker ----------
@@ -227,24 +230,18 @@ async function useCandidate(t, c) {
 }
 
 // ---------- rendering ----------
-const PLAY_ICON = 'M2 1l7 4-7 4z';
-const PAUSE_ICON = 'M2 1h2.2v8H2zM5.8 1H8v8H5.8z';
-
 function renderBuild() {
   const pl = st.playlist;
   const n = pending(st).length;
   $('#build-new').hidden = !!pl;
   $('#build-existing').hidden = !pl;
+  $('#pl-to').hidden = !pl;
+  $('#pl-undo').hidden = !!pl || !st.playlistUndo;
   $('#pl-new').hidden = !pl;
   if (pl) {
     $('#pl-link').textContent = pl.name;
     $('#pl-link').href = pl.url || '#';
-    const p = miniOpen ? remotePlaylistState() : playback.playlistState();
-    $('#pl-play span').textContent = p.label;
-    $('#pl-play path').setAttribute('d', p.label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
-    $('#pl-play').disabled = p.disabled;
     $('#auto-sync').checked = !!st.prefs.autoSync;
-    $('#pl-play').setAttribute('aria-label', `${p.label} playlist ${pl.name}`);
   }
   if (!$('#pl-name').value) $('#pl-name').value = defaultName();
 
@@ -252,11 +249,17 @@ function renderBuild() {
   if (!connected(st)) {
     btn.textContent = 'Connect Spotify to build a playlist';
     btn.disabled = ui.busy;
+  } else if (pl && st.prefs.autoSync) {
+    // Auto-add does the adding: the button only reports, and can't be pressed. Songs Spotify
+    // doesn't have are never added by it, so they don't count as still to come.
+    const coming = pending(st).filter((t) => { const m = matchOf(st, t); return !m || m.status === 'matched'; }).length;
+    btn.textContent = coming ? `Adding ${coming} new ${coming === 1 ? 'song' : 'songs'}…` : 'Songs added';
+    btn.disabled = true;
   } else if (pl) {
     btn.textContent = n ? `Add ${n} new ${n === 1 ? 'song' : 'songs'}` : 'No new songs yet';
     btn.disabled = ui.busy || !n;
   } else {
-    btn.textContent = n ? `Create playlist with ${n} ${n === 1 ? 'song' : 'songs'}` : 'No songs to add yet';
+    btn.textContent = n ? `Create it on Spotify with ${n} ${n === 1 ? 'song' : 'songs'}` : 'No songs to add yet';
     btn.disabled = ui.busy || !n;
   }
 }
@@ -301,12 +304,34 @@ function render() {
       onUse: useCandidate,
     });
     $('#empty').hidden = items.length > 0;
+    renderCheckAll();
     renderStatus();
     renderSetup(st);
     renderBuild();
     renderDock();
   });
 }
+
+// ---------- select all / none ----------
+// Covers the songs that have a checkbox (those not in the playlist yet). Ticked when all are
+// included, a dash when some are, empty when none.
+const selectable = () => songs().filter((t) => !inPlaylist(st, t));
+function renderCheckAll() {
+  const all = selectable();
+  const included = all.filter((t) => !st.excluded[t.key]).length;
+  $('#check-all-row').hidden = all.length === 0;
+  $('#check-all').checked = all.length > 0 && included === all.length;
+  $('#check-all').indeterminate = included > 0 && included < all.length;
+  $('#check-all-text').textContent = included === all.length ? 'All selected' : included ? `${included} of ${all.length} selected` : 'None selected';
+}
+$('#check-all').addEventListener('change', (e) => {
+  const excluded = { ...st.excluded };
+  for (const t of selectable()) {
+    if (e.target.checked) delete excluded[t.key];
+    else excluded[t.key] = true;
+  }
+  store.set({ excluded });
+});
 
 // ---------- playlist ----------
 async function build() {
@@ -317,11 +342,15 @@ async function build() {
   if (ui.busy || !pending(st).length) return;
   ui.busy = true;
   render();
+  const isNew = !st.playlist;
   try {
     await syncing; // an auto-add in flight finishes first, so nothing is added twice
+    // A new playlist starts with auto-add off: it is ticked for that playlist, once it exists.
+    if (isNew && st.prefs.autoSync) await store.set({ prefs: { ...st.prefs, autoSync: false } });
     await buildPlaylist({ store, queue, name: $('#pl-name').value, report: setMsg });
+    if (isNew && st.playlist && st.playlistUndo) await store.set({ playlistUndo: null }); // the new one replaces it
   } catch (err) {
-    handleError(err);
+    if (!(await playlistGone(err))) handleError(err);
   } finally {
     ui.busy = false;
     render();
@@ -347,7 +376,7 @@ function runSync() {
   if (!autoSyncOn()) return;
   if (ui.busy || syncing) { scheduleSync(2000); return; }
   syncing = syncMatched({ store, report: setMsg })
-    .catch((err) => { syncPausedUntil = Date.now() + 60_000; handleError(err); })
+    .catch(async (err) => { syncPausedUntil = Date.now() + 60_000; if (!(await playlistGone(err))) handleError(err); })
     .finally(() => { syncing = null; render(); });
 }
 
@@ -356,9 +385,16 @@ $('#auto-sync').addEventListener('change', async (e) => {
   if (e.target.checked) { syncPausedUntil = 0; scheduleSync(0); }
 });
 $('#goal').addEventListener('change', (e) => store.set({ prefs: { ...st.prefs, goal: Number(e.target.value) || 0 } }));
+// The x on the new-playlist box: back to the playlist that was current, nothing created or added.
+$('#pl-undo').addEventListener('click', async () => {
+  const back = st.playlistUndo;
+  if (!back || st.playlist) return;
+  await store.set({ playlist: back, playlistUndo: null });
+  setMsg(`Back to "${back.name}".`);
+});
 $('#pl-new').addEventListener('click', async () => {
   $('#pl-name').value = defaultName();
-  await store.set({ playlist: null });
+  await store.set({ playlist: null, playlistUndo: st.playlist, prefs: { ...st.prefs, autoSync: false } });
   setMsg('The next playlist starts fresh. Your old one stays in Spotify.');
 });
 

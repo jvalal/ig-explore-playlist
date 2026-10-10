@@ -89,7 +89,7 @@ try {
   // ---- play in the panel (docked)
   await listen(panel);
   await panel.click('#list > li.row:nth-child(1) .play');
-  const docked = await waitFor(() => panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 15000);
+  const docked = await waitFor(() => panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Pause'), 15000);
   check('panel: one click on Play starts the song in the docked player', docked,
     await panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent));
 
@@ -110,7 +110,7 @@ try {
   check('the docked player closed (only one player)', await panel.$eval('#dock', (e) => e.hidden));
   const winInfo = await mini.evaluate(async () => { const w = await chrome.windows.getCurrent(); return { type: w.type, width: w.width, height: w.height }; });
   check('mini window is a 360-wide popup', winInfo.type === 'popup' && winInfo.width === 360, JSON.stringify(winInfo));
-  check('panel row mirrors the mini player', await waitFor(() => panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 5000));
+  check('panel row mirrors the mini player', await waitFor(() => panel.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Pause'), 5000));
 
   // ---- close the panel; audio continues
   await panel.close();
@@ -130,7 +130,7 @@ try {
   panel = await browser.newPage();
   await panel.goto(`${BASE}/sidepanel.html`);
   await panel.waitForSelector('#list > li.row:nth-child(1) .play');
-  check('reopened panel shows the mini player\'s song as Playing', await waitFor(() => panel.$eval('#list > li.row:nth-child(2) .play', (e) => e.textContent === 'Playing'), 5000));
+  check('reopened panel shows the mini player\'s song as Playing', await waitFor(() => panel.$eval('#list > li.row:nth-child(2) .play', (e) => e.textContent === 'Pause'), 5000));
   await panel.click('#list > li.row:nth-child(1) .play');
   const viaPanel = await waitFor(() => mini.evaluate(async (k) => { const np = (await chrome.storage.local.get('nowPlaying')).nowPlaying || {}; return np.key === k && np.status === 'playing'; }, A.key), 20000);
   check('Play in the panel plays in the mini player when it\'s open', viaPanel);
@@ -283,7 +283,7 @@ try {
   await fresh.goto(`${BASE}/sidepanel.html`); // a panel tab, only to start a song and pop it out
   await fresh.waitForSelector('#list > li.row:nth-child(1) .play');
   await fresh.click('#list > li.row:nth-child(1) .play');
-  await waitFor(() => fresh.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 15000);
+  await waitFor(() => fresh.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Pause'), 15000);
   await fresh.click('#dock-popout');
   const mini2 = await pageFor((u) => u.startsWith(`${BASE}/player.html`));
   await waitFor(() => mini2.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 20000);
@@ -316,7 +316,7 @@ try {
   const side = sideT && ((await sideT.page()) || (await sideT.asPage().catch(() => null)));
   check('Back to panel opens the side panel', !!side, `new targets: ${created.map((t) => `${t.type()} ${t.url().slice(0, 60)}`).join(' | ')}`);
   check('...and closes the mini window', await waitFor(() => !browser.targets().some((t) => t.url().startsWith(`${BASE}/player.html`)), 5000));
-  const resumed = side && await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 20000);
+  const resumed = side && await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Pause'), 20000);
   check('...and the docked player in the panel plays the same song', !!resumed && !(await side.$eval('#dock', (e) => e.hidden)),
     side ? await side.$eval('#dock-hint', (e) => e.textContent) : 'no side panel');
   if (side) {
@@ -336,7 +336,7 @@ try {
       check('from the real side panel, Pop out starts the song by itself', true);
       await mini3.click('#mini-back');
       check('Back to panel in the mini window closes it', await waitFor(() => !browser.targets().some((t) => t.url().startsWith(`${BASE}/player.html`)), 5000));
-      check('...and the panel plays the song again', await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Playing'), 20000));
+      check('...and the panel plays the song again', await waitFor(() => side.$eval('#list > li.row:nth-child(1) .play', (e) => e.textContent === 'Pause'), 20000));
     }
     else if (mini3) {
       const btn = await mini3.evaluate(() => !document.querySelector('#mini-start').hidden);

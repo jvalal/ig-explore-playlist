@@ -70,7 +70,9 @@ export function makeSim(opts = {}) {
       res = json(201, { id, external_urls: { spotify: `https://open.spotify.com/playlist/${id}` } });
     } else if (/^\/playlists\/[^/]+\/items$/.test(p) && m === 'POST') {
       const id = decodeURIComponent(p.split('/')[2]);
-      if (sim.failAddItems > 0) {
+      if (!sim.playlists[id]) {
+        res = json(404, { error: { status: 404, message: 'Resource not found' } });
+      } else if (sim.failAddItems > 0) {
         sim.failAddItems--;
         res = json(500, { error: { message: 'Spotify had a problem adding songs.' } });
       } else {

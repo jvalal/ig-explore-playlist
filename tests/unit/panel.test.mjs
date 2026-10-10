@@ -97,7 +97,7 @@ check('Play shows the docked player', !$('#dock').hidden);
 check('Play loads the matched track in the embed', $('#dock-frame').src.includes('/embed/track/a'), $('#dock-frame').src);
 check('dock shows the position in the list', $('#dock-pos').textContent === '4 of 4', $('#dock-pos').textContent);
 await tick(50);
-check('row does not claim Playing until the player says so', rowBy('Song A').querySelector('.play').textContent !== 'Playing');
+check('row does not claim Playing until the player says so', rowBy('Song A').querySelector('.play').textContent !== 'Pause');
 $('#dock-close').click();
 await tick(50);
 check('Close player hides it and unloads the embed', $('#dock').hidden && $('#dock-frame').src === 'about:blank');
@@ -107,6 +107,23 @@ rowBy('Song B').querySelector('.play').click();
 await waitUntil(() => !$('#dock').hidden);
 $('#clear').click();
 await tick(50);
+// ---- select all / none
+{
+  const boxes = () => [...document.querySelectorAll('#list input[type=checkbox]')];
+  const n = boxes().length;
+  if (n) {
+    $('#check-all').checked = false; $('#check-all').dispatchEvent(new window.Event('change'));
+    await waitUntil(() => boxes().every((b) => !b.checked));
+    check('Select all/none, unticked: every song in the list is unticked', boxes().length === n && boxes().every((b) => !b.checked) && $('#check-all-text').textContent === 'None selected', $('#check-all-text').textContent);
+    boxes()[0].click();
+    await waitUntil(() => $('#check-all').indeterminate);
+    check('...one ticked by hand: it shows a dash and the count', $('#check-all').indeterminate && $('#check-all-text').textContent === `1 of ${n} selected`, $('#check-all-text').textContent);
+    $('#check-all').checked = true; $('#check-all').dispatchEvent(new window.Event('change'));
+    await waitUntil(() => boxes().every((b) => b.checked));
+    check('...ticked: every song is ticked again', boxes().every((b) => b.checked) && $('#check-all').checked && !$('#check-all').indeterminate && $('#check-all-text').textContent === 'All selected');
+  } else check('Select all/none is hidden when no song has a checkbox', $('#check-all-row').hidden);
+}
+
 check('first click on Clear only arms it', $('#clear').textContent === 'Confirm clear' && Object.keys(data.tracks).length === 5);
 $('#clear').click();
 await waitUntil(() => !data.tracks);

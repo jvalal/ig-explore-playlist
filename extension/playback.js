@@ -41,14 +41,15 @@ export class Playback {
     return this.player.play(pl.id, 'playlist').finally(() => this.onChange());
   }
 
-  // What a row's button shows.
+  // What a row's button shows: what pressing it does (Play / Pause). `current` marks the row of
+  // the song in the player, playing or not; `on` is true only while it plays.
   rowState(t) {
-    if (this.wantKey === t.key) return { label: 'Starting…', on: false, disabled: true };
+    if (this.wantKey === t.key) return { label: 'Starting…', on: false, disabled: true, current: true };
     if (this.key !== t.key) return { label: 'Play', on: false, disabled: false };
     switch (this.status) {
-      case 'loading': return { label: 'Starting…', on: false, disabled: true };
-      case 'playing': return { label: 'Playing', on: true, disabled: false };
-      case 'paused': return { label: 'Paused', on: false, disabled: false };
+      case 'loading': return { label: 'Starting…', on: false, disabled: true, current: true };
+      case 'playing': return { label: 'Pause', on: true, disabled: false, current: true };
+      case 'paused': return { label: 'Play', on: false, disabled: false, current: true };
       default: return { label: 'Play', on: false, disabled: false }; // ended, blocked, error
     }
   }

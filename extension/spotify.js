@@ -180,7 +180,7 @@ export async function api(path, { method = 'GET', body, query } = {}) {
   }
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    throw new Error((j.error && j.error.message) || `Spotify error ${r.status}.`);
+    throw codedError((j.error && j.error.message) || `Spotify error ${r.status}.`, r.status === 404 ? 'NOT_FOUND' : undefined);
   }
   return r.status === 204 ? null : r.json().catch(() => null);
 }
