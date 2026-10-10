@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.8.7)
+## Current status (v0.8.9)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -118,6 +118,18 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   it ("requires user activation"), so the floating window opens already tall enough for the Play
   row, scaled by `chrome.tabs.getZoom()`. The mini window follows the player's height (ResizeObserver
   → `chrome.windows.update`, no click needed). `DEFZOOM=1.25` runs the real test at 125% zoom.
+- **Floating window cut off** (v0.8.8; the user's Chrome, v0.8.7). Two causes. Its height was
+  measured before the title and artist were filled in (empty lines have no height). And the
+  floating window has its own zoom: 125% (Chrome's default) while the mini window was at 100%,
+  so `chrome.tabs.getZoom()` was the wrong number. Now the controls are rendered before
+  measuring, and the zoom is the one measured at the last opening (`localStorage.floatZoom`,
+  from the two windows' `devicePixelRatio`), else the larger of the mini window's and the
+  default. A click in a floating window that is still too short grows it (trace: `floating-grow`).
+  The user found v0.8.8 still slightly short in their Chrome; v0.8.9 adds 6 px. Cause not known:
+  check `floating-open` in the trace (`zoom`, `guess`, `mine`, `inner`, `controls`). The real test's
+  "nothing cut off" check had been passing wrongly: puppeteer's default 800x600 viewport resized
+  the floating window's page (now `defaultViewport: null`). `DEFZOOM=1.25 MINIZOOM=1` runs the
+  user's case.
 - **Keep on top started at 0:00** in the user's Chrome (v0.8.3, logged in), though Pop out and
   Back to panel continued. Not reproduced: logged out (Chrome for Testing) the floating window
   continues at `t`, and in the user's Chrome a top-level embed with `t=60` started at 1:00 from
@@ -198,8 +210,12 @@ ancestor with `code` + `media_type`/`product_type` is the post.
 
 **Explore only (since v0.6.4).** Capture runs on every instagram.com page, but the bridge keeps
 songs only when the area is `explore`, and the panel lists only tracks with `areas.explore`.
-Every response is still logged with its area. The area comes from the page path, except that a
-home-feed response is always `home`. The Explore page also fetches the first page of the home
+Every response is still logged with its area. The area comes from the page path, with two
+exceptions decided by the request itself: a home-feed response is always `home`, and the Explore
+grid (`/api/v1/discover/web/explore_grid/`) is always `explore` (v0.8.9). Instagram requests the
+grid's first screen while the page is still Home (the click on Explore), so until v0.8.8 those
+songs were dropped as `home` and the first screen only showed up after scrolling on (debug export
+2026-10-08: 4 songs, 20 posts lost that way). The Explore page also fetches the first page of the home
 feed (`PolarisFeedTimelineRootV2Query`, `xdt_api__v1__feed__timeline__connection`), including
 suggested reels (`explore_story`). Before v0.6.3 those were counted as Explore on every refresh.
 There is no "Only from Explore" checkbox any more.

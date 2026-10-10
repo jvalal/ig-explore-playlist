@@ -26,7 +26,7 @@ if (process.env.DEFZOOM) {
   fs.writeFileSync(path.join(profile, 'Default/Preferences'), JSON.stringify({ partition: { default_zoom_level: { x: Math.log(Number(process.env.DEFZOOM)) / Math.log(1.2) } } }));
 }
 const browser = await puppeteer.launch({
-  executablePath: CFT, headless: false, userDataDir: profile,
+  executablePath: CFT, headless: false, userDataDir: profile, defaultViewport: null, // real window sizes: the default 800x600 hid a cut-off floating window
   args: [`--disable-extensions-except=${EXT_DIR}`, `--load-extension=${EXT_DIR}`, '--mute-audio', '--no-first-run'],
 });
 const waitFor = async (fn, ms = 15000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await fn()) return true; } catch (_) {} await tick(200); } return false; };
@@ -153,6 +153,9 @@ try {
     const curUri = `spotify:track:${cur === A.key ? A.id : B.id}`;
     const srcBefore = await mini.$eval('#mini-frame', (f) => f.src);
     await mini.evaluate(() => { window.__pos = []; });
+    // MINIZOOM=1 with DEFZOOM=1.25: the mini window at 100% while Chrome's default zoom is 125%.
+    // The floating window follows the default (the user's Chrome), not the mini window.
+    if (process.env.MINIZOOM) { await mini.evaluate((z) => chrome.tabs.setZoom(z), Number(process.env.MINIZOOM)); await tick(500); }
     await mini.click('#mini-pip');
     const opened = await waitFor(() => mini.evaluate(() => !!(window.documentPictureInPicture && documentPictureInPicture.window)), 5000);
     check('"Keep on top" opens an always-on-top window from player.html', opened, await mini.$eval('#mini-hint', (e) => e.textContent).catch(() => ''));
@@ -166,6 +169,7 @@ try {
         await tick(600);
         const f = await pp.evaluate(() => ({ title: document.querySelector('#mini-float-title').textContent, play: document.querySelector('#mini-float-play').textContent.trim(), time: document.querySelector('#mini-float-time').textContent,
           fits: document.querySelector('#mini-float').getBoundingClientRect().bottom <= innerHeight + 1 }));
+        f.now = await pp.evaluate(() => ({ inner: [innerWidth, innerHeight], bottom: document.querySelector('#mini-float').getBoundingClientRect().bottom }));
         check('...showing the song, Pause, and the time, nothing cut off', /Cut To The Feeling|Never Gonna/.test(f.title) && f.play === 'Pause' && /\d:\d\d \/ \d:\d\d/.test(f.time) && f.fits, JSON.stringify(f));
         await pp.click('#mini-float-play');
         const paused = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'paused'), 5000);
@@ -230,8 +234,16 @@ try {
   const created = [];
   browser.on('targetcreated', (t) => created.push(t));
   // From the floating window: the click there has to count as the gesture sidePanel.open needs.
+  // ...opened too short on purpose (a wrong zoom remembered): a click in it makes it fit.
+  await mini2.evaluate(() => localStorage.setItem('floatZoom', '0.7'));
   await mini2.click('#mini-pip');
   const pp2 = await findFloat();
+  if (pp2) {
+    const cutOff = () => pp2.evaluate(() => document.querySelector('#mini-float').getBoundingClientRect().bottom > innerHeight + 1);
+    const was = await cutOff();
+    await pp2.click('#mini-float-title');
+    check('a floating window that opened too short grows to fit at the first click in it', was && await waitFor(async () => !(await cutOff()), 3000), `was cut off: ${was}`);
+  }
   check('the floating window has a Back to panel button', !!pp2 && await pp2.$eval('#mini-float-back', (e) => e.getBoundingClientRect().width > 0));
   if (pp2) await pp2.click('#mini-float-back');
   await waitFor(() => created.some((t) => t.url().startsWith(`${BASE}/sidepanel.html`)), 8000);

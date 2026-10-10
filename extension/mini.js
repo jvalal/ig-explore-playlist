@@ -247,11 +247,28 @@ if ('documentPictureInPicture' in window) {
     try {
       trace('click-keep-on-top', { status: playback.status, at: playback.player.currentSeconds() });
       // Window sizes are in screen points; the controls' size in page pixels (× page zoom).
+      // The floating window's zoom isn't this window's: in the user's Chrome it was 125% (the
+      // default) with this window at 100%, and the controls were cut off. It can only be
+      // measured once the window is open, so: the zoom measured last time, else the larger of
+      // this window's and the default.
       ui.float.hidden = false;
       document.body.append(ui.float);
+      renderFloat(); // measured with its text in: empty lines have no height
       const h = ui.float.getBoundingClientRect().height;
-      const zoom = await chrome.tabs.getZoom();
-      const pip = await window.documentPictureInPicture.requestWindow({ width: Math.round(360 * zoom), height: Math.ceil(h * zoom) + 2 });
+      const [mine, settings] = await Promise.all([chrome.tabs.getZoom(), chrome.tabs.getZoomSettings().catch(() => ({}))]);
+      let stored = 0;
+      try { stored = Number(localStorage.getItem('floatZoom')) || 0; } catch (_) {}
+      const guess = stored || Math.max(mine, settings.defaultZoomFactor || 1);
+      const pip = await window.documentPictureInPicture.requestWindow({ width: Math.round(360 * guess), height: Math.ceil((h + 6) * guess) });
+      const zoom = Math.round((pip.devicePixelRatio / (window.devicePixelRatio / mine)) * 100) / 100 || guess;
+      try { localStorage.setItem('floatZoom', String(zoom)); } catch (_) {}
+      // If the guess was too small: Chrome lets this window grow only right after a click in it.
+      pip.addEventListener('click', () => {
+        const cut = Math.ceil(ui.float.getBoundingClientRect().bottom) - pip.innerHeight;
+        if (cut <= 0) return;
+        trace('floating-grow', { cut, inner: [pip.innerWidth, pip.innerHeight] });
+        try { pip.resizeBy(0, Math.ceil((cut + 6) * zoom)); } catch (err) { trace('floating-grow-failed', { message: err.message }); }
+      });
       for (const link of document.querySelectorAll('link[rel="stylesheet"]')) pip.document.head.append(link.cloneNode());
       pip.document.body.className = 'mini';
       pip.document.title = document.title;
@@ -265,7 +282,7 @@ if ('documentPictureInPicture' in window) {
       ui.away.hidden = false;
       const me = await chrome.windows.getCurrent();
       if (fromWindow) chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
-      trace('floating-open', { zoom, inner: [pip.innerWidth, pip.innerHeight] });
+      trace('floating-open', { zoom, guess, mine, inner: [pip.innerWidth, pip.innerHeight], controls: Math.ceil(h) });
       pip.addEventListener('pagehide', () => {
         trace('floating-closed', { status: playback.status, at: playback.player.currentSeconds() });
         clearInterval(floatTimer);

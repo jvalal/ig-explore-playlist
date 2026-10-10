@@ -28,9 +28,14 @@
   // under xdt_api__v1__feed__timeline__connection), so the same home-feed posts were being
   // counted as Explore on every refresh (seen in a debug export, 2026-10-05).
   const HOME_FEED = /FeedTimeline|feed__timeline|\/feed\/timeline/i;
+  // The Explore grid is Explore wherever it's requested from: Instagram asks for its first
+  // screen while the page is still Home (the click on Explore), and those songs were dropped as
+  // `home`, so the first screen only showed up after scrolling on (debug export, 2026-10-08).
+  const EXPLORE_GRID = /\/discover\/web\/explore_grid\//i;
   // A post opened from the Explore grid (URL /p/… or /reel/…, `via` /explore…) is Explore.
   const areaOf = (path, name, url, via) => {
     if (HOME_FEED.test(name || '') || HOME_FEED.test(url || '')) return 'home';
+    if (EXPLORE_GRID.test(url || '')) return 'explore';
     if (!path) return 'other';
     if (path.startsWith('/explore')) return 'explore';
     if (path.startsWith('/reels')) return 'reels';

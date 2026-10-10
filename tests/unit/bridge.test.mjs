@@ -63,6 +63,18 @@ function loadBridge() {
   check('home-feed REST endpoint is not kept either', !b.store.tracks['song|friend2|x']);
   check('both are logged as home', b.store.log.filter((l) => l.area === 'home').length === 2);
 
+  // Real case (export 2026-10-08): Instagram requests the first screen of Explore while the page
+  // is still Home (the click on Explore), so its songs only showed up after scrolling further.
+  const grid = b.msg('First Screen', '/');
+  grid.data.via = '/';
+  grid.data.url = 'https://www.instagram.com/api/v1/discover/web/explore_grid/?include_fixed_destinations=true&module=explore_popular';
+  grid.data.posts = ['First Screen', 'NoMusic1'];
+  b.send(grid);
+  await tick(100);
+  check('the Explore grid requested from another page is an Explore find', !!b.store.tracks['song|first screen|x'] && b.store.tracks['song|first screen|x'].areas.explore === 1,
+    JSON.stringify(b.store.log[b.store.log.length - 1]));
+  check('...and its posts count as Explore posts checked', (b.store.seen || []).includes('NoMusic1'));
+
   // Real case (export 2026-10-05): posts opened from the Explore grid have URL /p/… .
   const opened = (title, page, via) => { const m = b.msg(title, page); m.data.via = via; return m; };
   b.send(opened('From Explore', '/p/DeC17p2CNcH/', '/explore/'));
