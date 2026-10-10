@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.10.13)
+## Current status (v0.10.16)
 
 **Side panel layout** (v0.10.0, the user's design): top to bottom it is now the title and status, the song count with Goal and **Clear
 captures**, the "Nothing captured yet" text while there are no songs, then the block with the
@@ -78,6 +78,18 @@ New in v0.6.0:
   while it plays its Pause button is the filled one (`.play.round.on`). **Select all / none**
   (`#check-all`, at the bottom of the pinned block, in line with the rows' checkboxes) ticks
   or unticks every song that has a checkbox; it shows a dash and "3 of 5 selected" when mixed.
+- **Moving bars on the playing row** (v0.10.14, the user's idea, "a little flavor"): eighteen bars
+  on the row of the song in the player (`.wave`), only a little lighter than the row,
+  breathing while the song plays and still when paused or with reduced motion. The order in
+  a row is the wave, then "New", then the button (the user asked for that order three times
+  before it was right: "New" stays next to the button). Since v0.10.16 it is SoundCloud
+  style: the bars up to the song's position are bright (`.done`), set twice a second by
+  `showProgress()` from `player.currentSeconds()`, without re-rendering the list; no fill
+  while the mini player has the song (the panel doesn't know the position then). Decoration only: the
+  extension can't read the sound from Spotify's player, and Spotify's tempo/beat data
+  (audio-features, audio-analysis) has been closed to new apps since Nov 2024 (from memory,
+  not re-checked). Since v0.10.15 each song has its own shape and pace, seeded from its key.
+  The floating window's minimum width went from 360 to 300 the same day.
 - **Rows say which songs are in the playlist** (v0.10.5, list.js). With a playlist, a song in
   it shows a green outlined circle with a check where its checkbox was (`.in-pl-mark`), and a
   song the Add button would add shows a dot and "New" in plain text (`.new`; as a pill it

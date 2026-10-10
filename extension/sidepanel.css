@@ -144,6 +144,18 @@ input {
 .seen { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .play { border-radius: 999px; background: var(--accent-soft); border-color: transparent; color: var(--accent); padding: 4px 10px; }
 .play.on { background: var(--accent); color: var(--accent-ink); }
+/* The wave on the row of the song in the player, SoundCloud style: the part already played is
+   bright, the rest only a little lighter than the row. Each bar's height (--h), pace (--t) and
+   offset (--at) come from the song (list.js), so every song has its own shape. The bars
+   breathe a little while it plays; they are still when paused or when less motion is wanted. */
+.wave { display: none; align-items: center; gap: 1px; height: 22px; }
+.row.current .wave { display: flex; }
+.wave i { display: block; width: 2px; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--accent) 30%, var(--accent-soft)); transform: scaleY(var(--h, 0.5)); transition: background-color 300ms; }
+.wave i.done { background: var(--accent); }
+.row.playing .wave i { animation: wave var(--t, 900ms) ease-in-out var(--at, 0ms) infinite alternate; }
+@keyframes wave { from { transform: scaleY(calc(var(--h, 0.5) * 0.7)); } to { transform: scaleY(var(--h, 0.5)); } }
+@media (prefers-reduced-motion: reduce) { .row.playing .wave i { animation: none; } }
+
 /* A song's Play / Pause: a round icon-only button, Spotify's shape with the colours reversed:
    the row's own background, the ring and the icon in the accent colour (filled, it was heavy
    repeated down the list). */

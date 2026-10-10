@@ -40,6 +40,20 @@ try {
     check('row says Playing', (await label(page, 5)) === 'Pause');
     check('...and shows the pause icon', (await page.$eval(`${row(5)} .play path`, (e) => e.getAttribute('d'))).includes('h2.200v8'));
     const look = (n) => page.evaluate((sel, other) => { const bg = (q) => getComputedStyle(document.querySelector(q)).backgroundColor; return { btn: bg(`${sel} .play`), otherBtn: bg(`${other} .play`), row: bg(sel), otherRow: bg(other), outline: getComputedStyle(document.querySelector(sel)).outlineStyle }; }, row(n), row(n === 1 ? 2 : 1));
+    const bars = await page.$eval(row(5), (e) => { const w = e.querySelector('.wave'); const hs = [...w.children].map((b) => Math.round(b.getBoundingClientRect().height)); return { shown: getComputedStyle(w).display !== 'none', n: hs.length, moving: getComputedStyle(w.firstChild).animationName, heights: new Set(hs).size, left: w.getBoundingClientRect().right <= e.querySelector('.play').getBoundingClientRect().left, others: [...document.querySelectorAll('#list > li.row:not(.current) .wave')].every((x) => getComputedStyle(x).display === 'none') }; });
+    check('the playing row shows moving bars left of its button, at different heights; other rows show none', bars.shown && bars.n === 18 && bars.moving === 'wave' && bars.heights > 2 && bars.left && bars.others, JSON.stringify(bars));
+    const shapes = await page.evaluate((a, b) => { const hs = (q) => [...document.querySelectorAll(`${q} .wave i`)].map((x) => x.style.getPropertyValue('--h')).join(','); return { a: hs(a), b: hs(b) }; }, row(5), row(1));
+    check('each song has its own wave shape', shapes.a !== shapes.b && shapes.a.split(',').length === 18, JSON.stringify(shapes));
+    const order = await page.$eval(row(5), (e) => [...e.querySelector('.side').children].map((c) => c.className.split(' ')[0]).join(' '));
+    check('in a row the order is: the wave, then New (when there is one), then the button', /play$/.test(order) && /^(seen )?wave( new)? play$/.test(order), order);
+    // The wave fills as the song plays (the fake embed reports its position).
+    const done = () => page.$eval(row(5), (e) => { const b = [...e.querySelectorAll('.wave i')]; const d = b.map((x) => x.classList.contains('done')); return { n: d.filter(Boolean).length, fromLeft: d.join('').replace(/^(true)*(false)*$/, '') === '' }; });
+    // A 60 s song and 18 bars: a bar every 3.3 s, the first after 1.7 s.
+    let d1 = await done();
+    for (let i = 0; i < 30 && d1.n < 1; i++) { await tick(250); d1 = await done(); }
+    let d2 = d1;
+    for (let i = 0; i < 24 && d2.n <= d1.n; i++) { await tick(250); d2 = await done(); }
+    check('the wave fills from the left as the song plays', d1.n >= 1 && d2.n > d1.n && d2.fromLeft && d2.n < 18, JSON.stringify({ d1, d2 }));
     const playingLook = await look(5);
     check('while it plays, its Pause button is filled and the others are not; the row has no outline', playingLook.btn !== playingLook.otherBtn && playingLook.otherBtn === 'rgba(0, 0, 0, 0)' && playingLook.outline === 'none', JSON.stringify(playingLook));
     check('player docked on screen', await onScreen(page, '#dock'));
@@ -52,6 +66,7 @@ try {
     check('stays Paused', (await label(page, 5)) === 'Play');
     await page.mouse.move(5, 5); // off the button: hovering tints it
     await tick(250);
+    check('paused: the bars stay but stand still', await page.$eval(row(5), (e) => getComputedStyle(e.querySelector('.wave')).display !== 'none' && getComputedStyle(e.querySelector('.wave i')).animationName === 'none'));
     const pausedLook = await look(5);
     check('paused: the button is unfilled again, the row keeps its tint', pausedLook.btn === 'rgba(0, 0, 0, 0)' && pausedLook.row !== pausedLook.otherRow && await page.$eval(row(5), (e) => e.classList.contains('current')), JSON.stringify(pausedLook));
     await page.click(`${row(5)} .play`);

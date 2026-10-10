@@ -72,6 +72,7 @@ try {
     const p = document.querySelector('#list > li.picker');
     return !!p && p.previousElementSibling.querySelector('.title').textContent === 'Mystery Tune';
   }));
+  await tick(300); // it scrolls into view a moment after it opens
   check('picker is on screen', await onScreen(page, '#list > li.picker'));
   check('picker lists Spotify candidates with Use buttons', (await page.$$eval('#list > li.picker li button', (l) => l.length)) >= 1);
   check('no page errors', t.errors.length === 0, t.errors.join(' | '));

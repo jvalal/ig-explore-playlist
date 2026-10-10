@@ -336,13 +336,12 @@ if ('documentPictureInPicture' in window) {
       renderFloat(); // measured with its text in: empty lines have no height
       const h = ui.float.getBoundingClientRect().height;
       // As wide as the controls need (they don't shrink), with the cover: squeezed to nothing,
-      // the row's scroll width is what its buttons and the time take. 360 was too narrow in the
-      // user's Chrome once the "+" was added: the time and Back to panel were cut off.
+      // a line's scroll width is what its content takes. At least 300, so the title has room.
       ui.float.style.width = '0';
       const row = ui.float.querySelector('.float-controls').scrollWidth;
       const sub = ui.float.querySelector('.float-foot').scrollWidth; // the time and Back to panel
       ui.float.style.width = '';
-      const w = Math.max(360, 20 + Math.max(74 + row, sub) + 8); // padding, cover beside the row, slack
+      const w = Math.max(300, 20 + Math.max(74 + row, sub) + 8); // padding, cover beside the row, slack
       // A window's zoom, measured on the window itself: its width in screen points over its
       // width in page pixels. Up to v0.9.1 it came from chrome.tabs.getZoom and a
       // devicePixelRatio read right after opening, which in the user's Chrome gave 100% for a

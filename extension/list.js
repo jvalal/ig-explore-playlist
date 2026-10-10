@@ -6,6 +6,16 @@ import { matchOf, inPlaylist } from './store.js';
 
 const PLAY_ICON = 'M2.500 1l7 4-7 4z';
 const PAUSE_ICON = 'M2 1h2.200v8H2zM5.800 1H8v8H5.800z';
+// Repeatable pseudo-random numbers (0..1) from a string, for a song's wave shape.
+function seeded(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
 const rowEls = new Map();
 let knownKeys = null;
 
@@ -96,13 +106,14 @@ function fillRow(li, t, ctx) {
     }
     li._play.classList.toggle('on', !!p.on);
     li._play.disabled = !!p.disabled;
-    li.classList.toggle('current', !!p.current); // the song in the player: outlined
-  } else li.classList.remove('current');
+    li.classList.toggle('current', !!p.current); // the song in the player: tinted
+    li.classList.toggle('playing', !!p.on);      // ...and while it plays, its bars move
+  } else li.classList.remove('current', 'playing');
 }
 
 function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fresh }) {
   const entering = li.classList.contains('enter');
-  li.className = `row${isSong ? '' : ' no-check'}${excluded ? ' skipped' : ''}${entering ? ' enter' : ''}${li.classList.contains('current') ? ' current' : ''}`;
+  li.className = `row${isSong ? '' : ' no-check'}${excluded ? ' skipped' : ''}${entering ? ' enter' : ''}${li.classList.contains('current') ? ' current' : ''}${li.classList.contains('playing') ? ' playing' : ''}`;
   li.replaceChildren();
   li._play = null;
 
@@ -136,8 +147,10 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fre
   if (note) main.append(el('span', note[0], note[1]));
   li.append(main);
 
+  // Right-hand side, left to right: post count, the wave, "New", the button.
   const side = el('div', 'side');
   if (t.posts.length > 1) side.append(el('span', 'seen', `${t.posts.length} posts`));
+  if (isSong && !choose) side.append(waveFor(t));
   if (fresh) {
     const badge = el('span', 'new', 'New');
     badge.title = 'Not in your playlist yet';
@@ -159,6 +172,36 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fre
     }
   }
   li.append(side);
+}
+
+// The wave on the row of the song in the player (CSS shows it only there). Its shape is not the
+// real sound: the extension can't hear Spotify's player. Each song gets its own shape, worked
+// out from its name, so it looks the same every time. What is real is how far it is filled:
+// the panel marks the bars up to the song's position (`showProgress`).
+const WAVE_BARS = 18;
+function waveFor(t) {
+  const wave = el('span', 'wave');
+  wave.setAttribute('aria-hidden', 'true');
+  const rand = seeded(t.key);
+  for (let i = 0; i < WAVE_BARS; i++) {
+    const bar = el('i');
+    // Taller toward the middle, like a waveform, with the song's own unevenness.
+    const hump = 0.45 + 0.55 * Math.sin((Math.PI * (i + 0.5)) / WAVE_BARS);
+    bar.style.setProperty('--h', (hump * (0.45 + 0.55 * rand())).toFixed(2));
+    bar.style.setProperty('--t', `${Math.round(520 + 620 * rand())}ms`);
+    bar.style.setProperty('--at', `-${Math.round(900 * rand())}ms`);
+    wave.append(bar);
+  }
+  return wave;
+}
+
+// Fills the current row's wave up to `fraction` (0..1) of the song, like SoundCloud; null clears
+// it (position unknown). Only classes on the bars change, so no button is ever replaced.
+export function showProgress(fraction) {
+  const wave = document.querySelector('#list > li.row.current .wave');
+  if (!wave) return;
+  const n = wave.children.length;
+  for (let i = 0; i < n; i++) wave.children[i].classList.toggle('done', fraction !== null && (i + 0.5) / n <= fraction);
 }
 
 function pickerRow(t, ctx) {

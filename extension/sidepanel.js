@@ -3,7 +3,7 @@ import * as S from './spotify.js';
 import { $, setMsg, ago, EXPLORE_URL, quietWhenOrphaned } from './dom.js';
 import { createStore, connected, list, matchOf, pending, inPlaylist } from './store.js';
 import { MatchQueue } from './match-queue.js';
-import { renderList, resetList } from './list.js';
+import { renderList, resetList, showProgress } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
 import { renderGoal } from './goal.js';
 import { renderSetup, wireSetup, openSetup, openSettingsForSetup } from './setup.js';
@@ -218,7 +218,7 @@ async function togglePicker(t) {
       // The choices open under the row, which can be below the bottom of the panel.
       setTimeout(() => {
         const p = document.querySelector('#list > li.picker');
-        if (p && p.scrollIntoView) p.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (p && p.scrollIntoView) p.scrollIntoView({ block: 'nearest' });
       }, 60);
     }
   } catch (err) {
@@ -316,6 +316,16 @@ function render() {
     renderDock();
   });
 }
+
+// ---------- how far the song is ----------
+// The wave on the current row fills as the song plays. The list isn't re-rendered for this (see
+// "Things that broke before"): twice a second, the bars' classes are set from the player's
+// position. While the mini player has the song, the panel doesn't know the position: no fill.
+setInterval(() => {
+  if (miniOpen || playback.playlistLoaded || !playback.key) { showProgress(null); return; }
+  const { duration } = player.state;
+  showProgress(duration ? Math.min(1, (player.currentSeconds() * 1000) / duration) : 0);
+}, 500);
 
 // ---------- select all / none ----------
 // Covers the songs that have a checkbox (those not in the playlist yet). Ticked when all are
