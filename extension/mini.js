@@ -39,7 +39,7 @@ function trace(ev, d = {}) {
   traceBuf.push({ ms: Date.now() - t0, ev, ...d });
   if (traceBuf.length > 800) traceBuf = traceBuf.slice(-800);
   clearTimeout(traceTimer);
-  traceTimer = setTimeout(() => chrome.storage.local.set({ playerTrace: { started: new Date(t0).toISOString(), entries: traceBuf } }).catch(() => {}), 500);
+  traceTimer = setTimeout(() => { try { chrome.storage.local.set({ playerTrace: { started: new Date(t0).toISOString(), entries: traceBuf } }).catch(() => {}); } catch (_) {} }, 500);
 }
 trace('mini-open', { url: location.search });
 
@@ -419,4 +419,6 @@ else if (params.get('key') && byKey(params.get('key'))) {
   run(() => playback.playSong(byKey(params.get('key')), { startAt: Number(params.get('t')) || 0 }));
 }
 else changed();
-addEventListener('pagehide', () => { chrome.storage.local.remove('nowPlaying').catch(() => {}); });
+// After the extension is reloaded this window is orphaned and chrome.* throws ("Extension context
+// invalidated"); there is nothing left to tidy up then.
+addEventListener('pagehide', () => { try { chrome.storage.local.remove('nowPlaying').catch(() => {}); } catch (_) {} });

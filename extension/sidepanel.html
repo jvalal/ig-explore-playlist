@@ -7,11 +7,75 @@
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
+ <!-- Two screens: the songs, and Settings, which slides in from the right and pushes this one out. -->
+ <div class="screen" id="main">
   <header>
     <h1>Explore finds</h1>
     <p class="status" id="status">Waiting for Instagram Explore</p>
+    <button class="icon-btn" id="open-settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.5 2l.4 2.1c.5.2 1 .5 1.400.800l2-.7 1.500 2.600-1.600 1.400c.1.500.1 1.100 0 1.600l1.600 1.400-1.500 2.600-2-.7c-.4.3-.9.6-1.400.800L11.500 18h-3l-.4-2.100c-.5-.2-1-.5-1.400-.8l-2 .7-1.500-2.600 1.600-1.400a5.600 5.600 0 010-1.600L3.200 8.800l1.500-2.600 2 .7c.4-.3.9-.6 1.400-.8L8.500 2h3zM10 7.300a2.700 2.700 0 100 5.400 2.700 2.700 0 000-5.400z"/></svg></button>
   </header>
+  <p class="connect-note" id="connect-note" hidden>Spotify isn't connected. <button class="linkish" id="connect-note-btn">Connect Spotify</button></p>
 
+  <div class="controls">
+    <div class="count-row">
+      <p class="count" id="n-song">0 songs</p>
+      <label class="goal">Goal
+        <select id="goal" aria-label="Song goal">
+          <option value="0">Off</option><option value="10">10</option><option value="20">20</option>
+          <option value="30">30</option><option value="50">50</option><option value="100">100</option>
+        </select>
+      </label>
+      <button id="clear" class="quiet">Clear captures</button>
+    </div>
+    <div class="goal-bar" id="goal-bar" hidden><span id="goal-fill"></span></div>
+  </div>
+
+  <div class="empty" id="empty" hidden>
+    <p><strong>Nothing captured yet.</strong></p>
+    <p><a id="open-explore" target="_blank" rel="noopener">Open Instagram Explore</a> and scroll. Songs appear here as the grid loads. If Instagram was already open before you installed this, reload that tab first.</p>
+  </div>
+
+  <!-- The player, then the playlist: stays at the top while the list scrolls. -->
+  <section class="build" id="build" aria-label="Player and playlist">
+    <section class="dock" id="dock" hidden aria-label="Player">
+      <iframe id="dock-frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
+      <div class="dock-controls">
+        <button id="dock-prev" aria-label="Previous song">Prev</button>
+        <button id="dock-next" aria-label="Next song">Next</button>
+        <span class="dock-pos" id="dock-pos"></span>
+        <button id="dock-popout" class="linkish" title="Keep playing after the side panel closes">Pop out</button>
+        <button id="dock-close" class="linkish">Close player</button>
+      </div>
+      <p class="dock-hint" id="dock-hint" role="status"></p>
+    </section>
+    <div id="build-new">
+      <label class="field">Playlist name <input id="pl-name"></label>
+    </div>
+    <div id="build-existing" hidden>
+      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="pill"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button></p>
+      <label class="toggle"><input type="checkbox" id="auto-sync" autocomplete="off"> Add new songs to this playlist automatically</label>
+    </div>
+    <div class="row-actions">
+      <button class="primary" id="build-btn">Create playlist</button>
+      <button id="pl-new" class="quiet" hidden>Start a new playlist</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <ol class="list" id="list" aria-live="polite"></ol>
+
+  <div class="tools">
+    <button id="dl-csv">Download CSV</button>
+  </div>
+
+ </div>
+
+ <section class="screen settings" id="settings" aria-label="Settings">
+  <header>
+    <button class="icon-btn" id="settings-back" aria-label="Back to songs" title="Back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.8 4.200L6 10l5.800 5.800 1.400-1.400L8.800 10l4.400-4.400z"/></svg></button>
+    <h1>Settings</h1>
+  </header>
+  <h2>Spotify</h2>
   <details class="setup" id="setup">
     <summary id="setup-summary">Connect Spotify</summary>
     <div class="setup-body" id="setup-steps">
@@ -39,58 +103,9 @@
       </div>
     </div>
   </details>
-
-  <div class="controls">
-    <div class="count-row">
-      <p class="count" id="n-song">0 songs</p>
-      <label class="goal">Goal
-        <select id="goal" aria-label="Song goal">
-          <option value="0">Off</option><option value="10">10</option><option value="20">20</option>
-          <option value="30">30</option><option value="50">50</option><option value="100">100</option>
-        </select>
-      </label>
-    </div>
-    <div class="goal-bar" id="goal-bar" hidden><span id="goal-fill"></span></div>
-  </div>
-
-  <ol class="list" id="list" aria-live="polite"></ol>
-
-  <div class="empty" id="empty" hidden>
-    <p><strong>Nothing captured yet.</strong></p>
-    <p><a id="open-explore" target="_blank" rel="noopener">Open Instagram Explore</a> and scroll. Songs appear here as the grid loads. If Instagram was already open before you installed this, reload that tab first.</p>
-  </div>
-
-  <div class="tools">
-    <button id="dl-csv">Download CSV</button>
-    <button id="clear" class="quiet">Clear captures</button>
-    <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
-  </div>
-
-  <footer class="build" id="build">
-    <section class="dock" id="dock" hidden aria-label="Player">
-      <iframe id="dock-frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
-      <div class="dock-controls">
-        <button id="dock-prev" aria-label="Previous song">Prev</button>
-        <button id="dock-next" aria-label="Next song">Next</button>
-        <span class="dock-pos" id="dock-pos"></span>
-        <button id="dock-popout" class="linkish" title="Keep playing after the side panel closes">Pop out</button>
-        <button id="dock-close" class="linkish">Close player</button>
-      </div>
-      <p class="dock-hint" id="dock-hint" role="status"></p>
-    </section>
-    <div id="build-new">
-      <label class="field">Playlist name <input id="pl-name"></label>
-    </div>
-    <div id="build-existing" hidden>
-      <p class="pl-line">Adding to <a id="pl-link" target="_blank" rel="noopener"></a><button id="pl-play" class="pill"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z"/></svg><span>Play</span></button></p>
-      <label class="toggle"><input type="checkbox" id="auto-sync" autocomplete="off"> Add new songs to this playlist automatically</label>
-    </div>
-    <div class="row-actions">
-      <button class="primary" id="build-btn">Create playlist</button>
-      <button id="pl-new" class="quiet" hidden>Start a new playlist</button>
-    </div>
-    <p class="msg" id="msg" role="status"></p>
-  </footer>
+  <h2>About</h2>
+  <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
+ </section>
 
   <script type="module" src="sidepanel.js"></script>
 </body>

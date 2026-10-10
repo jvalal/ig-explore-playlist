@@ -6,7 +6,7 @@ import { MatchQueue } from './match-queue.js';
 import { renderList, resetList } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
 import { renderGoal } from './goal.js';
-import { renderSetup, wireSetup, openSetup } from './setup.js';
+import { renderSetup, wireSetup, openSetup, openSettingsForSetup } from './setup.js';
 import { downloadCsv, downloadDebug } from './exports.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
@@ -27,7 +27,7 @@ function handleError(err) {
   if (!(err && EXPECTED.has(err.code))) console.warn('[Explore Finds]', err);
   if (err && err.code === 'AUTH') {
     openSetup();
-    setMsg('Spotify needs you to connect again.', true);
+    setMsg('Spotify needs you to connect again, in Settings.', true);
   } else {
     setMsg((err && err.message) || 'Something went wrong.', true);
   }
@@ -84,7 +84,7 @@ function showStartHint(status) {
 
 async function startSong(run) {
   if (!connected(st)) {
-    openSetup();
+    openSettingsForSetup();
     setMsg('Connect Spotify to play songs here.', true);
     return;
   }
@@ -311,8 +311,7 @@ function render() {
 // ---------- playlist ----------
 async function build() {
   if (!connected(st)) {
-    openSetup();
-    $('#setup').scrollIntoView({ behavior: 'smooth' });
+    openSettingsForSetup();
     return;
   }
   if (ui.busy || !pending(st).length) return;
@@ -381,6 +380,14 @@ $('#dl-json').addEventListener('click', async () => {
   const { playerTrace = null } = await chrome.storage.local.get('playerTrace'); // the mini player's log
   downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog, player_trace: playerTrace });
 });
+
+// The player and playlist block is pinned to the top and covers what scrolls under it. Tell the
+// browser how tall it is, so anything scrolled into view (a row, a picker) stops below it.
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(() => {
+    document.documentElement.style.scrollPaddingTop = `${Math.ceil($('#build').getBoundingClientRect().height) + 4}px`;
+  }).observe($('#build'));
+}
 
 let armTimer = null;
 $('#clear').addEventListener('click', async (e) => {

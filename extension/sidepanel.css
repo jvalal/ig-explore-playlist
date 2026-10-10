@@ -25,8 +25,8 @@
 }
 
 * { box-sizing: border-box; }
-/* body grows with its content (min-height, not height) so the sticky playback
-   bar and playlist footer stay pinned however far the list is scrolled */
+/* body grows with its content (min-height, not height) so the pinned player and playlist
+   block stays put however far the list is scrolled */
 html { height: 100%; }
 body { min-height: 100%; }
 body {
@@ -51,6 +51,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
 
+/* Two screens. Settings is laid over the panel, off to the right; opening it slides it in while
+   the songs slide out to the left. Hidden screens are also out of reach of the keyboard. */
+.screen { display: flex; flex-direction: column; flex: 1; min-height: 100%; transition: transform 240ms ease, visibility 0s; }
+.settings { position: fixed; inset: 0; z-index: 5; overflow-y: auto; min-height: 0; background: var(--bg); transform: translateX(100%); visibility: hidden; transition: transform 240ms ease, visibility 0s 240ms; }
+body.settings-open .settings { transform: none; visibility: visible; transition: transform 240ms ease, visibility 0s; }
+body.settings-open #main { transform: translateX(-100%); visibility: hidden; transition: transform 240ms ease, visibility 0s 240ms; }
+@media (prefers-reduced-motion: reduce) { .screen, .settings, body.settings-open .settings, body.settings-open #main { transition: none; } }
+.settings header { display: flex; align-items: center; gap: 6px; padding-left: 8px; }
+.settings h2 { margin: 12px 16px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.settings .version { margin: 0 16px 16px; text-align: left; font-size: 12px; }
+.icon-btn { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); }
+.icon-btn:hover { background: var(--accent-soft); color: var(--ink); }
+.icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+#main > header { position: relative; padding-right: 52px; }
+#open-settings { position: absolute; top: 12px; right: 12px; }
+.connect-note { margin: 0 16px 8px; font-size: 12px; color: var(--muted); }
+.connect-note .linkish { font-size: 12px; }
+
 header { padding: 16px 16px 8px; }
 h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .status { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
@@ -72,7 +90,9 @@ input {
 
 .controls { padding: 4px 16px 10px; display: flex; flex-direction: column; gap: 8px; }
 .count { margin: 0; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.count-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.count-row { display: flex; align-items: center; gap: 8px; }
+.count-row .count { flex: 1; }
+.count-row button { padding: 3px 8px; }
 .goal { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .goal select {
   font: inherit; font-size: 12px; color: var(--ink); background: var(--surface);
@@ -111,13 +131,13 @@ input {
 .empty strong { color: var(--ink); }
 
 .tools { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 16px; }
-.tools .quiet { margin-left: auto; }
-.version { flex-basis: 100%; margin: 4px 0 0; font-size: 11px; color: var(--muted); text-align: right; }
+.version { font-size: 11px; color: var(--muted); }
 
+/* The player and the playlist, under the song count; pinned to the top while the list scrolls. */
 .build {
-  position: sticky; bottom: 0; z-index: 2;
-  background: var(--surface); border-top: 1px solid var(--line);
-  padding: 12px 16px 14px; display: grid; gap: 8px;
+  position: sticky; top: 0; z-index: 2;
+  background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 12px 16px 14px; display: grid; gap: 8px; margin-bottom: 4px;
 }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
 .field input { font-weight: 400; }
@@ -136,7 +156,7 @@ input {
 .msg { margin: 0; font-size: 12px; color: var(--muted); min-height: 1em; }
 .msg.error { color: var(--danger); }
 
-/* docked in-panel player (bottom) */
+/* docked in-panel player (first in the pinned block) */
 .dock { display: grid; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .dock iframe { display: block; width: 100%; height: 80px; border: 0; border-radius: 12px; background: var(--bg); }
 .dock-controls { display: flex; align-items: center; gap: 6px; }

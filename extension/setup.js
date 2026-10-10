@@ -13,6 +13,7 @@ export function renderSetup(st) {
   $('#setup-mobile').hidden = ok || !mobile;
   $('#setup-done').hidden = !ok;
   $('#setup-summary').textContent = ok ? 'Spotify connected' : 'Connect Spotify';
+  $('#connect-note').hidden = ok; // on the songs screen; the steps themselves are in Settings
   $('#sp-user').textContent = (st.spotify && st.spotify.user) || 'your account';
   if (!$('#setup').dataset.touched) $('#setup').open = !ok;
   const cid = $('#client-id');
@@ -24,7 +25,27 @@ export function openSetup() {
   $('#setup').dataset.touched = '1';
 }
 
+// The Settings screen (Spotify connection, version, debug data). It slides in over the songs.
+export function showSettings(on = true) {
+  if (document.body.classList.contains('settings-open') === on) return;
+  document.body.classList.toggle('settings-open', on);
+  if (on) $('#setup').open = true; // on this screen there's no reason to keep it folded
+  $('#main').inert = on;
+  $('#settings').inert = !on;
+  (on ? $('#settings-back') : $('#open-settings')).focus({ preventScroll: true });
+}
+// For someone who pressed something that needs Spotify: straight to the steps.
+export function openSettingsForSetup() {
+  openSetup();
+  showSettings(true);
+}
+
 export function wireSetup({ store, onError, onDisconnect }) {
+  $('#settings').inert = true;
+  $('#open-settings').addEventListener('click', () => showSettings(true));
+  $('#settings-back').addEventListener('click', () => showSettings(false));
+  $('#connect-note-btn').addEventListener('click', openSettingsForSetup);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') showSettings(false); });
   $('#setup').addEventListener('toggle', () => { $('#setup').dataset.touched = '1'; });
 
   $('#open-onboarding').addEventListener('click', async () => {

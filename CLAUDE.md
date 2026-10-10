@@ -6,7 +6,26 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.9.6)
+## Current status (v0.10.1)
+
+**Side panel layout** (v0.10.0, the user's design): top to bottom it is now the title and status, the song count with Goal and **Clear
+captures**, the "Nothing captured yet" text while there are no songs, then the block with the
+**player and the playlist** (`#build`, pinned to the top while the list scrolls; it used to be
+pinned to the bottom), the list, and **Download CSV**. sidepanel.js sets `scroll-padding-top` to the pinned block's height
+so rows scrolled into view stop below it. The iPhone (Safari) build shares this page and gets
+the same order; not looked at there.
+
+**Settings screen** (v0.10.1): a gear in the header slides `#settings` in from the
+right while the songs screen (`#main`) slides out to the left; a back arrow in its upper left
+(or Esc) returns. It holds the Spotify connection (the same `#setup` block and code) and the
+version with Debug data. `body.settings-open` drives it in CSS; the hidden screen is `inert`
+and `visibility: hidden` (not the `hidden` attribute, which would kill the slide). Not
+connected, the songs screen shows a one-line note with a Connect Spotify link, and pressing
+Play or Create playlist opens Settings. A background "connect again" error only says so in
+the message line; it doesn't slide Settings in by itself.
+
+A mini window left open while the extension is reloaded used to log "Extension context
+invalidated" (mini.js `pagehide`); it's caught now. Harmless either way.
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.

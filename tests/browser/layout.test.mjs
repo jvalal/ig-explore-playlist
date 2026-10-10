@@ -23,11 +23,32 @@ try {
   check('setup steps hidden when connected', !(await onScreen(page, '#setup-steps')));
   check('"Start a new playlist" hidden before a playlist exists', !(await onScreen(page, '#pl-new')));
 
+  // Order, top to bottom: count (with Clear captures), player and playlist, the list, Download CSV.
+  const order = await page.evaluate(() => { const top = (q) => Math.round(document.querySelector(q).getBoundingClientRect().top + scrollY); return { count: top('#n-song'), clear: top('#clear'), build: top('#build'), list: top('#list'), csv: top('#dl-csv') }; });
+  check('order: count, then player and playlist, then the list, then Download CSV',
+    order.count < order.build && order.build < order.list && order.list < order.csv, JSON.stringify(order));
+
+  // Settings: slides in from the right and pushes the songs out; the back arrow returns.
+  const screens = () => page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const vis = (q) => getComputedStyle(document.querySelector(q)).visibility; return { main: Math.round(r('#main').left), settings: Math.round(r('#settings').left), w: innerWidth, mainVis: vis('#main'), setVis: vis('#settings'), back: Math.round(r('#settings-back').left + r('#settings-back').top) }; });
+  const s0 = await screens();
+  check('Settings starts off screen to the right, out of sight', s0.settings >= s0.w && s0.setVis === 'hidden' && s0.main === 0, JSON.stringify(s0));
+  check('Spotify setup, version and Debug data are in Settings, not on the songs screen', await page.evaluate(() => ['#setup', '#version', '#dl-json'].every((q) => !!document.querySelector(q).closest('#settings'))));
+  await page.click('#open-settings');
+  await tick(500);
+  const s1 = await screens();
+  check('the gear slides Settings in and the songs out to the left', s1.settings === 0 && s1.setVis === 'visible' && s1.main <= -s1.w && s1.mainVis === 'hidden', JSON.stringify(s1));
+  check('...with a back arrow in the upper left', s1.back < 60 && await onScreen(page, '#settings-back') && await onScreen(page, '#setup'), JSON.stringify(s1));
+  await page.click('#settings-back');
+  await tick(500);
+  const s2 = await screens();
+  check('the back arrow brings the songs back', s2.main === 0 && s2.mainVis === 'visible' && s2.settings >= s2.w && s2.setVis === 'hidden', JSON.stringify(s2));
+  check('Clear captures is on the song count line', Math.abs(order.clear - order.count) < 12, JSON.stringify(order));
+
   for (const where of ['middle', 'end']) {
     await page.evaluate((w) => window.scrollTo(0, w === 'end' ? document.body.scrollHeight : document.body.scrollHeight / 2), where);
     await tick(200);
-    const r = await page.$eval('#build', (e) => ({ bottom: Math.round(e.getBoundingClientRect().bottom), vh: innerHeight }));
-    check(`playlist footer stays pinned to the bottom (scrolled to ${where})`, Math.abs(r.bottom - r.vh) <= 1, JSON.stringify(r));
+    const r = await page.$eval('#build', (e) => ({ top: Math.round(e.getBoundingClientRect().top), bottom: Math.round(e.getBoundingClientRect().bottom) }));
+    check(`the player and playlist block stays pinned to the top (scrolled to ${where})`, Math.abs(r.top) <= 1 && r.bottom > 40, JSON.stringify(r));
   }
 
   await page.evaluate(() => window.scrollTo(0, 0));
