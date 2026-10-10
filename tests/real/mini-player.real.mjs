@@ -178,6 +178,42 @@ try {
         const resumed = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 8000);
         check('...and Play continues it', resumed);
       }
+      if (pp) {
+        // "+" (save to Liked Songs). Spotify itself is stubbed inside the mini page: the login
+        // window, the token and the library calls. This connection has no library permission yet.
+        await mini.evaluate(() => {
+          window.__lib = { logins: 0, calls: [], saved: new Set() };
+          chrome.identity.launchWebAuthFlow = async ({ url }) => { window.__lib.logins++; return `${chrome.identity.getRedirectURL()}?code=c&state=${new URL(url).searchParams.get('state')}`; };
+          const real = window.fetch;
+          const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+          window.fetch = async (url, o = {}) => {
+            const u = new URL(String(url));
+            if (u.host === 'accounts.spotify.com') return json({ access_token: 't2', refresh_token: 'r2', expires_in: 3600, scope: 'playlist-modify-private playlist-modify-public user-library-modify user-library-read' });
+            if (u.host !== 'api.spotify.com') return real(url, o);
+            const uris = (u.searchParams.get('uris') || '').split(',');
+            window.__lib.calls.push(`${o.method || 'GET'} ${u.pathname}`);
+            if (u.pathname.endsWith('/me')) return json({ id: 'test', display_name: 'Test' });
+            if (u.pathname.endsWith('/contains')) return json(uris.map((x) => window.__lib.saved.has(x)));
+            if (o.method === 'PUT') uris.forEach((x) => window.__lib.saved.add(x));
+            if (o.method === 'DELETE') uris.forEach((x) => window.__lib.saved.delete(x));
+            return new Response('', { status: 200 });
+          };
+        });
+        const save = () => pp.evaluate(() => { const b = document.querySelector('#mini-float-save'); const row = document.querySelector('.float-controls'); return { shown: b.getBoundingClientRect().width > 0, on: b.classList.contains('saved'), label: b.getAttribute('aria-label'), hint: document.querySelector('#mini-float-hint').textContent, oneRow: new Set([...row.children].map((c) => Math.round(c.getBoundingClientRect().top + c.getBoundingClientRect().height / 2))).size === 1 && row.scrollWidth <= row.clientWidth, fits: document.querySelector('#mini-float').getBoundingClientRect().bottom <= innerHeight + 1 }; });
+        const s0 = await save();
+        check('the floating window has a "+" (save to Liked Songs), all controls on one row', s0.shown && !s0.on && s0.oneRow && s0.fits, JSON.stringify(s0));
+        await pp.click('#mini-float-save');
+        await waitFor(async () => (await save()).on, 8000);
+        const s1 = await save();
+        const lib1 = await mini.evaluate((u) => ({ logins: window.__lib.logins, saved: window.__lib.saved.has(u), calls: window.__lib.calls }), curUri);
+        check('the first "+" asks for Spotify\'s approval once, then saves the song playing', lib1.logins === 1 && lib1.saved && s1.on && s1.hint === '' && s1.fits, JSON.stringify({ ...lib1, ...s1 }));
+        await pp.click('#mini-float-save');
+        await waitFor(async () => !(await save()).on, 8000);
+        const lib2 = await mini.evaluate((u) => ({ logins: window.__lib.logins, saved: window.__lib.saved.has(u) }), curUri);
+        check('pressing it again removes the song, with no second approval', lib2.logins === 1 && !lib2.saved && !(await save()).on, JSON.stringify(lib2));
+        await pp.click('#mini-float-save');
+        await waitFor(async () => (await save()).on, 8000);
+      }
       const state = await mini.evaluate(async () => (await chrome.windows.getCurrent()).state);
       check('the mini window is not minimized (Chrome won\'t start a new song in a minimized window)', state === 'normal', state);
       check('...and says where the controls went', await mini.evaluate(() => !document.querySelector('#mini-away').hidden));

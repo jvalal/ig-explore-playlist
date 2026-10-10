@@ -26,6 +26,7 @@ body.mini { display: block; min-height: 0; background: var(--surface); }
 .float-controls { display: flex; align-items: center; gap: 6px; }
 .float-controls .pill { margin-left: 0; font-size: 12px; padding: 4px 12px 4px 10px; }
 .float-controls .icon { width: 10px; height: 10px; fill: currentColor; }
-.float-time { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.float-controls .saved { color: var(--accent); border-color: var(--accent); }
+.float-time { margin-left: auto; white-space: nowrap; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .float-hint { margin: 0; font-size: 11px; color: var(--muted); }
 .float-hint:empty { display: none; }

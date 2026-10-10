@@ -19,7 +19,7 @@ const songs = () => list(st, 'song');
 const byKey = (key) => songs().find((t) => t.key === key);
 // Found once: with "Keep on top" these elements move to another document, where $ can't see them.
 const ui = Object.fromEntries(['wrap', 'now', 'pos', 'frame', 'prev', 'next', 'pip', 'back', 'hint', 'start', 'start-btn', 'away', 'away-btn',
-  'float', 'float-art', 'float-title', 'float-artist', 'float-prev', 'float-play', 'float-next', 'float-time', 'float-back', 'float-hint']
+  'float', 'float-art', 'float-title', 'float-artist', 'float-prev', 'float-play', 'float-next', 'float-save', 'float-time', 'float-back', 'float-hint']
   .map((id) => [id, $(`#mini-${id}`)]));
 
 const queue = new MatchQueue({
@@ -51,6 +51,14 @@ const hint = (text) => { ui.hint.textContent = text || ''; };
 // popping out from the side panel). Our own Play button gives it that click; after one click
 // the window may start songs by itself, so Next and auto-advance keep going.
 const needClick = (on) => { ui.start.hidden = !on; };
+// A line under the floating window's controls. growFloat makes room for it (set while that
+// window is open; Chrome allows the resize only shortly after a click in it).
+const HELD = 'Chrome held the start. Close this window and press Play there.';
+let growFloat = () => {};
+function floatHint(text) {
+  ui['float-hint'].textContent = text || '';
+  growFloat();
+}
 
 // Chrome doesn't start a newly loaded song while this window is minimized: logged out the embed
 // never starts, logged in it says it's playing but stays silent (the user's Chrome, v0.8.6, Next
@@ -79,7 +87,7 @@ async function run(action) {
     trace('result', { status });
     if (status === 'blocked') {
       needClick(true);
-      ui['float-hint'].textContent = 'Chrome held the start. Close this window and press Play there.';
+      floatHint(HELD);
     }
     else if (HINTS[status]) hint(HINTS[status]);
   } catch (err) {
@@ -230,8 +238,61 @@ function renderFloat() {
   const { duration } = playback.player.state;
   const at = playback.player.currentSeconds();
   ui['float-time'].textContent = duration ? `${mmss(at)} / ${mmss(duration / 1000)}` : '';
-  if (status === 'playing') ui['float-hint'].textContent = '';
+  if (status === 'playing' && ui['float-hint'].textContent === HELD) floatHint('');
+  renderSave(pl ? null : m);
 }
+
+// ---------- "+": save the song to the Spotify library (Liked Songs) ----------
+// The floating window has our controls, not Spotify's, so it gets its own "+". It needs a
+// Spotify permission older connections don't have: the first press opens Spotify's approval
+// once (S.connect), then saves. Whether a song is already saved is looked up once per song.
+const PLUS_ICON = 'M4.25 1h1.5v3.25H9v1.5H5.75V9h-1.5V5.75H1v-1.5h3.25z';
+const CHECK_ICON = 'M3.9 8.3L1 5.4l1.1-1.1 1.8 1.8L7.9 2 9 3.1z';
+const saved = new Map(); // track uri -> true | false | 'asking'
+let saving = false;
+
+function renderSave(m) {
+  const btn = ui['float-save'];
+  const uri = m && m.status === 'matched' ? m.uri : null;
+  btn.hidden = !uri;
+  if (!uri) return;
+  if (!saved.has(uri) && S.canSave(st.spotify)) {
+    saved.set(uri, 'asking');
+    S.inLibrary(uri).then((yes) => saved.set(uri, yes), () => saved.delete(uri)).then(() => renderFloat());
+  }
+  const on = saved.get(uri) === true;
+  const label = on ? 'Saved to Liked Songs. Press to remove.' : 'Save to Liked Songs';
+  btn.disabled = saving;
+  btn.classList.toggle('saved', on);
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+  btn.querySelector('path').setAttribute('d', on ? CHECK_ICON : PLUS_ICON);
+}
+
+ui['float-save'].addEventListener('click', async () => {
+  const t = byKey(playback.wantKey || playback.key);
+  const m = t && matchOf(st, t);
+  if (!m || !m.uri || saving) return;
+  saving = true;
+  renderFloat();
+  try {
+    if (!S.canSave(st.spotify)) {
+      trace('float-save-permission');
+      floatHint('Approve once in the Spotify window to save songs.');
+      await S.connect();
+      floatHint('');
+    }
+    const remove = saved.get(m.uri) === true;
+    await (remove ? S.removeFromLibrary(m.uri) : S.saveToLibrary(m.uri));
+    saved.set(m.uri, !remove);
+    trace('float-save', { saved: !remove });
+  } catch (err) {
+    trace('float-save-failed', { message: err && err.message });
+    floatHint((err && err.message) || 'Couldn\'t save the song.');
+  }
+  saving = false;
+  renderFloat();
+});
 
 ui['float-play'].addEventListener('click', () => {
   trace('float-play', { status: playback.status });
@@ -263,12 +324,13 @@ if ('documentPictureInPicture' in window) {
       const zoom = Math.round((pip.devicePixelRatio / (window.devicePixelRatio / mine)) * 100) / 100 || guess;
       try { localStorage.setItem('floatZoom', String(zoom)); } catch (_) {}
       // If the guess was too small: Chrome lets this window grow only right after a click in it.
-      pip.addEventListener('click', () => {
+      growFloat = () => {
         const cut = Math.ceil(ui.float.getBoundingClientRect().bottom) - pip.innerHeight;
         if (cut <= 0) return;
         trace('floating-grow', { cut, inner: [pip.innerWidth, pip.innerHeight] });
         try { pip.resizeBy(0, Math.ceil((cut + 6) * zoom)); } catch (err) { trace('floating-grow-failed', { message: err.message }); }
-      });
+      };
+      pip.addEventListener('click', () => growFloat());
       for (const link of document.querySelectorAll('link[rel="stylesheet"]')) pip.document.head.append(link.cloneNode());
       pip.document.body.className = 'mini';
       pip.document.title = document.title;
@@ -287,6 +349,7 @@ if ('documentPictureInPicture' in window) {
         trace('floating-closed', { status: playback.status, at: playback.player.currentSeconds() });
         clearInterval(floatTimer);
         ui.float.hidden = true;
+        growFloat = () => {};
         ui['float-hint'].textContent = '';
         document.body.append(ui.float);
         ui.pip.hidden = false;

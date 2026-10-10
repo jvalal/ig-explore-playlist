@@ -2,14 +2,18 @@
 // Auth: Authorization Code with PKCE (no client secret needed); how the login window opens is
 // platform-specific (platform.js).
 // Endpoints follow Spotify's February 2026 revision:
-//   POST /me/playlists, POST /playlists/{id}/items, GET /search (limit max 10).
+//   POST /me/playlists, POST /playlists/{id}/items, GET /search (limit max 10),
+//   PUT / DELETE /me/library and GET /me/library/contains (they replaced /me/tracks).
 
 import * as P from './platform.js';
 
 const AUTH_URL = 'https://accounts.spotify.com/authorize';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const API = 'https://api.spotify.com/v1';
-const SCOPES = 'playlist-modify-private playlist-modify-public';
+// The library pair is for the "+" (save to Liked Songs) and was added in v0.9.0. Someone who
+// connected before that has a token without it: canSave() is false until they connect once more.
+const LIBRARY_SCOPES = ['user-library-modify', 'user-library-read'];
+const SCOPES = ['playlist-modify-private', 'playlist-modify-public', ...LIBRARY_SCOPES].join(' ');
 // Bump when matching changes, so songs an older matcher gave up on get another try.
 export const MATCHER_VERSION = 3;
 
@@ -170,6 +174,8 @@ export async function api(path, { method = 'GET', body, query } = {}) {
 
   if (r.status === 401) throw codedError('Spotify needs you to connect again.', 'AUTH');
   if (r.status === 403) {
+    const j = await r.json().catch(() => ({}));
+    if (/scope/i.test((j.error && j.error.message) || '')) throw codedError('Spotify needs one more permission for this. Connect Spotify again.', 'SCOPE');
     throw new Error('Spotify refused the request (403). In your Spotify developer app, check that your account is listed under User Management and that Premium is active.');
   }
   if (!r.ok) {
@@ -367,6 +373,18 @@ export async function searchCandidates(track) {
     .slice(0, 8)
     .map((t) => toMatch(t, { manual: true }));
 }
+
+// ---------- Library (Liked Songs) ----------
+
+// Does this connection (storage key `spotify`) have the permission to save songs?
+export const canSave = (auth) => {
+  const granted = ((auth && auth.refresh_token && auth.scope) || '').split(' ');
+  return LIBRARY_SCOPES.every((s) => granted.includes(s));
+};
+const library = (method, uri, path = '/me/library') => api(path, { method, query: { uris: uri } });
+export const saveToLibrary = (uri) => library('PUT', uri);
+export const removeFromLibrary = (uri) => library('DELETE', uri);
+export const inLibrary = async (uri) => { const r = await library('GET', uri, '/me/library/contains'); return !!(r && r[0]); };
 
 // ---------- Playlists ----------
 

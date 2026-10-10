@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.8.9)
+## Current status (v0.9.0)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -111,6 +111,16 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   anything, so it also covers someone minimizing it by hand.
 - **Back to panel in the floating window** (v0.8.7): a click there counts as the gesture
   `sidePanel.open` needs (verified in Chrome for Testing).
+- **"+" in the floating window** (v0.9.0): saves the song playing to the Spotify library (Liked
+  Songs), like the "+" in Spotify's own player, which the floating window doesn't have (it shows
+  our controls, not the embed). A check mark means saved; pressing again removes it. It needs
+  the scopes `user-library-modify` and `user-library-read`, which `connect()` now requests with
+  the playlist ones. A connection made before v0.9.0 lacks them (`S.canSave(st.spotify)` reads
+  the stored `scope`): the first press runs `S.connect()` from the mini page, Spotify asks for
+  approval once, then the song is saved. The grant survives token refreshes; playlists work
+  without it. Hidden while a playlist plays. Verified with Spotify stubbed (unit test with the
+  sim, real-browser test with the login and API stubbed in the page); **not yet against real
+  Spotify**.
 - **Window sizes vs zoom** (v0.8.3): window sizes are in screen points, page sizes in page
   pixels, so with Chrome's zoom above 100% (the user's Chrome) the bottom row was cut off. In the
   floating window this hid our Play button, and Chrome refuses to start sound there, so the
@@ -243,6 +253,9 @@ Explore audio was licensed songs.
   Extended quota: organizations only, 250k MAU minimum (since May 15, 2025).
 - February 2026 API changes: create playlist is `POST /me/playlists`; add tracks is
   `POST /playlists/{id}/items` (body `{uris}`), search `limit` max 10, `popularity` removed.
+  Saving to the library is `PUT /me/library?uris=…` (remove: `DELETE`, check:
+  `GET /me/library/contains?uris=…` → array of booleans; max 40 URIs). `PUT /me/tracks` and
+  `/me/tracks/contains` are gone (read from Spotify's reference pages, 2026-10-10).
 - `error=server_error` at /authorize usually means the account isn't in the app's
   User Management list.
 

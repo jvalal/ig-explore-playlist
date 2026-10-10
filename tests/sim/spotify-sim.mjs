@@ -1,4 +1,6 @@
-// Simulated Spotify: token endpoint, /me, /search, /me/playlists, /playlists/{id}/items.
+// Simulated Spotify: token endpoint, /me, /search, /me/playlists, /playlists/{id}/items,
+// /me/library (save, remove, contains).
+// A library call without the library permission gets 403, like a token granted before it existed.
 // Access tokens are checked: a request with an unknown token gets 401.
 export function makeSim(opts = {}) {
   const sim = {
@@ -13,6 +15,8 @@ export function makeSim(opts = {}) {
     failAddItems: 0,      // next N add-items calls get 500
     tokenDelayMs: opts.tokenDelayMs ?? 20,
     playlists: {},
+    library: new Set(),   // saved URIs (Liked Songs)
+    scope: opts.scope ?? 'playlist-modify-private playlist-modify-public',
     searchOverride: null, // (q) => items | undefined
   };
   const json = (status, body, headers = {}) => ({
@@ -35,7 +39,9 @@ export function makeSim(opts = {}) {
       }
       const tok = `t${++sim.tokenSeq}`;
       sim.validTokens.add(tok);
-      const res = { access_token: tok, expires_in: 3600, scope: 'playlist-modify-private playlist-modify-public' };
+      // A new login grants what the app asks for; a refresh keeps what was granted.
+      if (body.get('grant_type') === 'authorization_code' && sim.grantOnLogin) sim.scope = sim.grantOnLogin;
+      const res = { access_token: tok, expires_in: 3600, scope: sim.scope };
       if (sim.rotateRefresh) { sim.refreshToken = `r${sim.tokenSeq}`; res.refresh_token = sim.refreshToken; }
       sim.calls.push('token -> 200');
       return json(200, res);
@@ -71,6 +77,15 @@ export function makeSim(opts = {}) {
         sim.playlists[id].uris.push(...JSON.parse(o.body).uris);
         res = json(201, { snapshot_id: 's' });
       }
+    } else if (p === '/me/library' || p === '/me/library/contains') {
+      const uris = (u.searchParams.get('uris') || '').split(',').filter(Boolean);
+      const need = m === 'GET' ? 'user-library-read' : 'user-library-modify';
+      if (!sim.scope.split(' ').includes(need)) res = json(403, { error: { status: 403, message: 'Insufficient client scope' } });
+      else if (!uris.length || uris.length > 40) res = json(400, { error: { message: 'Bad uris' } });
+      else if (p.endsWith('/contains') && m === 'GET') res = json(200, uris.map((x) => sim.library.has(x)));
+      else if (m === 'PUT') { uris.forEach((x) => sim.library.add(x)); res = json(200, null); }
+      else if (m === 'DELETE') { uris.forEach((x) => sim.library.delete(x)); res = json(200, null); }
+      else res = json(404, {});
     } else res = json(404, {});
     sim.calls.push(`${m} ${p} -> ${res.status}`);
     return res;
