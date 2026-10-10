@@ -4,6 +4,8 @@ import { $, el, postUrl, searchUrl, webLink } from './dom.js';
 import { coreTitle } from './spotify.js';
 import { matchOf, inPlaylist } from './store.js';
 
+const PLAY_ICON = 'M2.500 1l7 4-7 4z';
+const PAUSE_ICON = 'M2 1h2.200v8H2zM5.800 1H8v8H5.800z';
 const rowEls = new Map();
 let knownKeys = null;
 
@@ -84,8 +86,14 @@ function fillRow(li, t, ctx) {
     buildRow(li, t, { isSong, excluded: !!st.excluded[t.key], note, choose, pickerOpen: ctx.picker.key === t.key, inPl, fresh });
   }
   if (li._play) {
+    // A round icon button; the word (Play / Pause / Starting…) is there for screen readers and
+    // as the tooltip. Updated in place, never rebuilt (see above).
     const p = ctx.rowPlayback(t);
-    if (li._play.textContent !== p.label) li._play.textContent = p.label;
+    if (li._play.textContent !== p.label) {
+      li._play.querySelector('.sr').textContent = p.label;
+      li._play.querySelector('path').setAttribute('d', p.label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
+      li._play.title = p.label;
+    }
     li._play.classList.toggle('on', !!p.on);
     li._play.disabled = !!p.disabled;
     li.classList.toggle('current', !!p.current); // the song in the player: outlined
@@ -142,7 +150,9 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fre
       b.addEventListener('click', () => li._ctx.onChoose(li._t));
       side.append(b);
     } else {
-      const b = el('button', 'play', 'Play');
+      const b = el('button', 'play round');
+      b.innerHTML = `<svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="${PLAY_ICON}"/></svg><span class="sr">Play</span>`;
+      b.title = 'Play';
       b.addEventListener('click', () => li._ctx.onPlayButton(li._t));
       li._play = b;
       side.append(b);

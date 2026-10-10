@@ -38,6 +38,10 @@ try {
     check('one click on Play starts the clicked song', (await started(page))[0] === id5, JSON.stringify(await fake(page)));
     await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 3000, `${row(5)} .play`);
     check('row says Playing', (await label(page, 5)) === 'Pause');
+    check('...and shows the pause icon', (await page.$eval(`${row(5)} .play path`, (e) => e.getAttribute('d'))).includes('h2.200v8'));
+    const look = (n) => page.evaluate((sel, other) => { const bg = (q) => getComputedStyle(document.querySelector(q)).backgroundColor; return { btn: bg(`${sel} .play`), otherBtn: bg(`${other} .play`), row: bg(sel), otherRow: bg(other), outline: getComputedStyle(document.querySelector(sel)).outlineStyle }; }, row(n), row(n === 1 ? 2 : 1));
+    const playingLook = await look(5);
+    check('while it plays, its Pause button is filled and the others are not; the row has no outline', playingLook.btn !== playingLook.otherBtn && playingLook.otherBtn === 'rgba(0, 0, 0, 0)' && playingLook.outline === 'none', JSON.stringify(playingLook));
     check('player docked on screen', await onScreen(page, '#dock'));
     check('no hint when it started', (await page.$eval('#dock-hint', (e) => e.textContent)) === '');
 
@@ -46,7 +50,10 @@ try {
     check('clicking Playing pauses (despite the trailing "still playing" update)', (await label(page, 5)) === 'Play');
     await tick(400);
     check('stays Paused', (await label(page, 5)) === 'Play');
-    check('the paused song\'s row is still the outlined one', await page.$eval(row(5), (e) => e.classList.contains('current') && getComputedStyle(e).outlineStyle === 'solid' && parseFloat(getComputedStyle(e).outlineWidth) >= 2));
+    await page.mouse.move(5, 5); // off the button: hovering tints it
+    await tick(250);
+    const pausedLook = await look(5);
+    check('paused: the button is unfilled again, the row keeps its tint', pausedLook.btn === 'rgba(0, 0, 0, 0)' && pausedLook.row !== pausedLook.otherRow && await page.$eval(row(5), (e) => e.classList.contains('current')), JSON.stringify(pausedLook));
     await page.click(`${row(5)} .play`);
     await waitFor(page, (s) => document.querySelector(s).textContent === 'Pause', 3000, `${row(5)} .play`);
     check('clicking Paused resumes', (await label(page, 5)) === 'Pause');

@@ -215,6 +215,11 @@ async function togglePicker(t) {
     if (ui.picker.key === t.key) {
       ui.picker = { key: t.key, items };
       render();
+      // The choices open under the row, which can be below the bottom of the panel.
+      setTimeout(() => {
+        const p = document.querySelector('#list > li.picker');
+        if (p && p.scrollIntoView) p.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }, 60);
     }
   } catch (err) {
     ui.picker = { key: null, items: null };

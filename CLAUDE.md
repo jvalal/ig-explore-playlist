@@ -6,12 +6,13 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.10.9)
+## Current status (v0.10.13)
 
 **Side panel layout** (v0.10.0, the user's design): top to bottom it is now the title and status, the song count with Goal and **Clear
 captures**, the "Nothing captured yet" text while there are no songs, then the block with the
 **player and the playlist** (`#build`, pinned to the top while the list scrolls; it used to be
-pinned to the bottom), the list, and **Download CSV**. sidepanel.js sets `scroll-padding-top` to the pinned block's height
+pinned to the bottom; since v0.10.11 a tinted band, `--band`, with an accent bottom edge and a
+soft shadow, to set it apart from the rows), the list, and **Download CSV**. sidepanel.js sets `scroll-padding-top` to the pinned block's height
 so rows scrolled into view stop below it. The iPhone (Safari) build shares this page and gets
 the same order; not looked at there.
 
@@ -69,8 +70,12 @@ New in v0.6.0:
   pressed: "Adding N new songs…", then "Songs added" (misses aren't counted). Auto-add is
   always off for a new playlist (v0.10.4): creating one, or Start a new playlist, turns it off.
 - **Row buttons say what they do** (v0.10.9): Play, or Pause while that song plays (they used
-  to read Playing / Paused). The row of the song in the player, playing or paused, has a thick
-  accent outline (`.row.current`, from `rowState().current`). **Select all / none**
+  to read Playing / Paused). Since v0.10.10 they are round icon-only buttons in Spotify's
+  shape (`.play.round`; since v0.10.12 an accent ring and icon on the row's own background,
+  because filled they were heavy down the list); the word stays inside for screen readers (`.sr`) and as the
+  tooltip, so `textContent` is still Play / Pause / Starting…. Choose keeps its text pill. The row of the song in the player, playing or paused, is tinted
+  (`.row.current`, from `rowState().current`; it had a thick outline until v0.10.13), and
+  while it plays its Pause button is the filled one (`.play.round.on`). **Select all / none**
   (`#check-all`, at the bottom of the pinned block, in line with the rows' checkboxes) ticks
   or unticks every song that has a checkbox; it shows a dash and "3 of 5 selected" when mixed.
 - **Rows say which songs are in the playlist** (v0.10.5, list.js). With a playlist, a song in

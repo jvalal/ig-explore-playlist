@@ -28,6 +28,10 @@ try {
   check('order: count, then player and playlist, then the list, then Download CSV',
     order.count < order.build && order.build < order.list && order.list < order.csv, JSON.stringify(order));
 
+  // A song's Play is a round icon-only button (the word is for screen readers).
+  const pb = await page.$eval('#list > li.row .play.round', (b) => { const r = b.getBoundingClientRect(); const sr = b.querySelector('.sr').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), radius: getComputedStyle(b).borderRadius, word: b.textContent, wordSize: Math.round(sr.width), icon: !!b.querySelector('svg path') }; });
+  check('a row\'s Play is a round icon button, its word kept for screen readers only', pb.w === pb.h && pb.w >= 28 && pb.w <= 34 && pb.icon && pb.word === 'Play' && pb.wordSize <= 1, JSON.stringify(pb));
+
   // Select all/none sits in the block above the list, in line with the rows' checkboxes.
   const col = await page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const a = r('#check-all'); const b = r('#list input[type=checkbox]'); return { all: Math.round(a.left), row: Math.round(b.left), inBuild: !!document.querySelector('#check-all').closest('#build'), above: a.bottom <= b.top }; });
   check('Select all/none is above the list, lined up with the rows\' checkboxes', Math.abs(col.all - col.row) <= 1 && col.inBuild && col.above, JSON.stringify(col));
