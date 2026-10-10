@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.9.0)
+## Current status (v0.9.6)
 
 v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
 it is never loaded and its tests aren't maintained.
@@ -97,11 +97,18 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   stays in the mini window's embed; only our controls move** to the floating window (cover from
   the match's `image`, title, artist, time, Prev / Play-Pause / Next, Back to panel). The mini
   window can't close (the floating window closes with it), so it goes behind the browser window
-  and comes forward again when the floating window closes. Nothing reloads either way.
+  and comes forward again only for "Bring the controls back here". Nothing reloads either way.
   Why: up to v0.8.5 the embed itself moved, which reloads it, and Chrome won't start sound in a
   new window without a click there. Logged out it stayed paused (we showed a Play button);
   in the user's Chrome, logged in, the trace showed the embed report `isPaused:false` for ~350 ms
   without the position moving, then pause itself, so it looked like a successful start.
+- **Closing the floating window closes the player** (v0.9.6, the user's request). Its X used to
+  bring the mini window (Spotify's player) forward, so there was no way to close everything
+  from there. Now the X closes the mini window too, and the music stops. Only the mini
+  window's "Bring the controls back here" keeps it. The user also saw Back to panel in the
+  floating window fall back to the mini window in their Chrome (v0.9.5); it worked in Chrome
+  for Testing, cause unknown. The mini window is now closed with `chrome.windows.remove`, not
+  `window.close()`.
 - **Never minimize the mini window** (v0.8.7). Chrome doesn't start a newly loaded song in a
   minimized window. v0.8.6 minimized it for Keep on top, and Next from the floating window then
   showed the time running with no sound in the user's Chrome (our time display runs on from the
@@ -140,6 +147,29 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   "nothing cut off" check had been passing wrongly: puppeteer's default 800x600 viewport resized
   the floating window's page (now `defaultViewport: null`). `DEFZOOM=1.25 MINIZOOM=1` runs the
   user's case.
+- **Floating window too small again** (v0.9.0 and v0.9.1 in the user's Chrome: cut off at the
+  right and the bottom). Read from their screenshot: about 420 points wide with 125% content,
+  so it was sized for 100%. The size comes from a zoom guess, and the guess was the zoom
+  "measured" at the previous opening (`localStorage.floatZoom`), which came from
+  `chrome.tabs.getZoom()` and a `devicePixelRatio` read right after opening. Those evidently
+  gave 100% there; in Chrome for Testing they gave the right number, so this was not
+  reproduced. Since v0.9.2 a window's zoom is measured on the window itself
+  (`outerWidth / innerWidth`, 400 ms after opening and on resize) and kept under a new key,
+  `floatZoom2`. v0.9.2 still opened cut off the first time in the user's Chrome (right from
+  then on): the first guess, the larger of the mini window's zoom and Chrome's default, was
+  too low there. Since v0.9.3 a first-ever guess is at least 125%, so a 100% Chrome gets one
+  window 25% too big, then exact ones.
+  A second `requestWindow` to correct a wrong first size is refused ("requires user
+  activation"), so a wrong guess can only be fixed by a click in the window (`growFloat`) or at
+  the next opening.
+  Layout since v0.9.5 (the user's design): cover on the left; beside it the title and artist
+  with a round, filled, icon-only Play/Pause right after them (like Spotify's; centered on the
+  two lines; its state is in `aria-label`/`title`; long text is cut with an ellipsis so the
+  button stays beside it), then a row with Prev, Next and "+"; under everything the time (below
+  the cover) with Back to panel 8 px to its right. The width is what the wider of the button
+  row (plus cover) and the bottom line needs, at least 360. `SHOT=<file.png>` makes the real
+  test save a picture of the floating window.
+  Trace: `floating-open` and `floating-zoom` (`zoom`, `guess`, `inner`, `outer`, `want`).
 - **Keep on top started at 0:00** in the user's Chrome (v0.8.3, logged in), though Pop out and
   Back to panel continued. Not reproduced: logged out (Chrome for Testing) the floating window
   continues at `t`, and in the user's Chrome a top-level embed with `t=60` started at 1:00 from

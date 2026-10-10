@@ -152,9 +152,18 @@ function render() {
 }
 
 // ---------- controls ----------
+// Closing the floating window (its X) closes the whole player: this window too, and the music
+// with it. Only "Bring the controls back here" keeps this window and moves the controls back.
+let bringBack = false;
 ui['away-btn'].addEventListener('click', () => {
+  bringBack = true;
   if (window.documentPictureInPicture && documentPictureInPicture.window) documentPictureInPicture.window.close();
 });
+// Removed by id, not window.close(): the user saw Back to panel in the floating window leave
+// this window open in their Chrome (v0.9.5; not reproduced, it closed in Chrome for Testing).
+function closePlayer() {
+  chrome.windows.getCurrent().then((w) => chrome.windows.remove(w.id)).catch(() => window.close());
+}
 ui['start-btn'].addEventListener('click', () => { trace('click-our-play'); run(() => playback.player.resume()); });
 ui.prev.addEventListener('click', () => run(() => playback.step(-1)));
 ui.next.addEventListener('click', () => run(() => playback.step(1)));
@@ -168,7 +177,7 @@ function backToPanel(say) {
   const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key, startAt: playback.player.currentSeconds() };
   chrome.storage.local.set({ popIn: { ...what, windowId: fromWindow, at: Date.now() } }).then(() => {
     chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
-    window.close();
+    closePlayer();
   });
 }
 ui.back.addEventListener('click', () => backToPanel(hint));
@@ -217,6 +226,9 @@ const PLAY_ICON = 'M2 1l7 4-7 4z';
 const PAUSE_ICON = 'M2 1h2.2v8H2zM5.8 1H8v8H5.8z';
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 let floatTimer = null;
+// The floating window's zoom as measured at its last opening (a new key: `floatZoom` could hold
+// a wrong value from v0.8.8 to v0.9.1).
+const ZOOM_KEY = 'floatZoom2';
 
 function renderFloat() {
   if (ui.float.hidden) return;
@@ -229,9 +241,11 @@ function renderFloat() {
   ui['float-art'].hidden = !art;
   if (art && ui['float-art'].src !== art) ui['float-art'].src = art;
   const status = playback.wantKey ? 'loading' : playback.status;
+  // Icon only; the state is in its label (screen readers, tooltip).
   const label = status === 'playing' ? 'Pause' : status === 'loading' ? 'Starting…' : 'Play';
   ui['float-play'].disabled = status === 'loading' || !(t || pl);
-  ui['float-play'].querySelector('span').textContent = label;
+  ui['float-play'].setAttribute('aria-label', label);
+  ui['float-play'].title = label;
   ui['float-play'].querySelector('path').setAttribute('d', label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
   ui['float-prev'].disabled = ui.prev.disabled;
   ui['float-next'].disabled = ui.next.disabled;
@@ -316,21 +330,51 @@ if ('documentPictureInPicture' in window) {
       document.body.append(ui.float);
       renderFloat(); // measured with its text in: empty lines have no height
       const h = ui.float.getBoundingClientRect().height;
-      const [mine, settings] = await Promise.all([chrome.tabs.getZoom(), chrome.tabs.getZoomSettings().catch(() => ({}))]);
+      // As wide as the controls need (they don't shrink), with the cover: squeezed to nothing,
+      // the row's scroll width is what its buttons and the time take. 360 was too narrow in the
+      // user's Chrome once the "+" was added: the time and Back to panel were cut off.
+      ui.float.style.width = '0';
+      const row = ui.float.querySelector('.float-controls').scrollWidth;
+      const sub = ui.float.querySelector('.float-foot').scrollWidth; // the time and Back to panel
+      ui.float.style.width = '';
+      const w = Math.max(360, 20 + Math.max(74 + row, sub) + 8); // padding, cover beside the row, slack
+      // A window's zoom, measured on the window itself: its width in screen points over its
+      // width in page pixels. Up to v0.9.1 it came from chrome.tabs.getZoom and a
+      // devicePixelRatio read right after opening, which in the user's Chrome gave 100% for a
+      // floating window showing 125%; that wrong value was remembered and every later window
+      // came out too small. The zoom settles a moment after the window opens.
+      const zoomOf = (win) => Math.round((win.outerWidth / win.innerWidth) * 100) / 100 || 1;
+      const mine = zoomOf(window);
+      const settings = await chrome.tabs.getZoomSettings().catch(() => ({}));
       let stored = 0;
-      try { stored = Number(localStorage.getItem('floatZoom')) || 0; } catch (_) {}
-      const guess = stored || Math.max(mine, settings.defaultZoomFactor || 1);
-      const pip = await window.documentPictureInPicture.requestWindow({ width: Math.round(360 * guess), height: Math.ceil((h + 6) * guess) });
-      const zoom = Math.round((pip.devicePixelRatio / (window.devicePixelRatio / mine)) * 100) / 100 || guess;
-      try { localStorage.setItem('floatZoom', String(zoom)); } catch (_) {}
-      // If the guess was too small: Chrome lets this window grow only right after a click in it.
-      growFloat = () => {
-        const cut = Math.ceil(ui.float.getBoundingClientRect().bottom) - pip.innerHeight;
-        if (cut <= 0) return;
-        trace('floating-grow', { cut, inner: [pip.innerWidth, pip.innerHeight] });
-        try { pip.resizeBy(0, Math.ceil((cut + 6) * zoom)); } catch (err) { trace('floating-grow-failed', { message: err.message }); }
+      try { stored = Number(localStorage.getItem(ZOOM_KEY)) || 0; } catch (_) {}
+      // Never opened before: nothing says what its zoom will be (in the user's Chrome neither
+      // this window's zoom nor the default predicted it, and the first window was cut off).
+      // Assume at least 125%: slightly too big once is better than cut off once.
+      const guess = stored || Math.max(mine, settings.defaultZoomFactor || 1, 1.25);
+      const pip = await window.documentPictureInPicture.requestWindow({ width: Math.round(w * guess), height: Math.ceil((h + 6) * guess) });
+      let zoom = guess;
+      const measure = () => {
+        if (pip.closed || !pip.innerWidth) return;
+        zoom = zoomOf(pip);
+        try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch (_) {}
+        trace('floating-zoom', { zoom, guess, inner: [pip.innerWidth, pip.innerHeight], outer: [pip.outerWidth, pip.outerHeight], want: [w, Math.ceil(h)] });
+      };
+      setTimeout(measure, 400);
+      pip.addEventListener('resize', () => { zoom = zoomOf(pip); });
+      // If the window came out too small (a wrong guess, or Chrome reusing an earlier size):
+      // Chrome lets it grow only right after a click in it. `live` also makes room for a line
+      // that appeared under the controls.
+      growFloat = (live = true) => {
+        const need = Math.max(h, live ? Math.ceil(ui.float.getBoundingClientRect().bottom) : 0);
+        const dx = Math.max(0, w - pip.innerWidth);
+        const dy = Math.max(0, need - pip.innerHeight);
+        if (!dx && !dy) return;
+        trace('floating-grow', { dx, dy, inner: [pip.innerWidth, pip.innerHeight] });
+        try { pip.resizeBy(Math.ceil(dx * zoom), Math.ceil((dy ? dy + 6 : 0) * zoom)); } catch (err) { trace('floating-grow-failed', { message: err.message }); }
       };
       pip.addEventListener('click', () => growFloat());
+      growFloat(false); // the click on Keep on top may still count
       for (const link of document.querySelectorAll('link[rel="stylesheet"]')) pip.document.head.append(link.cloneNode());
       pip.document.body.className = 'mini';
       pip.document.title = document.title;
@@ -344,10 +388,12 @@ if ('documentPictureInPicture' in window) {
       ui.away.hidden = false;
       const me = await chrome.windows.getCurrent();
       if (fromWindow) chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
-      trace('floating-open', { zoom, guess, mine, inner: [pip.innerWidth, pip.innerHeight], controls: Math.ceil(h) });
+      trace('floating-open', { zoom, guess, mine, inner: [pip.innerWidth, pip.innerHeight], outer: [pip.outerWidth, pip.outerHeight], want: [w, Math.ceil(h)], row, dpr: [window.devicePixelRatio, pip.devicePixelRatio] });
       pip.addEventListener('pagehide', () => {
-        trace('floating-closed', { status: playback.status, at: playback.player.currentSeconds() });
+        trace('floating-closed', { bringBack, status: playback.status, at: playback.player.currentSeconds() });
         clearInterval(floatTimer);
+        if (!bringBack) { closePlayer(); return; }
+        bringBack = false;
         ui.float.hidden = true;
         growFloat = () => {};
         ui['float-hint'].textContent = '';

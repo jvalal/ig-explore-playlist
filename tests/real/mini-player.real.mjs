@@ -75,7 +75,9 @@ try {
   await panel.evaluate(async (A, B) => {
     const now = Date.now();
     const t = (s, i) => ({ key: s.key, kind: 'song', title: s.title, artist: s.artist, first_seen: now - i * 1000, last_seen: now, posts: [], areas: { explore: 1 } });
-    const m = (s) => ({ status: 'matched', id: s.id, uri: `spotify:track:${s.id}`, name: s.title, artists: s.artist, v: 3 });
+    // With a cover image, as real matches have: it takes a quarter of the floating window's width.
+    const cover = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#888"/></svg>');
+    const m = (s) => ({ status: 'matched', id: s.id, uri: `spotify:track:${s.id}`, name: s.title, artists: s.artist, image: cover, v: 3 });
     await chrome.storage.local.set({
       spotify: { clientId: 'x'.repeat(32), access_token: 't', refresh_token: 'r', expires_at: now + 3.6e6, user: 'Test' },
       tracks: { [A.key]: t(A, 0), [B.key]: t(B, 1) }, matches: { [A.key]: m(A), [B.key]: m(B) },
@@ -155,6 +157,13 @@ try {
     await mini.evaluate(() => { window.__pos = []; });
     // MINIZOOM=1 with DEFZOOM=1.25: the mini window at 100% while Chrome's default zoom is 125%.
     // The floating window follows the default (the user's Chrome), not the mini window.
+    // BROWSERZOOM=1 with DEFZOOM=1.25: the tab in the browser window at 100% (as Instagram was in
+    // the user's Chrome) while the mini and floating windows are at the default 125%.
+    if (process.env.BROWSERZOOM) {
+      await panel.evaluate(async (z) => { const t = await chrome.tabs.getCurrent(); await chrome.tabs.setZoomSettings(t.id, { scope: 'per-tab' }); await chrome.tabs.setZoom(t.id, z); }, Number(process.env.BROWSERZOOM));
+      await tick(500);
+      console.log('      zoom seen from the mini window', JSON.stringify(await mini.evaluate(async () => ({ noId: await chrome.tabs.getZoom(), own: await chrome.tabs.getZoom((await chrome.tabs.getCurrent()).id), dpr: devicePixelRatio, outerInner: [outerWidth, innerWidth] }))));
+    }
     if (process.env.MINIZOOM) { await mini.evaluate((z) => chrome.tabs.setZoom(z), Number(process.env.MINIZOOM)); await tick(500); }
     await mini.click('#mini-pip');
     const opened = await waitFor(() => mini.evaluate(() => !!(window.documentPictureInPicture && documentPictureInPicture.window)), 5000);
@@ -167,13 +176,15 @@ try {
       check('...and the Spotify player was not reloaded', (await mini.$eval('#mini-frame', (f) => f.src)) === srcBefore);
       if (pp) {
         await tick(600);
-        const f = await pp.evaluate(() => ({ title: document.querySelector('#mini-float-title').textContent, play: document.querySelector('#mini-float-play').textContent.trim(), time: document.querySelector('#mini-float-time').textContent,
+        const f = await pp.evaluate(() => ({ title: document.querySelector('#mini-float-title').textContent, play: document.querySelector('#mini-float-play').getAttribute('aria-label'), time: document.querySelector('#mini-float-time').textContent,
           fits: document.querySelector('#mini-float').getBoundingClientRect().bottom <= innerHeight + 1 }));
         f.now = await pp.evaluate(() => ({ inner: [innerWidth, innerHeight], bottom: document.querySelector('#mini-float').getBoundingClientRect().bottom }));
+        f.zoom = await mini.evaluate(() => ({ remembered: Number(localStorage.getItem('floatZoom2')), real: Math.round((documentPictureInPicture.window.outerWidth / documentPictureInPicture.window.innerWidth) * 100) / 100 }));
+        check('the floating window\'s real zoom is the one remembered', f.zoom.remembered === f.zoom.real, JSON.stringify(f.zoom));
         check('...showing the song, Pause, and the time, nothing cut off', /Cut To The Feeling|Never Gonna/.test(f.title) && f.play === 'Pause' && /\d:\d\d \/ \d:\d\d/.test(f.time) && f.fits, JSON.stringify(f));
         await pp.click('#mini-float-play');
         const paused = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'paused'), 5000);
-        check('Pause in the floating window pauses the music', paused && (await pp.$eval('#mini-float-play', (e) => e.textContent.trim())) === 'Play');
+        check('Pause in the floating window pauses the music', paused && (await pp.$eval('#mini-float-play', (e) => e.getAttribute('aria-label'))) === 'Play');
         await pp.click('#mini-float-play');
         const resumed = await waitFor(() => mini.evaluate(async () => ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status === 'playing'), 8000);
         check('...and Play continues it', resumed);
@@ -199,9 +210,18 @@ try {
             return new Response('', { status: 200 });
           };
         });
-        const save = () => pp.evaluate(() => { const b = document.querySelector('#mini-float-save'); const row = document.querySelector('.float-controls'); return { shown: b.getBoundingClientRect().width > 0, on: b.classList.contains('saved'), label: b.getAttribute('aria-label'), hint: document.querySelector('#mini-float-hint').textContent, oneRow: new Set([...row.children].map((c) => Math.round(c.getBoundingClientRect().top + c.getBoundingClientRect().height / 2))).size === 1 && row.scrollWidth <= row.clientWidth, fits: document.querySelector('#mini-float').getBoundingClientRect().bottom <= innerHeight + 1 }; });
+        const save = () => pp.evaluate(() => { const b = document.querySelector('#mini-float-save'); const row = document.querySelector('.float-controls'); return { shown: b.getBoundingClientRect().width > 0, on: b.classList.contains('saved'), label: b.getAttribute('aria-label'), hint: document.querySelector('#mini-float-hint').textContent, art: document.querySelector('#mini-float-art').getBoundingClientRect().width, oneRow: new Set([...row.children].map((c) => Math.round(c.getBoundingClientRect().top + c.getBoundingClientRect().height / 2))).size === 1 && row.scrollWidth <= row.clientWidth, inside: ['#mini-float-time', '#mini-float-back'].every((q) => document.querySelector(q).getBoundingClientRect().right <= innerWidth - 4), inner: innerWidth, fits: document.querySelector('#mini-float').getBoundingClientRect().bottom <= innerHeight + 1 }; });
         const s0 = await save();
         check('the floating window has a "+" (save to Liked Songs), all controls on one row', s0.shown && !s0.on && s0.oneRow && s0.fits, JSON.stringify(s0));
+        check('with the cover showing, the time and Back to panel are not cut off at the right', s0.art > 0 && s0.inside, JSON.stringify(s0));
+        const lay = await pp.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const [art, prev, next, play, title, artist, time, back] = ['#mini-float-art', '#mini-float-prev', '#mini-float-next', '#mini-float-play', '#mini-float-title', '#mini-float-artist', '#mini-float-time', '#mini-float-back'].map(r);
+          return { prevNext: next.left - prev.right, playRound: Math.abs(play.width - play.height) < 1 && getComputedStyle(document.querySelector('#mini-float-play')).borderRadius === '50%', playText: document.querySelector('#mini-float-play').textContent.trim(),
+            playAfterText: Math.round(play.left - Math.max(title.right, artist.right)), playOffCenter: Math.round(Math.abs((play.top + play.bottom) / 2 - (title.top + artist.bottom) / 2)),
+            timeUnderArt: time.top >= art.bottom && Math.abs(time.left - art.left) < 2, backAfterTime: Math.round(back.left - time.right), sameLine: Math.abs((back.top + back.bottom) / 2 - (time.top + time.bottom) / 2) < 4 }; });
+        if (process.env.SHOT) await pp.screenshot({ path: process.env.SHOT }); // a picture of the floating window
+        check('Prev and Next sit together; Play/Pause is a round icon-only button', lay.prevNext >= 0 && lay.prevNext < 10 && lay.playRound && lay.playText === '', JSON.stringify(lay));
+        check('Play/Pause is right after the title and artist, centered on those two lines', lay.playAfterText >= 6 && lay.playAfterText <= 14 && lay.playOffCenter <= 2, JSON.stringify(lay));
+        check('the time is under the cover, with Back to panel 5-10 px to its right', lay.timeUnderArt && lay.sameLine && lay.backAfterTime >= 5 && lay.backAfterTime <= 10, JSON.stringify(lay));
         await pp.click('#mini-float-save');
         await waitFor(async () => (await save()).on, 8000);
         const s1 = await save();
@@ -238,20 +258,24 @@ try {
         check('...also when the mini window was minimized: it comes back and the song plays', stepped2 && cont5.ok && state2 === 'normal', `${state2} ${JSON.stringify(cont5)}`);
       }
       const srcOpen = await mini.$eval('#mini-frame', (f) => f.src);
-      await mini.evaluate(() => documentPictureInPicture.window.close());
+      await mini.evaluate(() => document.querySelector('#mini-away-btn').click()); // "Bring the controls back here"
       await tick(800);
       const back = await mini.evaluate(async () => ({ ctrl: !!document.querySelector('#mini-next'), status: ((await chrome.storage.local.get('nowPlaying')).nowPlaying || {}).status, state: (await chrome.windows.getCurrent()).state, away: document.querySelector('#mini-away').hidden, float: document.querySelector('#mini-float').hidden }));
-      check('closing it brings the mini window back, still playing, no note, no floating controls', back.status === 'playing' && back.state === 'normal' && back.away && back.float, JSON.stringify(back));
+      check('"Bring the controls back here" closes the floating window and keeps the mini window, still playing, no note', back.status === 'playing' && back.state === 'normal' && back.away && back.float, JSON.stringify(back));
       check('...still without reloading the Spotify player', (await mini.$eval('#mini-frame', (f) => f.src)) === srcOpen);
     }
   }
 
   // ---- closing the mini window clears its state
+  // The floating window's X closes the whole player: the mini window and the music with it.
   const miniTarget = mini.target();
-  await mini.close();
+  await mini.click('#mini-pip');
+  await findFloat();
+  await mini.evaluate(() => { documentPictureInPicture.window.close(); }).catch(() => {}); // what the X does
+  check('closing the floating window (its X) closes the mini window too', await waitFor(() => !browser.targets().some((t) => t.url().startsWith(`${BASE}/player.html`)), 5000));
   await tick(800);
   const after = await panel.evaluate(async () => ({ np: (await chrome.storage.local.get('nowPlaying')).nowPlaying || null, win: (await chrome.storage.session.get('miniWindowId')).miniWindowId || null }));
-  check('closing the mini window clears it; the panel goes back to its own player', !after.np && !after.win, JSON.stringify(after) + miniTarget.url());
+  check('...and clears what was playing; the panel goes back to its own player', !after.np && !after.win, JSON.stringify(after) + miniTarget.url());
 
   // ---- Back to panel: the reverse of Pop out (side panel opens, song moves back, mini closes)
   await panel.close(); // only the real side panel should pick the song up
@@ -271,14 +295,19 @@ try {
   browser.on('targetcreated', (t) => created.push(t));
   // From the floating window: the click there has to count as the gesture sidePanel.open needs.
   // ...opened too short on purpose (a wrong zoom remembered): a click in it makes it fit.
-  await mini2.evaluate(() => localStorage.setItem('floatZoom', '0.7'));
+  await mini2.evaluate(() => localStorage.setItem('floatZoom2', '0.7'));
   await mini2.click('#mini-pip');
   const pp2 = await findFloat();
   if (pp2) {
-    const cutOff = () => pp2.evaluate(() => document.querySelector('#mini-float').getBoundingClientRect().bottom > innerHeight + 1);
+    const cutOff = () => pp2.evaluate(() => document.querySelector('#mini-float').getBoundingClientRect().bottom > innerHeight + 1 ||
+      ['#mini-float-time', '#mini-float-back'].some((q) => document.querySelector(q).getBoundingClientRect().right > innerWidth - 4));
     const was = await cutOff();
+    await tick(600);
+    const real = await pp2.evaluate(() => Math.round((outerWidth / innerWidth) * 100) / 100);
+    const kept = await mini2.evaluate(() => Number(localStorage.getItem('floatZoom2')));
+    check('a floating window opened for a wrong remembered zoom corrects what it remembers, so the next one fits', was && kept === real, `was cut off: ${was}, remembered ${kept}, real ${real}`);
     await pp2.click('#mini-float-title');
-    check('a floating window that opened too short grows to fit at the first click in it', was && await waitFor(async () => !(await cutOff()), 3000), `was cut off: ${was}`);
+    check('...and this one grows to fit, in height and width, at the first click in it', await waitFor(async () => !(await cutOff()), 3000));
   }
   check('the floating window has a Back to panel button', !!pp2 && await pp2.$eval('#mini-float-back', (e) => e.getBoundingClientRect().width > 0));
   if (pp2) await pp2.click('#mini-float-back');

@@ -14,19 +14,27 @@ body.mini { display: block; min-height: 0; background: var(--surface); }
 .mini-away p { margin: 0; }
 .mini-start .pill { margin-left: 0; font-size: 13px; padding: 5px 14px 5px 11px; }
 
-/* Keep on top: our own controls in the floating window (the music stays in the mini window). */
-.float { display: flex; gap: 10px; align-items: center; padding: 10px; }
+/* Keep on top: our own controls in the floating window (the music stays in the mini window).
+   Cover; beside it the title and artist with Play/Pause right after them, then Prev, Next and
+   "+"; under everything the time (below the cover) with Back to panel right after it. */
+.float { display: grid; gap: 8px; padding: 10px; }
+.float-top { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .float-art { flex: none; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: var(--bg); }
-.float-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.float-main { flex: 1; min-width: 0; display: grid; gap: 6px; }
+/* The text shrinks (ellipsis) so Play/Pause stays next to it, centered on the two lines. */
+.float-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.float-text { flex: 0 1 auto; min-width: 0; display: grid; gap: 4px; }
 .float-title, .float-artist { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .float-title { font-size: 13px; font-weight: 600; }
-.float-artist { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; }
-.float-sub { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.float-sub .linkish { flex: none; }
+.float-artist { font-size: 12px; color: var(--muted); }
 .float-controls { display: flex; align-items: center; gap: 6px; }
-.float-controls .pill { margin-left: 0; font-size: 12px; padding: 4px 12px 4px 10px; }
 .float-controls .icon { width: 10px; height: 10px; fill: currentColor; }
 .float-controls .saved { color: var(--accent); border-color: var(--accent); }
-.float-time { margin-left: auto; white-space: nowrap; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Play / Pause: a round, filled, icon-only button, like the one in Spotify's player. */
+.float .float-play { flex: none; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); }
+.float .float-play .icon { width: 13px; height: 13px; fill: currentColor; }
+.float-foot { display: flex; align-items: baseline; gap: 8px; }
+.float-foot .linkish { flex: none; }
+.float-time { white-space: nowrap; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .float-hint { margin: 0; font-size: 11px; color: var(--muted); }
 .float-hint:empty { display: none; }
