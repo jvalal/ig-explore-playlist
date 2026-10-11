@@ -6,7 +6,38 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.5)
+## Current status (v0.11.9)
+
+**Cover for songs known only from the playlist** (v0.11.9; the user: Keep on top "loses album
+art"). Those matches (v0.11.7, below) have no `image`. mini.js `coverOf()` now gets it from
+Spotify's public oEmbed (`https://open.spotify.com/oembed?url=spotify:track:{id}` →
+`thumbnail_url`; CORS `*`, no login, not the Web API, so no host permission and no rate limit;
+checked with curl 2026-10-10). Asked once per song, when the song shows in the mini window. The
+floating window's height is now measured with the cover's place taken. Unit-tested
+(mini-float.test.mjs); the user confirmed it works in their Chrome (2026-10-10).
+
+**Keep on top froze the mini window while rate-limited** (fixed in v0.11.8; the user: "keep on
+top isn't working", Pop out worked). The floating controls' "+" asks Spotify whether the song is
+saved. A failed lookup was forgotten and the re-render asked again; rate-limited, `api()` refuses
+at once without the network, so that loop never let go of the page. It was there since v0.11.4
+and only reachable once songs played again (v0.11.7). A failed lookup is now kept as
+`'unknown'` (not asked again in that window; "+" shows as not saved).
+`unit/mini-float.test.mjs` boots player.html + mini.js in jsdom and fails on the old code.
+The user's next report was about the open floating window (missing cover), so it opens again
+in their Chrome; they didn't say so in those words.
+
+**Songs in the playlist play without a stored match** (v0.11.7). The user's songs wouldn't play
+during the 16-hour rate limit: a Clear before v0.11.5 had removed `matches` (read from their
+Chrome profile's storage: `matches` deleted, 30 songs, 25 in the playlist), so every Play needed
+a search. `matchFor(st, key)` in store.js now falls back to the playlist: `playlist.keys` and
+`playlist.uris` line up one to one when their lengths are equal (checked on the user's playlist
+against Spotify's public oEmbed titles). Such a match has no cover image (see v0.11.9). Songs that are in
+neither `matches` nor the playlist still need a search. Unit-tested (store.test.mjs), and the
+user confirmed a playlist song plays and Pop out works in their Chrome (2026-10-10).
+
+v0.11.6 is a cleanup with no visible change: the code that played a playlist embed (unreachable
+since v0.10.2) and the `legacy/` folder (v0.5.0) are gone; both are in git history before
+v0.11.6. `Player.play(trackId, { startAt })` no longer takes a type.
 
 The docked player's row is Prev and Next (icon buttons, `.step`, as in the mini window, since
 v0.11.2), the position and **Pop out** (with a small bold
@@ -63,8 +94,8 @@ mini.js `pagehide`). The panel and the mini player now swallow exactly that erro
 entries stay on the Errors page until "Clear all" is pressed there. The settings icon is three
 sliders (the gear didn't read well).
 
-v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code is in `legacy/` for reference only;
-it is never loaded and its tests aren't maintained.
+v0.6.0 is a rebuild (see REVIEW.md for why). The v0.5.0 code it replaced was kept in `legacy/`
+until v0.11.6; it is in git history.
 
 Carried over from v0.5.0: capture from Explore, list with roll-in animation, Spotify connect
 (PKCE), background matching, manual "Choose" picker for misses, playlist create / add-new-songs,
@@ -139,9 +170,7 @@ New in v0.6.0:
 - **The x on the new-playlist box** (v0.10.8): shown when there was a playlist before (after
   Start a new playlist, or after the case above). It puts that playlist back, nothing created
   or added. The previous playlist is kept in storage key `playlistUndo` until a new playlist is
-  created. The code that plays a playlist embed is still there and
-  unreachable from the panel (`playback.clickPlaylist`, playlist mode in player.js, the mini
-  player's `playlist` command, `popIn.playlist`).
+  created. The code that played a playlist embed was removed in v0.11.6.
 
 New in v0.7.0 (2026-10-05, built overnight, **not yet tried in the user's Chrome**):
 - **Song goal** (goal.js): a Goal menu (Off/10/20/30/50/100) beside the count. It shows "18 of 30
@@ -172,20 +201,19 @@ around Spotify's 5-users-per-Client-ID cap.
 New in v0.8.0: **pop-out mini player**, so music keeps playing after the side panel closes
 (Chrome unloads the panel's page, and the embed with it).
 - **The window:** `player.html` is a popup window (360x200). background.js opens it on
-  `{type:'ef-open-mini', key | playlist, from}` and keeps its id in `storage.session.miniWindowId`.
+  `{type:'ef-open-mini', key, from}` and keeps its id in `storage.session.miniWindowId`.
   It checks the window still exists, and focuses it instead of opening a second one.
 - **Shared code:** it uses the same `Player` (embed control) and `Playback` (queue, Next/Prev,
   auto-advance) as the panel. The queue is the song list in storage, so Next and auto-advance work
   with the panel closed.
 - **Who plays:** while the mini player is open it is the only player. The panel sends Play
-  presses as `{type:'ef-player', cmd: play|toggle|playlist|next|prev|close, key}`, and its rows
-  mirror storage `nowPlaying` ({host:'mini', key, playlist, status}), which the mini player writes.
+  presses as `{type:'ef-player', cmd: play|toggle|next|prev|close, key}`, and its rows
+  mirror storage `nowPlaying` ({host:'mini', key, status}), which the mini player writes.
 - **Pop out:** the "Pop out" button by the docked player stops it and opens the mini player on the
   same song, continuing where it was (`startAt` from `Player.currentSeconds()` → embed `t`;
-  v0.8.2). Back to panel and Keep on top continue the same way. A playlist starts again from its
-  first song.
+  v0.8.2). Back to panel and Keep on top continue the same way.
 - **Back to panel** (v0.8.1) is the reverse of Pop out. It opens the side panel in the window the
-  mini player came from, leaves `popIn` ({key | playlist, windowId, at}) in storage, and closes
+  mini player came from, leaves `popIn` ({key, startAt, windowId, at}) in storage, and closes
   the mini window. The panel picks the song up in its docked player.
 - **When Chrome refuses to start sound** (`blocked`) in the mini or floating window, it shows its
   own **Play** button. One click in that window starts it, and Next works without another click
@@ -224,7 +252,7 @@ New in v0.8.0: **pop-out mini player**, so music keeps playing after the side pa
   the playlist ones. A connection made before v0.9.0 lacks them (`S.canSave(st.spotify)` reads
   the stored `scope`): the first press runs `S.connect()` from the mini page, Spotify asks for
   approval once, then the song is saved. The grant survives token refreshes; playlists work
-  without it. Hidden while a playlist plays. Verified with Spotify stubbed (unit test with the
+  without it. Verified with Spotify stubbed (unit test with the
   sim, real-browser test with the login and API stubbed in the page); **not yet against real
   Spotify**.
 - **Window sizes vs zoom** (v0.8.3): window sizes are in screen points, page sizes in page
@@ -329,7 +357,6 @@ tests/              npm test = unit + browser. run.mjs fails on any FAIL line or
                     which reproduces the observed protocol. Uses the installed Chrome.
   sim/              Spotify Web API sim (token, /me, search, playlists) + chrome.storage stub.
 tools/embed-probe/  Temporary unpacked extension that logs embed messages; logs/ has the runs.
-legacy/             v0.5.0 extension + tests, reference only.
 platforms/safari/   Safari (iPhone) build parts: manifest, background (login, button count,
                     opens setup on install), platform.js (tab + loopback login), popup.css,
                     onboarding.html/js/css (setup page). Shared code stays in extension/.
@@ -489,8 +516,6 @@ profile or a logged-out Spotify session. The player still reports `blocked` if s
 - Send only `resume` and `pause`, and only when the reported state says it's needed. Play =
   load if needed → wait for `ready` → `resume` → wait up to 5 s for `isPaused:false`, else
   `blocked` (the panel says "Press play in the player once").
-- Playlist mode (`play(id, 'playlist')`): any `spotify:track:` URI counts as ours, and "ended"
-  is never detected (the embed advances by itself). `state.nowPlaying` holds the reported track.
 - End = paused at 0 right after being within 2 s of the end, or no updates for 2.5 s after
   `position == duration`. Then the next song in list order starts.
 - The panel re-renders only on a status or song change, never on position updates (see

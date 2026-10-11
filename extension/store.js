@@ -14,7 +14,7 @@ const DEFAULTS = {
   playlist: () => null,
   playlistUndo: () => null, // the playlist that was current before "new playlist": the x goes back to it
   prefs: () => ({}), // { goal: number (0 = off), autoSync: boolean }; kept by Clear
-  nowPlaying: () => null, // written by the mini player: { host: 'mini', key, playlist, status }
+  nowPlaying: () => null, // written by the mini player: { host: 'mini', key, status }
 };
 
 export function createStore() {
@@ -92,7 +92,21 @@ export function list(st, kind) {
     .sort((a, b) => b.first_seen - a.first_seen || a.key.localeCompare(b.key));
 }
 
-export const matchOf = (st, t) => st.matches[t.key];
+// What a song is on Spotify. A song this panel added to the playlist is known even when
+// `matches` no longer has it: the playlist keeps its link (keys and uris line up one to one
+// when no two songs shared a link). So it plays without a search, e.g. while Spotify is
+// rate-limiting the app (the user's case, 2026-10-10: a Clear before v0.11.5 had removed matches).
+export function matchFor(st, key) {
+  const m = st.matches[key];
+  const pl = st.playlist;
+  if (m || !pl || pl.keys.length !== pl.uris.length) return m;
+  const uri = pl.uris[pl.keys.indexOf(key)];
+  if (!uri) return undefined;
+  const id = uri.split(':').pop();
+  const t = st.tracks[key] || {};
+  return { status: 'matched', id, uri, name: t.title, artists: t.artist, image: null, url: `https://open.spotify.com/track/${id}` };
+}
+export const matchOf = (st, t) => matchFor(st, t.key);
 export const inPlaylist = (st, t) => !!(st.playlist && st.playlist.keys.includes(t.key));
 
 // Songs the next Build would add.

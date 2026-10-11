@@ -3,10 +3,10 @@
 // song list in storage, so Prev/Next and auto-advance keep working after the panel is closed.
 // While this window is open it is the only player: the panel sends its Play presses here as
 // runtime messages { type: 'ef-player', cmd, key }, and this page publishes what it's doing in
-// storage key `nowPlaying` ({ host: 'mini', key, playlist, status }) so the panel's rows match.
+// storage key `nowPlaying` ({ host: 'mini', key, status }) so the panel's rows match.
 import * as S from './spotify.js';
 import { $, quietWhenOrphaned } from './dom.js';
-import { createStore, list, matchOf } from './store.js';
+import { createStore, list, matchFor, matchOf } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
@@ -24,7 +24,7 @@ const ui = Object.fromEntries(['wrap', 'now', 'pos', 'frame', 'prev', 'next', 'p
   .map((id) => [id, $(`#mini-${id}`)]));
 
 const queue = new MatchQueue({
-  getMatch: (key) => st.matches[key],
+  getMatch: (key) => matchFor(st, key),
   setMatch: (key, m) => store.set({ matches: { ...st.matches, [key]: m } }),
   match: (t) => S.matchTrack(t),
   onChange: () => render(),
@@ -123,7 +123,6 @@ function changed() {
   const np = {
     host: 'mini',
     key: playback.wantKey || playback.key || null,
-    playlist: playback.playlistLoaded,
     status: playback.wantKey ? 'loading' : playback.status,
   };
   const sig = JSON.stringify(np);
@@ -136,19 +135,13 @@ function changed() {
 
 function render() {
   const t = byKey(playback.wantKey || playback.key);
-  const pl = playback.playlistLoaded && st.playlist;
-  ui.now.textContent = pl ? `Playlist: ${st.playlist.name}` : t ? `${t.title} · ${t.artist || 'Unknown artist'}` : 'Nothing playing';
+  ui.now.textContent = t ? `${t.title} · ${t.artist || 'Unknown artist'}` : 'Nothing playing';
   document.title = t ? `${t.title} · Explore finds` : 'Explore finds player';
-  if (pl) {
-    ui.pos.textContent = '';
-    ui.prev.disabled = true;
-    ui.next.disabled = true;
-    return;
-  }
   const { i, n } = playback.position();
   ui.pos.textContent = i >= 0 ? `${i + 1} of ${n}` : '';
   ui.prev.disabled = i <= 0;
   ui.next.disabled = i < 0 || i >= n - 1;
+  coverOf(t && matchOf(st, t)); // looked up early, so Keep on top opens with it
   renderFloat();
 }
 
@@ -179,7 +172,7 @@ function backToPanel(say) {
   trace('back-to-panel', { floating: say !== hint });
   if (!fromWindow) { say('No browser window to go back to.'); return; }
   chrome.sidePanel.open({ windowId: fromWindow }).catch((err) => say(`Couldn't open the panel: ${err.message}`));
-  const what = playback.playlistLoaded ? { playlist: true } : { key: playback.key, startAt: playback.player.currentSeconds() };
+  const what = { key: playback.key, startAt: playback.player.currentSeconds() };
   chrome.storage.local.set({ popIn: { ...what, windowId: fromWindow, at: Date.now() } }).then(() => {
     chrome.windows.update(fromWindow, { focused: true }).catch(() => {});
     closePlayer();
@@ -194,7 +187,6 @@ chrome.runtime.onMessage.addListener((msg) => {
   const t = msg.key ? byKey(msg.key) : null;
   if (msg.cmd === 'play' && t) run(() => playback.playSong(t, { startAt: msg.startAt || 0 }));
   else if (msg.cmd === 'toggle' && t) run(() => playback.click(t));
-  else if (msg.cmd === 'playlist' && st.playlist) run(() => playback.clickPlaylist(st.playlist));
   else if (msg.cmd === 'next') run(() => playback.step(1));
   else if (msg.cmd === 'prev') run(() => playback.step(-1));
   else if (msg.cmd === 'close') window.close();
@@ -235,20 +227,36 @@ let floatTimer = null;
 // a wrong value from v0.8.8 to v0.9.1).
 const ZOOM_KEY = 'floatZoom2';
 
+// The cover for the floating controls: the match's own picture, or, for a match without one (a
+// song known only from the playlist, store.js matchFor), Spotify's public oEmbed lookup. That
+// isn't the Web API: no login, and the app's rate limit doesn't apply. Asked once per song.
+const covers = new Map(); // track id -> url, or null while asking and when there is none
+function coverOf(m) {
+  if (!m || m.status !== 'matched') return null;
+  if (m.image || !m.id) return m.image || null;
+  if (!covers.has(m.id)) {
+    covers.set(m.id, null);
+    fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(`spotify:track:${m.id}`)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j && j.thumbnail_url) { covers.set(m.id, j.thumbnail_url); renderFloat(); } })
+      .catch(() => {});
+  }
+  return covers.get(m.id);
+}
+
 function renderFloat() {
   if (ui.float.hidden) return;
   const t = byKey(playback.wantKey || playback.key);
-  const pl = playback.playlistLoaded && st.playlist;
   const m = t && matchOf(st, t);
-  ui['float-title'].textContent = pl ? st.playlist.name : t ? t.title : 'Nothing playing';
-  ui['float-artist'].textContent = pl ? 'Playlist' : t ? t.artist || 'Unknown artist' : '';
-  const art = !pl && m && m.image;
+  ui['float-title'].textContent = t ? t.title : 'Nothing playing';
+  ui['float-artist'].textContent = t ? t.artist || 'Unknown artist' : '';
+  const art = coverOf(m);
   ui['float-art'].hidden = !art;
   if (art && ui['float-art'].src !== art) ui['float-art'].src = art;
   const status = playback.wantKey ? 'loading' : playback.status;
   // Icon only; the state is in its label (screen readers, tooltip).
   const label = status === 'playing' ? 'Pause' : status === 'loading' ? 'Starting…' : 'Play';
-  ui['float-play'].disabled = status === 'loading' || !(t || pl);
+  ui['float-play'].disabled = status === 'loading' || !t;
   ui['float-play'].setAttribute('aria-label', label);
   ui['float-play'].title = label;
   ui['float-play'].querySelector('path').setAttribute('d', label === 'Pause' ? PAUSE_ICON : PLAY_ICON);
@@ -258,7 +266,7 @@ function renderFloat() {
   const at = playback.player.currentSeconds();
   ui['float-time'].textContent = duration ? `${mmss(at)} / ${mmss(duration / 1000)}` : '';
   if (status === 'playing' && ui['float-hint'].textContent === HELD) floatHint('');
-  renderSave(pl ? null : m);
+  renderSave(m);
 }
 
 // ---------- "+": save the song to the Spotify library (Liked Songs) ----------
@@ -267,7 +275,7 @@ function renderFloat() {
 // once (S.connect), then saves. Whether a song is already saved is looked up once per song.
 const PLUS_ICON = 'M4.25 1h1.5v3.25H9v1.5H5.75V9h-1.5V5.75H1v-1.5h3.25z';
 const CHECK_ICON = 'M3.9 8.3L1 5.4l1.1-1.1 1.8 1.8L7.9 2 9 3.1z';
-const saved = new Map(); // track uri -> true | false | 'asking'
+const saved = new Map(); // track uri -> true | false | 'asking' | 'unknown' (asking failed)
 let saving = false;
 
 function renderSave(m) {
@@ -277,7 +285,10 @@ function renderSave(m) {
   if (!uri) return;
   if (!saved.has(uri) && S.canSave(st.spotify)) {
     saved.set(uri, 'asking');
-    S.inLibrary(uri).then((yes) => saved.set(uri, yes), () => saved.delete(uri)).then(() => renderFloat());
+    // A failed lookup is kept as 'unknown', not forgotten: forgetting it asked again on the
+    // re-render below, and rate-limited (refused at once, no network) that never let go and
+    // froze this window (the user's Keep on top, 2026-10-10).
+    S.inLibrary(uri).then((yes) => saved.set(uri, yes), () => saved.set(uri, 'unknown')).then(() => renderFloat());
   }
   const on = saved.get(uri) === true;
   const label = on ? 'Saved to Liked Songs. Press to remove.' : 'Save to Liked Songs';
@@ -334,7 +345,11 @@ if ('documentPictureInPicture' in window) {
       ui.float.hidden = false;
       document.body.append(ui.float);
       renderFloat(); // measured with its text in: empty lines have no height
+      // ...and with the cover's place taken: a looked-up cover can arrive after the window opens.
+      const noArt = ui['float-art'].hidden;
+      ui['float-art'].hidden = false;
       const h = ui.float.getBoundingClientRect().height;
+      ui['float-art'].hidden = noArt;
       // As wide as the controls need (they don't shrink), with the cover: squeezed to nothing,
       // a line's scroll width is what its content takes. At least 300, so the title has room.
       ui.float.style.width = '0';
@@ -422,11 +437,9 @@ fitMini(true);
 store.subscribe(() => render());
 await store.load();
 store.watch();
-if (params.get('playlist') && st.playlist) run(() => playback.clickPlaylist(st.playlist));
-else if (params.get('key') && byKey(params.get('key'))) {
+if (params.get('key') && byKey(params.get('key'))) {
   run(() => playback.playSong(byKey(params.get('key')), { startAt: Number(params.get('t')) || 0 }));
-}
-else changed();
+} else changed();
 // After the extension is reloaded this window is orphaned and chrome.* throws ("Extension context
 // invalidated"); there is nothing left to tidy up then.
 addEventListener('pagehide', () => { try { chrome.storage.local.remove('nowPlaying').catch(() => {}); } catch (_) {} });

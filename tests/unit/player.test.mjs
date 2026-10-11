@@ -137,32 +137,10 @@ function setup() {
   upd('A', false, 0);
 }
 
-// 9b. Playlist embed (headless log): reports the playing track's URI, advances by itself.
-{
-  const { player, sent, ended, deliver, upd } = setup();
-  const p = player.play('PL1', 'playlist');
-  deliver({ type: 'ready' }); await tick(5);
-  check('playlist: resume after ready', sent.length === 1 && sent[0].command === 'resume');
-  upd('trackA', false, 0, 20878);
-  check('playlist: a track URI counts as playing', (await p) === 'playing');
-  upd('trackA', false, 20878, 20878);
-  upd('trackB', false, 0, 26662);
-  await tick(2700);
-  check('playlist: moving to the next track is not an "end" for us', ended.length === 0 && player.state.status === 'playing',
-    `${ended.length} ${player.state.status}`);
-  check('playlist: knows which track is playing', player.state.nowPlaying === 'spotify:track:trackB');
-  const t = player.play('trackC');
-  deliver({ type: 'ready' }); await tick(5);
-  upd('trackB', false, 500, 26662);
-  check('after switching to a song, playlist tracks are ignored', player.state.status === 'paused' && player.state.type === 'track');
-  upd('trackC', false, 0);
-  await t;
-}
-
 // 9c. Carrying a song to another window: load it at a position (embed URL parameter t).
 {
   const { player, frame, deliver, upd } = setup();
-  const p = player.play('A', 'track', { startAt: 83.7 });
+  const p = player.play('A', { startAt: 83.7 });
   check('startAt loads the embed with t=<whole seconds>', /[?&]t=83(&|$)/.test(frame.src), frame.src);
   deliver({ type: 'ready' }); await tick(5);
   upd('A', false, 83000);
@@ -183,7 +161,7 @@ function setup() {
 //     Chrome first refuses to start the sound): seek once to where the song was.
 {
   const { player, sent, deliver, upd } = setup();
-  const p = player.play('A', 'track', { startAt: 83.7 });
+  const p = player.play('A', { startAt: 83.7 });
   deliver({ type: 'ready' }); await tick(5);
   upd('', false, 0, 0); // placeholder: not a start
   check('no seek on the placeholder update', !sent.some((s) => s.command === 'seek'), JSON.stringify(sent));
@@ -195,7 +173,7 @@ function setup() {
   check('...only once', sent.filter((s) => s.command === 'seek').length === 1);
 
   const ok = setup();
-  const p2 = ok.player.play('A', 'track', { startAt: 83.7 });
+  const p2 = ok.player.play('A', { startAt: 83.7 });
   ok.deliver({ type: 'ready' }); await tick(5);
   ok.upd('A', false, 83000);
   await p2;

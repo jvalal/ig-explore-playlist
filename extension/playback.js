@@ -13,34 +13,6 @@ export class Playback {
     return this.player.state.status;
   }
 
-  get playlistLoaded() {
-    return this.player.state.type === 'playlist' && !!this.player.state.trackId;
-  }
-
-  // What the playlist's Play control shows.
-  playlistState() {
-    if (!this.playlistLoaded) return { label: 'Play', disabled: false };
-    switch (this.status) {
-      case 'loading': return { label: 'Starting…', disabled: true };
-      case 'playing': return { label: 'Pause', disabled: false };
-      case 'paused': return { label: 'Resume', disabled: false };
-      default: return { label: 'Play', disabled: false };
-    }
-  }
-
-  // A click on the playlist's Play control. Rows show Play while a playlist is loaded.
-  clickPlaylist(pl) {
-    if (this.playlistLoaded && this.player.state.trackId === pl.id) {
-      if (this.status === 'playing') return this.player.pause();
-      if (this.status !== 'loading') return this.player.resume();
-      return undefined;
-    }
-    this.key = null;
-    this.wantKey = null;
-    this.onChange();
-    return this.player.play(pl.id, 'playlist').finally(() => this.onChange());
-  }
-
   // What a row's button shows: what pressing it does (Play / Pause). `current` marks the row of
   // the song in the player, playing or not; `on` is true only while it plays.
   rowState(t) {
@@ -88,7 +60,7 @@ export class Playback {
     this.key = t.key;
     this.wantKey = null;
     this.onChange();
-    const status = await this.player.play(m.id, 'track', { startAt });
+    const status = await this.player.play(m.id, { startAt });
     this.onChange();
     return status;
   }

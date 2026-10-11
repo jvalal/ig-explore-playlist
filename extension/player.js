@@ -5,12 +5,7 @@
 //   - never send a command before this document's 'ready'
 //   - state comes only from the embed's own reports, filtered by playingURI
 //
-// A playlist embed (embed/playlist/{id}) reports the playing *track's* URI and moves to the
-// next track on its own (observed headless, 2026-10-05), so in playlist mode any track URI
-// counts and the player doesn't detect "ended".
-//
-// state: { trackId, type: 'track'|'playlist', status, position, duration }
-//   trackId is the loaded item's id (a track or a playlist); nowPlaying the track URI reported.
+// state: { trackId, status, position, duration }
 //   status: idle | loading | paused | playing | ended | blocked | error
 //     paused  = loaded and not playing (including "loaded, never started")
 //     blocked = we asked it to start and it didn't (autoplay refused, or the embed ignored us)
@@ -32,7 +27,7 @@ export class Player {
     this.onChange = onChange;
     this.onEnded = onEnded;
     this.trace = (ev, d) => { try { trace(ev, d); } catch (_) {} };
-    this.state = { trackId: null, type: 'track', status: 'idle', position: 0, duration: 0, nowPlaying: null };
+    this.state = { trackId: null, status: 'idle', position: 0, duration: 0 };
     this.gen = 0;          // bumps on every iframe navigation; stale async work checks it
     this.ready = false;    // this document has said 'ready'
     this.lastPos = 0;
@@ -47,13 +42,7 @@ export class Player {
   }
 
   get uri() {
-    return this.state.trackId && this.state.type === 'track' ? `spotify:track:${this.state.trackId}` : null;
-  }
-
-  // Is this reported playingURI the thing we loaded?
-  _ours(playingURI) {
-    if (!playingURI) return false;
-    return this.state.type === 'playlist' ? playingURI.startsWith('spotify:track:') : playingURI === this.uri;
+    return this.state.trackId ? `spotify:track:${this.state.trackId}` : null;
   }
 
   _set(patch) {
@@ -107,7 +96,7 @@ export class Player {
     if (!this.ready || d.type !== 'playback_update') return;
     const p = d.payload || {};
     // The first update after a command can be a placeholder with playingURI "" and duration 0.
-    if (!this._ours(p.playingURI)) {
+    if (!p.playingURI || p.playingURI !== this.uri) {
       if (p.playingURI && this.starting) this.wrongDoc = true;
       return;
     }
@@ -115,7 +104,6 @@ export class Player {
     const duration = Number(p.duration) || this.state.duration;
     clearTimeout(this.endTimer);
 
-    const playlist = this.state.type === 'playlist';
     this.posAt = Date.now();
     if (p.isPaused === false) {
       // Loaded at a position (startAt) but started earlier: the user saw Keep on top start at
@@ -128,15 +116,15 @@ export class Player {
         if (position < want * 1000 - START_SLACK_MS) this._send('seek', { timestamp: want });
       }
       this.lastPos = position;
-      this._set({ status: 'playing', position, duration, nowPlaying: p.playingURI });
-      if (!playlist && duration > 0 && position >= duration - 300) {
+      this._set({ status: 'playing', position, duration });
+      if (duration > 0 && position >= duration - 300) {
         const gen = this.gen;
         this.endTimer = setTimeout(() => { if (gen === this.gen) this._ended(); }, END_SILENCE_MS);
       }
       return;
     }
     const wasNearEnd = duration > 0 && this.lastPos >= duration - END_WINDOW_MS;
-    if (!playlist && position === 0 && wasNearEnd && this.state.status === 'playing') this._ended();
+    if (position === 0 && wasNearEnd && this.state.status === 'playing') this._ended();
     else if (this.state.status !== 'ended') this._set({ status: 'paused', position, duration });
   }
 
@@ -149,25 +137,24 @@ export class Player {
 
   // startAt (seconds): the embed's own `t` URL parameter, as Spotify's iFrame API uses it.
   // Used to carry a song over to another window without restarting it.
-  _load(trackId, type, startAt = 0) {
+  _load(trackId, startAt = 0) {
     this.gen++;
     this.ready = false;
     this.lastPos = 0;
     clearTimeout(this.endTimer);
-    this._set({ trackId, type, status: 'loading', position: 0, duration: 0, nowPlaying: null });
-    this.startAt = type === 'track' && startAt > 0 ? startAt : 0;
+    this._set({ trackId, status: 'loading', position: 0, duration: 0 });
+    this.startAt = startAt > 0 ? startAt : 0;
     const t = startAt > 0 ? `&t=${Math.floor(startAt)}` : '';
-    this.frame.src = `${ORIGIN}/embed/${type}/${encodeURIComponent(trackId)}?utm_source=generator${t}`;
+    this.frame.src = `${ORIGIN}/embed/track/${encodeURIComponent(trackId)}?utm_source=generator${t}`;
     this.trace('load', { src: this.frame.src, startAt });
     return this.gen;
   }
 
-  // Loads the song (or playlist) if it isn't the one in the player, then starts it.
+  // Loads the song if it isn't the one in the player, then starts it.
   // Resolves to the final status, or 'superseded' if something else took over meanwhile.
-  async play(trackId, type = 'track', { startAt = 0 } = {}) {
-    const fresh = trackId !== this.state.trackId || type !== this.state.type ||
-      ['idle', 'error'].includes(this.state.status);
-    const gen = fresh ? this._load(trackId, type, startAt) : this.gen;
+  async play(trackId, { startAt = 0 } = {}) {
+    const fresh = trackId !== this.state.trackId || ['idle', 'error'].includes(this.state.status);
+    const gen = fresh ? this._load(trackId, startAt) : this.gen;
 
     if (!(await this._until(() => this.ready, READY_TIMEOUT_MS, gen))) {
       if (gen !== this.gen) return 'superseded';
@@ -208,7 +195,7 @@ export class Player {
   // Starts the loaded song again (from where it paused; after the end, from 0:00).
   resume() {
     if (!this.state.trackId) return Promise.resolve('idle');
-    return this.play(this.state.trackId, this.state.type);
+    return this.play(this.state.trackId);
   }
 
   pause() {
@@ -221,6 +208,6 @@ export class Player {
     this.startAt = 0;
     clearTimeout(this.endTimer);
     this.frame.src = 'about:blank';
-    this._set({ trackId: null, type: 'track', status: 'idle', position: 0, duration: 0, nowPlaying: null });
+    this._set({ trackId: null, status: 'idle', position: 0, duration: 0 });
   }
 }

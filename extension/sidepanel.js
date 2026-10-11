@@ -1,7 +1,7 @@
 // Side panel controller: wires storage, the list, matching, playback and the playlist together.
 import * as S from './spotify.js';
 import { $, setMsg, ago, EXPLORE_URL, quietWhenOrphaned } from './dom.js';
-import { createStore, connected, list, matchOf, pending, inPlaylist } from './store.js';
+import { createStore, connected, list, matchFor, matchOf, pending, inPlaylist } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { renderList, resetList, showProgress } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
@@ -49,7 +49,7 @@ async function playlistGone(err) {
 
 // ---------- matching ----------
 const queue = new MatchQueue({
-  getMatch: (key) => st.matches[key],
+  getMatch: (key) => matchFor(st, key),
   setMatch: (key, m) => store.set({ matches: { ...st.matches, [key]: m } }),
   match: (t) => S.matchTrack(t),
   onChange: () => render(),
@@ -68,7 +68,7 @@ const player = new Player($('#dock-frame'), {
   // Position reports arrive several times a second; only a status or song change needs a render.
   onChange: (state) => {
     if (state.status === 'playing') $('#dock-hint').textContent = ''; // e.g. pressed play in the player
-    const shown = `${state.type}|${state.trackId}|${state.status}`;
+    const shown = `${state.trackId}|${state.status}`;
     
     if (shown === lastShown) return;
     lastShown = shown;
@@ -133,7 +133,7 @@ const tellMini = (cmd, key) => {
 
 function remoteRowState(t) {
   const np = remote();
-  if (!np || np.playlist || np.key !== t.key) return { label: 'Play', on: false, disabled: false };
+  if (!np || np.key !== t.key) return { label: 'Play', on: false, disabled: false };
   if (np.status === 'loading') return { label: 'Starting…', on: false, disabled: true, current: true };
   if (np.status === 'playing') return { label: 'Pause', on: true, disabled: false, current: true };
   if (np.status === 'paused') return { label: 'Play', on: false, disabled: false, current: true };
@@ -144,7 +144,7 @@ function playRow(t) {
   if (!miniOpen) return startSong(() => playback.click(t));
   if (!connected(st)) return startSong(async () => undefined); // shows the connect prompt
   const np = remote();
-  return tellMini(np && !np.playlist && np.key === t.key ? 'toggle' : 'play', t.key);
+  return tellMini(np && np.key === t.key ? 'toggle' : 'play', t.key);
 }
 
 // Back to panel (from the mini player): it leaves `popIn` in storage and closes itself; the
@@ -156,7 +156,6 @@ async function takePopIn() {
   if (popIn.windowId && popIn.windowId !== me.id) return;
   await chrome.storage.local.remove('popIn');
   for (let i = 0; i < 30 && miniOpen; i++) await new Promise((r) => setTimeout(r, 100));
-  if (popIn.playlist && st.playlist) return startSong(() => playback.clickPlaylist(st.playlist));
   const t = songs().find((x) => x.key === popIn.key);
   return t ? startSong(() => playback.playSong(t, { startAt: popIn.startAt || 0 })) : undefined;
 }
@@ -165,10 +164,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 async function popOut() {
-  // The song continues where it is (startAt); a playlist starts again from its first song.
-  const what = playback.playlistLoaded ? { playlist: true }
-    : { key: playback.key || playback.wantKey, startAt: playback.player.currentSeconds() };
-  if (!what.playlist && !what.key) return;
+  // The song continues where it is (startAt).
+  const what = { key: playback.key || playback.wantKey, startAt: playback.player.currentSeconds() };
+  if (!what.key) return;
   stopPlayback(); // one player at a time
   const win = await chrome.windows.getCurrent();
   const r = await chrome.runtime.sendMessage({ type: 'ef-open-mini', ...what, from: win.id });
@@ -181,15 +179,9 @@ function stopPlayback() {
 }
 
 function renderDock() {
-  const on = !miniOpen && !!(playback.key || playback.wantKey || playback.playlistLoaded);
+  const on = !miniOpen && !!(playback.key || playback.wantKey);
   $('#dock').hidden = !on;
   if (!on) return;
-  if (playback.playlistLoaded && !playback.wantKey) {
-    $('#dock-pos').textContent = 'Playlist';
-    $('#dock-prev').disabled = true;
-    $('#dock-next').disabled = true;
-    return;
-  }
   const { i, n } = playback.position();
   $('#dock-pos').textContent = i >= 0 ? `${i + 1} of ${n}` : '';
   $('#dock-prev').disabled = i <= 0;
@@ -321,7 +313,7 @@ function render() {
 // "Things that broke before"): twice a second, the bars' classes are set from the player's
 // position. While the mini player has the song, the panel doesn't know the position: no fill.
 setInterval(() => {
-  if (miniOpen || playback.playlistLoaded || !playback.key) { showProgress(null); return; }
+  if (miniOpen || !playback.key) { showProgress(null); return; }
   const { duration } = player.state;
   showProgress(duration ? Math.min(1, (player.currentSeconds() * 1000) / duration) : 0);
 }, 500);
