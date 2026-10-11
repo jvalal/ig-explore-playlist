@@ -43,7 +43,7 @@ export function renderList(ctx) {
       li.classList.add('enter');
       li.style.animationDelay = `${Math.min(stagger++, 8) * 70}ms`;
       li.addEventListener('animationend', (e) => {
-        if (e.animationName === 'new-glow') {
+        if (e.animationName.startsWith('new-glow')) { // new-glow, or new-glow-card in the light look
           li.classList.remove('enter');
           li.style.animationDelay = '';
         }

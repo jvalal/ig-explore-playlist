@@ -381,6 +381,10 @@ if ('documentPictureInPicture' in window) {
       growFloat(false); // the click on Keep on top may still count
       for (const link of document.querySelectorAll('link[rel="stylesheet"]')) pip.document.head.append(link.cloneNode());
       pip.document.body.className = 'mini';
+      // Same look as this window (theme.js doesn't run in the floating one).
+      const scheme = () => { pip.document.documentElement.dataset.scheme = document.documentElement.dataset.scheme || ''; };
+      scheme();
+      new MutationObserver(scheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-scheme'] });
       pip.document.title = document.title;
       pip.document.body.append(ui.float);
       ui.pip.hidden = true;

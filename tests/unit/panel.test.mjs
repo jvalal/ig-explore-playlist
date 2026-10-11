@@ -98,9 +98,7 @@ check('Play loads the matched track in the embed', $('#dock-frame').src.includes
 check('dock shows the position in the list', $('#dock-pos').textContent === '4 of 4', $('#dock-pos').textContent);
 await tick(50);
 check('row does not claim Playing until the player says so', rowBy('Song A').querySelector('.play').textContent !== 'Pause');
-$('#dock-close').click();
-await tick(50);
-check('Close player hides it and unloads the embed', $('#dock').hidden && $('#dock-frame').src === 'about:blank');
+check('the player has no Close button; Pop out carries an icon', !$('#dock-close') && !!$('#dock-popout svg') && $('#dock-popout').textContent.trim() === 'Pop out');
 
 // Clear, two clicks.
 rowBy('Song B').querySelector('.play').click();
@@ -124,11 +122,27 @@ await tick(50);
   } else check('Select all/none is hidden when no song has a checkbox', $('#check-all-row').hidden);
 }
 
+// ---- "reload that tab" in the empty text
+{
+  const reloaded = [];
+  const link = $('#reload-ig');
+  check('the empty text has a real link to reload Instagram', link.tagName === 'A' && link.textContent === 'reload that tab' && !!link.closest('#empty'));
+  chrome.tabs = { query: async (q) => (q.url === 'https://www.instagram.com/*' ? [{ id: 7 }, { id: 9 }] : []), reload: async (id) => { reloaded.push(id); } };
+  link.click();
+  await waitUntil(() => reloaded.length === 2);
+  check('pressing it reloads the open Instagram tabs and says so', reloaded.join() === '7,9' && /Reloaded 2 Instagram tabs/.test($('#msg').textContent), `${reloaded} ${$('#msg').textContent}`);
+  chrome.tabs.query = async () => [];
+  link.click();
+  await waitUntil(() => /No Instagram tab/.test($('#msg').textContent));
+  check('with no Instagram tab open it says so', /No Instagram tab is open/.test($('#msg').textContent));
+}
+
 check('first click on Clear only arms it', $('#clear').textContent === 'Confirm clear' && Object.keys(data.tracks).length === 5);
 $('#clear').click();
 await waitUntil(() => !data.tracks);
 await tick(100);
-check('Clear removes captures and resets the list and player', rows().length === 0 && $('#dock').hidden && !data.matches);
+check('Clear removes captures and resets the list and player', rows().length === 0 && $('#dock').hidden && !data.tracks);
+check('...but keeps what was found on Spotify, so the same songs are not searched for again', !!data.matches && data.matches.k1.status === 'matched');
 check('Clear keeps the Spotify connection and playlist', !!data.spotify.refresh_token && !!data.playlist);
 await external({ tracks: { k9: track('k9', 'Song A', 'Artist A', 9000) } });
 await tick(100);

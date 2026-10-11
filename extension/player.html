@@ -6,6 +6,7 @@
   <title>Explore finds player</title>
   <link rel="stylesheet" href="sidepanel.css">
   <link rel="stylesheet" href="mini.css">
+  <script src="theme.js"></script>
 </head>
 <body class="mini">
   <div class="mini-wrap" id="mini-wrap">
@@ -15,8 +16,8 @@
     </div>
     <iframe id="mini-frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
     <div class="mini-controls">
-      <button id="mini-prev" aria-label="Previous song">Prev</button>
-      <button id="mini-next" aria-label="Next song">Next</button>
+      <button id="mini-prev" class="step" aria-label="Previous song" title="Previous song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1h1.5v8H1zM9 1v8L3 5z"/></svg></button>
+      <button id="mini-next" class="step" aria-label="Next song" title="Next song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M7.5 1H9v8H7.5zM1 1v8l6-4z"/></svg></button>
       <span class="mini-grow"></span>
       <button id="mini-pip" class="linkish" hidden>Keep on top</button>
       <button id="mini-back" class="linkish">Back to panel</button>

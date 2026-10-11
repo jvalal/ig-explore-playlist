@@ -1,31 +1,35 @@
+/* Two looks. Light is "Daylight": cool grey ground, white cards, cobalt accent, Manrope.
+   Dark is the navy one. Which is shown is on <html data-scheme>, set by theme.js from the
+   Settings choice (light, dark, follow system). Until that script has run, the system
+   preference decides (the media query below). */
+@font-face { font-family: Manrope; src: url("manrope-latin.woff2") format("woff2"); font-weight: 400 800; font-display: swap; }
 :root {
-  --bg: #f3f5f8;
+  --bg: #eef1f6;
   --surface: #ffffff;
-  --ink: #18202e;
-  --muted: #667085;
-  --line: #dce1e8;
-  --accent: #3346c9;
+  --ink: #141a2b;
+  --muted: #55607a;
+  --line: #d5dbe7;
+  --accent: #2443c9;
   --accent-ink: #ffffff;
-  --accent-soft: #e4e8fb;
-  --danger: #c23b3b;
-  --ok: #1e8e3e;
-  --band: #e9edfb;
-  color-scheme: light dark;
+  --accent-soft: #e3e8fb;
+  --danger: #b3261e;
+  --ok: #157a3c;
+  --band: #ffffff;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141a24;
-    --surface: #1b2230;
-    --ink: #e8ecf2;
-    --muted: #8c96a8;
-    --line: #2a3342;
-    --accent: #8a9bff;
-    --accent-ink: #10162a;
-    --accent-soft: #232c48;
-    --danger: #e06464;
-    --ok: #4cc38a;
-    --band: #222b45;
+  :root:not([data-scheme]) {
+    --bg: #141a24; --surface: #1b2230; --ink: #e8ecf2; --muted: #8c96a8; --line: #2a3342;
+    --accent: #8a9bff; --accent-ink: #10162a; --accent-soft: #232c48; --danger: #e06464;
+    --ok: #4cc38a; --band: #222b45;
+    color-scheme: dark;
   }
+}
+:root[data-scheme="dark"] {
+  --bg: #141a24; --surface: #1b2230; --ink: #e8ecf2; --muted: #8c96a8; --line: #2a3342;
+  --accent: #8a9bff; --accent-ink: #10162a; --accent-soft: #232c48; --danger: #e06464;
+  --ok: #4cc38a; --band: #222b45;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -226,6 +230,12 @@ input {
 .picker .row-actions a { font-size: 12px; align-self: center; }
 .linkish { border: 0; background: none; padding: 0; color: var(--accent); font-size: 11px; font-weight: 600; text-decoration: underline; }
 .version .linkish { color: var(--muted); font-weight: 400; }
+/* Previous / Next wherever a player shows them: icon buttons. */
+.step { flex: none; display: grid; place-items: center; width: 34px; height: 30px; padding: 0; }
+.step .icon { width: 11px; height: 11px; fill: currentColor; }
+/* A link-style button with a small bold icon in front (Pop out), a size up from other links. */
+.linkish.with-icon { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+.linkish.with-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.800; stroke-linecap: round; stroke-linejoin: round; }
 
 /* new songs roll in from the top */
 @keyframes roll-in {
@@ -237,14 +247,59 @@ input {
   from { background-color: var(--accent-soft); }
   to { background-color: transparent; }
 }
-.row.enter {
-  overflow: hidden;
-  animation: roll-in 460ms cubic-bezier(0.2, 0.75, 0.25, 1) both, new-glow 2200ms ease-out both;
+/* ...and each one swells a little and settles as its colour arrives, one after another down
+   the list (the rows' staggered delays), like keys on a piano being rolled. It uses `scale`,
+   not `transform`, which the roll-in is already animating. */
+@keyframes key-press {
+  0%, 30% { scale: 1; }
+  55% { scale: 1.035; }
+  100% { scale: 1; }
 }
+/* On a white card (the light look) the glow settles to the card's colour, not to nothing. */
+@keyframes new-glow-card {
+  from { background-color: var(--accent-soft); }
+  to { background-color: var(--surface); }
+}
+.row.enter {
+  overflow: hidden; position: relative; z-index: 1;
+  animation: roll-in 460ms cubic-bezier(0.2, 0.75, 0.25, 1) both, new-glow 2200ms ease-out both, key-press 640ms ease-in-out both;
+}
+:root[data-scheme="light"] .row.enter { animation-name: roll-in, new-glow-card, key-press; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
   .row.enter { animation: new-glow 2200ms ease-out both; }
+  :root[data-scheme="light"] .row.enter { animation-name: new-glow-card; }
 }
+
+/* ---------- Daylight (the light look): shapes, beyond the colours above ---------- */
+:root[data-scheme="light"] body { font-family: Manrope, ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif; }
+:root[data-scheme="light"] h1 { font-weight: 800; letter-spacing: -0.02em; }
+:root[data-scheme="light"] .goal-bar { height: 6px; }
+:root[data-scheme="light"] #open-settings { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+/* The player and playlist: a white card. It stays pinned; the strip behind it (::before) is the
+   page colour, so rows scrolling past don't show beside the card. */
+:root[data-scheme="light"] .build {
+  margin: 0 12px 10px; padding: 12px 10px 14px; border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 6px 18px -12px rgba(20, 26, 43, 0.35);
+}
+:root[data-scheme="light"] .build::before { content: ""; position: absolute; inset: -1px -13px -11px; z-index: -1; background: var(--bg); }
+:root[data-scheme="light"] .build::after { content: ""; position: absolute; inset: -1px; z-index: -1; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+:root[data-scheme="light"] .dock iframe { background: #f1f3f8; }
+/* Each song is its own card. */
+:root[data-scheme="light"] .list { display: flex; flex-direction: column; gap: 6px; padding: 0 12px; }
+:root[data-scheme="light"] .row, :root[data-scheme="light"] .row:last-child { padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+:root[data-scheme="light"] .row.current { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 28%, var(--surface)); }
+:root[data-scheme="light"] .picker { padding: 8px 10px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+:root[data-scheme="light"] .wave i { background: color-mix(in srgb, var(--accent) 30%, var(--accent-soft)); }
+:root[data-scheme="light"] .wave i.done { background: var(--accent); }
+
+/* Theme choice in Settings: three options side by side. */
+.theme-pick { display: flex; margin: 0 12px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.theme-pick label { flex: 1; text-align: center; padding: 8px 4px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border-left: 1px solid var(--line); }
+.theme-pick label:first-child { border-left: 0; }
+.theme-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.theme-pick label:has(input:checked) { background: var(--accent); color: var(--accent-ink); }
+.theme-pick label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Component display rules (grid, flex) must never override the hidden attribute.
    Higher specificity than any single-class rule, plus !important, and last in the file. */

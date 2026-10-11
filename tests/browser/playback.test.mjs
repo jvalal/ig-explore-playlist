@@ -110,10 +110,10 @@ try {
     const cmds = await commands(page);
     check('never sends toggle or play (only resume/pause)', cmds.every((c) => c === 'resume' || c === 'pause'), cmds.join(','));
 
-    await page.click('#dock-close');
-    await tick(200);
-    check('Close hides the player and unloads the embed', !(await onScreen(page, '#dock')) &&
-      (await page.$eval('#dock-frame', (e) => e.src)) === 'about:blank');
+    const pop = await page.$eval('#dock-popout', (b) => { const i = b.querySelector('svg').getBoundingClientRect(); const r = b.getBoundingClientRect(); return { icon: Math.round(i.width), iconFirst: i.left <= r.left + 1, text: b.textContent.trim(), right: Math.round(innerWidth - r.right) }; });
+    const steps = await page.evaluate(() => ['#dock-prev', '#dock-next'].map((q) => { const b = document.querySelector(q); return { text: b.textContent.trim(), icon: !!b.querySelector('svg path'), label: b.getAttribute('aria-label') }; }));
+    check('Prev and Next in the player are icon buttons, named for screen readers', steps.every((x) => x.text === '' && x.icon) && steps[0].label === 'Previous song' && steps[1].label === 'Next song', JSON.stringify(steps));
+    check('Pop out has a small icon in front of its text and ends the row; there is no Close player', pop.icon >= 14 && pop.icon <= 18 && pop.iconFirst && pop.text === 'Pop out' && pop.right < 40 && !(await page.$('#dock-close')), JSON.stringify(pop));
   });
 
   for (const mode of ['full', 'preview']) {

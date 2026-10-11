@@ -8,7 +8,7 @@ const { check, done } = suite();
 const css = fs.readFileSync(EXT_DIR + 'sidepanel.css', 'utf8');
 const html = fs.readFileSync(EXT_DIR + 'sidepanel.html', 'utf8')
   .replace('<link rel="stylesheet" href="sidepanel.css">', `<style>${css}</style>`)
-  .replace(/<script.*<\/script>/, '');
+  .replace(/<script.*<\/script>/g, '');
 const { window } = new JSDOM(html);
 const d = (sel) => window.getComputedStyle(window.document.querySelector(sel)).display;
 const seen = { dock: d('#dock'), plNew: d('#pl-new'), empty: d('#empty'), hint: d('#dock-hint'), setupDone: d('#setup-done') };

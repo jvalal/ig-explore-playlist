@@ -10,7 +10,7 @@ export const connectedSpotify = () => ({
 });
 
 export async function boot(sim, initial = {}) {
-  const html = fs.readFileSync(EXT_DIR + 'sidepanel.html', 'utf8').replace(/<script.*<\/script>/, '');
+  const html = fs.readFileSync(EXT_DIR + 'sidepanel.html', 'utf8').replace(/<script.*<\/script>/g, '');
   const dom = new JSDOM(html, { pretendToBeVisual: true, url: 'chrome-extension://abc/sidepanel.html' });
   Object.assign(globalThis, {
     window: dom.window,

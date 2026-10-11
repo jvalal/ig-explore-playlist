@@ -42,6 +42,36 @@ try { await S.api('/me'); } catch (e) { err429 = e; }
 check('429: gives up after 4 retries', !!err429 && sim.rateLimitNext === 5, err429 && err429.message);
 sim.rateLimitNext = 0;
 
+// A long Retry-After (Spotify throttling the app): stop at once, say how long, and don't ask
+// again until then. Waiting 30 s four times per call left every pressed song on "Finding on
+// Spotify…" for minutes, and kept knocking, which keeps the limit in place.
+sim.rateLimitNext = 10;
+sim.retryAfter = '1800';
+const t429 = Date.now();
+let limited = null;
+try { await S.api('/me'); } catch (e) { limited = e; }
+check('long Retry-After: one call, no waiting, and the error says how long', !!limited && limited.code === 'RATE' && sim.rateLimitNext === 9 && Date.now() - t429 < 1000 && /30 minutes/.test(limited.message), `${limited && limited.code} ${limited && limited.message} left ${sim.rateLimitNext} in ${Date.now() - t429} ms`);
+const callsBefore = sim.calls.length;
+let again = null;
+try { await S.api('/me'); } catch (e) { again = e; }
+check('...and further calls fail the same way without reaching Spotify', !!again && again.code === 'RATE' && sim.calls.length === callsBefore && sim.rateLimitNext === 9);
+check('...the panel can ask how long is left', S.rateLimitedFor() > 1700 && S.rateLimitedFor() <= 1800, String(S.rateLimitedFor()));
+check('...and the limit is written down, so reopening the panel does not knock on Spotify again', storage.data.spotifyLimit > Date.now() + 1700e3, String(storage.data.spotifyLimit));
+{
+  // A freshly opened page (a new copy of the module) learns it from storage, with no call.
+  const S2 = await import(EXT_DIR + 'spotify.js?fresh');
+  const n = sim.calls.length;
+  let e2 = null;
+  try { await S2.api('/me'); } catch (e) { e2 = e; }
+  check('a reopened panel knows about the limit without asking Spotify', !!e2 && e2.code === 'RATE' && sim.calls.length === n && /30 minutes/.test(e2.message), e2 && e2.message);
+  await S2.clearRateLimit();
+}
+await S.clearRateLimit(); // (tests only: in real use it ends when the time is up)
+check('clearing it also clears the note in storage', !storage.data.spotifyLimit);
+sim.rateLimitNext = 0;
+sim.retryAfter = '0';
+check('once the limit is over, calls go through again', (await S.api('/me')).id === 'jkidd');
+
 // A revoked refresh token is reported as AUTH (the panel asks to reconnect).
 sim.validTokens.clear();
 sim.refreshToken = 'something-else';

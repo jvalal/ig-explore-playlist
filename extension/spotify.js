@@ -137,11 +137,38 @@ async function accessToken(rejected = null) {
 // Recent API calls (method, path, status) for the debug export. Never holds tokens.
 export const callLog = [];
 const MAX_429_RETRIES = 4;
+// Spotify's 429 says how long to wait (Retry-After). A few seconds: wait and try again. Longer
+// means the app is being throttled (it can be many minutes): stop asking until then. Knocking
+// during a limit keeps it in place, and each call used to wait up to 2 minutes, which left every
+// pressed song on "Finding on Spotify…".
+const SHORT_WAIT_S = 5;
+// The time it ends is also kept in storage (key `spotifyLimit`): a panel opened later knows
+// without asking Spotify again.
+let limitedUntil = 0;
+let limitLoaded = false;
+export const rateLimitedFor = () => Math.max(0, Math.ceil((limitedUntil - Date.now()) / 1000)); // seconds left
+export async function clearRateLimit() {
+  limitedUntil = 0;
+  await chrome.storage.local.remove('spotifyLimit').catch(() => {});
+}
+async function loadRateLimit() {
+  if (limitLoaded) return;
+  limitLoaded = true;
+  const { spotifyLimit } = await chrome.storage.local.get('spotifyLimit').catch(() => ({}));
+  if (Number(spotifyLimit) > limitedUntil) limitedUntil = Number(spotifyLimit);
+}
+function rateError() {
+  const s = rateLimitedFor();
+  const wait = s >= 5400 ? `about ${Math.round(s / 3600)} hours` : s >= 90 ? `about ${Math.round(s / 60)} minutes` : s > 1 ? `${s} seconds` : 'a moment';
+  return codedError(`Spotify is limiting how often this app can ask. Try again in ${wait}. Songs already found still play.`, 'RATE');
+}
 
 export async function api(path, { method = 'GET', body, query } = {}) {
   const url = new URL(API + path);
   if (query) for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
 
+  await loadRateLimit();
+  if (rateLimitedFor()) throw rateError();
   let token = await accessToken();
   let refreshed = false;
   let waits = 0;
@@ -163,11 +190,19 @@ export async function api(path, { method = 'GET', body, query } = {}) {
       token = await accessToken(token);
       continue;
     }
-    if (r.status === 429 && waits < MAX_429_RETRIES) {
-      waits++;
-      const after = Number(r.headers.get('Retry-After'));
-      await sleep(Math.min(30, Number.isFinite(after) && after >= 0 ? after : 2) * 1000);
-      continue;
+    if (r.status === 429) {
+      const header = Number(r.headers.get('Retry-After'));
+      const after = Number.isFinite(header) && header >= 0 ? header : 2;
+      if (after > SHORT_WAIT_S) {
+        limitedUntil = Date.now() + after * 1000;
+        await chrome.storage.local.set({ spotifyLimit: limitedUntil }).catch(() => {});
+        throw rateError();
+      }
+      if (waits < MAX_429_RETRIES) {
+        waits++;
+        await sleep(after * 1000);
+        continue;
+      }
     }
     break;
   }

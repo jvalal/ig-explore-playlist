@@ -46,6 +46,27 @@ try {
   const s1 = await screens();
   check('the gear slides Settings in and the songs out to the left', s1.settings === 0 && s1.setVis === 'visible' && s1.main <= -s1.w && s1.mainVis === 'hidden', JSON.stringify(s1));
   check('...with a back arrow in the upper left', s1.back < 60 && await onScreen(page, '#settings-back') && await onScreen(page, '#setup'), JSON.stringify(s1));
+  // Appearance: Light (Daylight), Dark, Follow system.
+  const look = () => page.evaluate(() => ({ theme: document.documentElement.dataset.theme, scheme: document.documentElement.dataset.scheme, bg: getComputedStyle(document.body).backgroundColor, font: getComputedStyle(document.body).fontFamily.split(',')[0].trim(), picked: (document.querySelector('.theme-pick input:checked') || {}).value, rowBorder: getComputedStyle(document.querySelector('#list > li.row')).borderTopWidth, rowRadius: getComputedStyle(document.querySelector('#list > li.row')).borderTopLeftRadius }));
+  const pick = async (v) => { await page.evaluate((val) => document.querySelector(`.theme-pick input[value="${val}"]`).closest('label').click(), v); await tick(150); return look(); };
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]); // whatever this Mac is set to
+  await tick(150);
+  const l0 = await look();
+  check('Settings has a theme choice, on Follow system to start; a light system shows Daylight', l0.picked === 'system' && l0.theme === 'system' && l0.scheme === 'light' && /Manrope/.test(l0.font) && l0.rowBorder === '1px' && l0.rowRadius === '12px', JSON.stringify(l0));
+  const ld = await pick('dark');
+  check('Dark: the dark look, whatever the system says', ld.scheme === 'dark' && ld.bg !== l0.bg && !/Manrope/.test(ld.font) && ld.picked === 'dark', JSON.stringify(ld));
+  const ll = await pick('light');
+  check('Light: Daylight again', ll.scheme === 'light' && ll.bg === l0.bg && /Manrope/.test(ll.font), JSON.stringify(ll));
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
+  await tick(150);
+  check('Light stays light on a dark system', (await look()).scheme === 'light');
+  const ls = await pick('system');
+  check('Follow system: goes dark with the system', ls.scheme === 'dark' && ls.theme === 'system', JSON.stringify(ls));
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
+  await tick(150);
+  check('...and light again with it', (await look()).scheme === 'light');
+  check('the font file is bundled with the extension (nothing fetched from the web)', await page.evaluate(async () => (await fetch(new URL('manrope-latin.woff2', location.href).href)).ok && [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'Manrope')));
+
   await page.click('#settings-back');
   await tick(500);
   const s2 = await screens();
@@ -93,6 +114,31 @@ try {
     const box = document.querySelector('#auto-sync').getBoundingClientRect(); const label = document.querySelector('.toggle').getBoundingClientRect();
     return box.width < 24 && box.left - label.left < 4;
   }));
+  // New songs arriving: each row glows and swells a little, one after another, then settles.
+  for (const scheme of ['light', 'dark']) {
+    await g.page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+    await tick(200);
+    await g.page.evaluate(async (tag) => {
+      const { tracks } = await chrome.storage.local.get('tracks');
+      const now = Date.now();
+      for (let i = 0; i < 3; i++) { const k = `song|roll ${tag} ${i}|x`; tracks[k] = { key: k, kind: 'song', title: `Roll ${tag} ${i}`, artist: 'X', first_seen: now + i, last_seen: now, posts: [{ code: `r${tag}${i}`, type: 'clips' }], areas: { explore: 1 } }; }
+      window.__peaks = [];
+      await chrome.storage.local.set({ tracks });
+      const t0 = performance.now();
+      const watch = () => {
+        const rows = [...document.querySelectorAll('#list > li.row.enter')];
+        rows.forEach((r, i) => { const sc = parseFloat(getComputedStyle(r).scale) || 1; const p = window.__peaks[i] || (window.__peaks[i] = { max: 1, at: 0 }); if (sc > p.max) { p.max = sc; p.at = performance.now() - t0; } });
+        if (performance.now() - t0 < 1400) requestAnimationFrame(watch);
+      };
+      requestAnimationFrame(watch);
+    }, scheme);
+    await tick(1600);
+    const peaks = await g.page.evaluate(() => window.__peaks);
+    check(`${scheme}: each new row swells a little, the rows one after another`, peaks.length === 3 && peaks.every((p) => p.max > 1.02 && p.max < 1.06) && peaks[0].at < peaks[1].at && peaks[1].at < peaks[2].at, JSON.stringify(peaks));
+    await tick(1600);
+    const after = await g.page.evaluate(() => ({ entering: document.querySelectorAll('#list > li.row.enter').length, scale: getComputedStyle(document.querySelector('#list > li.row')).scale, bg: getComputedStyle(document.querySelector('#list > li.row')).backgroundColor, other: getComputedStyle(document.querySelector('#list > li.row:nth-child(8)')).backgroundColor }));
+    check(`${scheme}: then they settle, the same size and colour as the other rows`, after.entering === 0 && (after.scale === 'none' || after.scale === '1') && after.bg === after.other, JSON.stringify(after));
+  }
   check('goal/auto-add: no page errors', g.errors.length === 0, g.errors.join(' | '));
   await g.page.screenshot({ path: new URL('./last-run-goal.png', import.meta.url).pathname });
   await g.close();

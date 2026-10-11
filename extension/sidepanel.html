@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Explore finds</title>
   <link rel="stylesheet" href="sidepanel.css">
+  <script src="theme.js"></script>
 </head>
 <body>
  <!-- Two screens: the songs, and Settings, which slides in from the right and pushes this one out. -->
@@ -32,7 +33,7 @@
 
   <div class="empty" id="empty" hidden>
     <p><strong>Nothing captured yet.</strong></p>
-    <p><a id="open-explore" target="_blank" rel="noopener">Open Instagram Explore</a> and scroll. Songs appear here as the grid loads. If Instagram was already open before you installed this, reload that tab first.</p>
+    <p><a id="open-explore" target="_blank" rel="noopener">Open Instagram Explore</a> and scroll. Songs appear here as the grid loads. If Instagram was already open before you installed this, <a id="reload-ig" href="#">reload that tab</a> first.</p>
   </div>
 
   <!-- The player, then the playlist: stays at the top while the list scrolls. -->
@@ -40,11 +41,10 @@
     <section class="dock" id="dock" hidden aria-label="Player">
       <iframe id="dock-frame" title="Spotify player" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture"></iframe>
       <div class="dock-controls">
-        <button id="dock-prev" aria-label="Previous song">Prev</button>
-        <button id="dock-next" aria-label="Next song">Next</button>
+        <button id="dock-prev" class="step" aria-label="Previous song" title="Previous song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1h1.5v8H1zM9 1v8L3 5z"/></svg></button>
+        <button id="dock-next" class="step" aria-label="Next song" title="Next song"><svg class="icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M7.5 1H9v8H7.5zM1 1v8l6-4z"/></svg></button>
         <span class="dock-pos" id="dock-pos"></span>
-        <button id="dock-popout" class="linkish" title="Keep playing after the side panel closes">Pop out</button>
-        <button id="dock-close" class="linkish">Close player</button>
+        <button id="dock-popout" class="linkish with-icon" title="Keep playing after the side panel closes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.500 4.500H19.500V10.500M19.500 4.500L10.500 13.500M10 6.500H5.500V18.500H17.500V14"/></svg>Pop out</button>
       </div>
       <p class="dock-hint" id="dock-hint" role="status"></p>
     </section>
@@ -106,6 +106,12 @@
       </div>
     </div>
   </details>
+  <h2>Appearance</h2>
+  <div class="theme-pick" role="radiogroup" aria-label="Theme">
+    <label><input type="radio" name="theme" value="light"> Light</label>
+    <label><input type="radio" name="theme" value="dark"> Dark</label>
+    <label><input type="radio" name="theme" value="system"> Follow system</label>
+  </div>
   <h2>About</h2>
   <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
  </section>

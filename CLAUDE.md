@@ -6,7 +6,38 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.10.16)
+## Current status (v0.11.5)
+
+The docked player's row is Prev and Next (icon buttons, `.step`, as in the mini window, since
+v0.11.2), the position and **Pop out** (with a small bold
+out-of-the-box arrow). **Close player was removed** (v0.11.1, the user saw no use for it):
+the player stays until Clear captures, Disconnect, or Pop out; on iPhone, where Pop out is
+hidden, it just stays.
+
+New songs roll in with a colour glow and, since v0.11.3, a small swell that follows it down the
+list (`key-press`, on the `scale` property; the roll-in owns `transform`). In the light look the
+glow ends on the card colour (`new-glow-card`); list.js ends the entrance on any `new-glow*`.
+
+In the empty text, "reload that tab" is a link (v0.11.2) that reloads the open Instagram tabs
+(`chrome.tabs.query` by URL works through the instagram.com host permission).
+
+**Themes** (v0.11.0): Settings › Appearance offers Light, Dark and Follow system (the default).
+- **Light is "Daylight"**, picked by the user from four mockups (design canvas, outside the
+  repo: https://claude.ai/artifact/P1qff1gDuZu8VnPjSzymrX): cool grey ground, white cards,
+  cobalt accent, Manrope. Beyond colours it changes shapes: the player and playlist block is a
+  white card (still pinned; a page-coloured strip behind it hides rows passing beside it), and
+  each song is its own bordered card. **Dark** is the navy look, unchanged.
+- **theme.js** is a plain script in `<head>` of sidepanel.html and player.html, so the look is
+  right from the first frame. It sets `<html data-theme>` (the choice) and `<html data-scheme>`
+  (light or dark, what is shown); all CSS keys on `data-scheme`. The choice lives in
+  `localStorage` key `ef-theme`, shared by every page of the extension, so the mini player
+  follows through the `storage` event; mini.js copies `data-scheme` onto the floating window.
+- Manrope is bundled (`extension/manrope-latin.woff2`, latin subset, SIL Open Font License,
+  from Google Fonts); nothing is fetched from the web. It sits flat in `extension/` because the
+  Safari build copies files, not folders.
+- The browser tests run in whatever scheme the Mac is in unless they set it
+  (`page.emulateMediaFeatures`); on 2026-10-10 that was dark, so only the theme checks in
+  layout.test.mjs exercise the light look.
 
 **Side panel layout** (v0.10.0, the user's design): top to bottom it is now the title and status, the song count with Goal and **Clear
 captures**, the "Nothing captured yet" text while there are no songs, then the block with the
@@ -309,6 +340,7 @@ extension/platform.js   desktop platform (chrome.identity); the Safari build swa
 ```
 
 Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
+`playlistUndo`, `spotifyLimit`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`
@@ -360,6 +392,16 @@ Explore audio was licensed songs.
   Saving to the library is `PUT /me/library?uris=…` (remove: `DELETE`, check:
   `GET /me/library/contains?uris=…` → array of booleans; max 40 URIs). `PUT /me/tracks` and
   `/me/tracks/contains` are gone (read from Spotify's reference pages, 2026-10-10).
+- **Rate limits** (v0.11.4): a 429 carries `Retry-After`. Up to 5 s the call waits and retries
+  (at most 4 times). Longer means Spotify is throttling the app: `api()` throws `RATE` at once
+  with the wait in words, and refuses every call until then without touching the network
+  (`rateLimitedFor()`). Before, each call waited 30 s four times, the single match queue stood
+  still behind it, and every song pressed showed "Finding on Spotify…" for minutes. The user
+  reported exactly that on 2026-10-10 after a day of heavy testing, and with v0.11.4 the
+  message read **16 hours**: confirmed. Songs already matched play regardless: only searching
+  is affected. Since v0.11.5 the end time is kept in storage key `spotifyLimit`, so a panel
+  opened later doesn't ask Spotify again, and **Clear captures keeps `matches`**: clearing them
+  cost a search per song at every Clear, which is what ran the app into the limit.
 - `error=server_error` at /authorize usually means the account isn't in the app's
   User Management list.
 

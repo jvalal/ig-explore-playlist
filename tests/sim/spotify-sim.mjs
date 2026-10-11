@@ -12,6 +12,7 @@ export function makeSim(opts = {}) {
     rotateRefresh: !!opts.rotateRefresh,
     refreshToken: 'r0',
     rateLimitNext: 0,     // next N API calls get 429
+    retryAfter: '0',      // ...with this Retry-After (seconds)
     failAddItems: 0,      // next N add-items calls get 500
     tokenDelayMs: opts.tokenDelayMs ?? 20,
     playlists: {},
@@ -52,7 +53,7 @@ export function makeSim(opts = {}) {
     let res;
     if (sim.rateLimitNext > 0) {
       sim.rateLimitNext--;
-      res = json(429, {}, { 'Retry-After': '0' });
+      res = json(429, {}, { 'Retry-After': sim.retryAfter });
     } else if (!sim.validTokens.has(auth.replace('Bearer ', ''))) {
       res = json(401, { error: { status: 401, message: 'The access token expired' } });
     } else if (p === '/me') {

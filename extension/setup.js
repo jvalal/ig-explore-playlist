@@ -46,6 +46,12 @@ export function wireSetup({ store, onError, onDisconnect }) {
   $('#settings-back').addEventListener('click', () => showSettings(false));
   $('#connect-note-btn').addEventListener('click', openSettingsForSetup);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') showSettings(false); });
+  // Appearance: light, dark or follow system (theme.js applies it and remembers it).
+  const theme = window.efTheme || { get: () => 'system', set() {} };
+  for (const radio of document.querySelectorAll('.theme-pick input')) {
+    radio.checked = radio.value === theme.get();
+    radio.addEventListener('change', () => { if (radio.checked) theme.set(radio.value); });
+  }
   $('#setup').addEventListener('toggle', () => { $('#setup').dataset.touched = '1'; });
 
   $('#open-onboarding').addEventListener('click', async () => {

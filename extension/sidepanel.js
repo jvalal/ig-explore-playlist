@@ -24,7 +24,7 @@ const ui = {
 const songs = () => list(st, 'song');
 
 // ---------- errors ----------
-const EXPECTED = new Set(['AUTH', 'INPUT']);
+const EXPECTED = new Set(['AUTH', 'INPUT', 'RATE']);
 function handleError(err) {
   if (!(err && EXPECTED.has(err.code))) console.warn('[Explore Finds]', err);
   if (err && err.code === 'AUTH') {
@@ -53,7 +53,7 @@ const queue = new MatchQueue({
   setMatch: (key, m) => store.set({ matches: { ...st.matches, [key]: m } }),
   match: (t) => S.matchTrack(t),
   onChange: () => render(),
-  onError: (err) => { if (err.code === 'AUTH') handleError(err); },
+  onError: (err) => { if (err.code === 'AUTH' || err.code === 'RATE') handleError(err); },
 });
 
 // While the panel is open, quietly match new songs (newest first) so Play is instant
@@ -198,7 +198,6 @@ function renderDock() {
 
 $('#dock-prev').addEventListener('click', () => startSong(() => playback.step(-1)));
 $('#dock-next').addEventListener('click', () => startSong(() => playback.step(1)));
-$('#dock-close').addEventListener('click', stopPlayback);
 $('#dock-popout').addEventListener('click', popOut);
 
 // ---------- picker ----------
@@ -457,7 +456,10 @@ $('#clear').addEventListener('click', async (e) => {
   tellMini('close');
   ui.picker = { key: null, items: null };
   resetList(); // songs captured after this roll in
-  await store.remove(['tracks', 'log', 'samples', 'seen', 'matches', 'excluded']);
+  // `matches` (what each song is on Spotify) stays: a song captured again is recognised without
+  // a new search. Clearing it made every Clear cost a search per song, and a day of that got the
+  // app rate-limited by Spotify for 16 hours (2026-10-10).
+  await store.remove(['tracks', 'log', 'samples', 'seen', 'excluded']);
   setMsg('Cleared. Your Spotify connection and playlist are kept.');
 });
 
@@ -469,6 +471,18 @@ store.subscribe((keys) => {
 });
 $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;
 $('#open-explore').href = EXPLORE_URL;
+// "reload that tab" in the empty text: reloads the Instagram tabs that are open (capture only
+// starts in a tab loaded after the extension was installed).
+$('#reload-ig').addEventListener('click', async (e) => {
+  e.preventDefault();
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://www.instagram.com/*' });
+    await Promise.all(tabs.map((t) => chrome.tabs.reload(t.id)));
+    setMsg(tabs.length ? `Reloaded ${tabs.length === 1 ? 'your Instagram tab' : `${tabs.length} Instagram tabs`}.` : 'No Instagram tab is open. Use "Open Instagram Explore".', !tabs.length);
+  } catch (err) {
+    setMsg(`Couldn't reload Instagram: ${err.message}`, true);
+  }
+});
 setInterval(render, 30_000); // keep "Last … ago" fresh
 await store.load();
 store.watch();
