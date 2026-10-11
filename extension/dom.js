@@ -39,4 +39,5 @@ export const postUrl = (p) => `https://www.instagram.com/${p.type === 'clips' ? 
 // #weblink, so those stay in the browser (checked 2026-10-06). Harmless on desktop.
 export const webLink = (url) => `${url.split('#')[0]}#weblink`;
 export const EXPLORE_URL = webLink('https://www.instagram.com/explore/');
+export const youtubeUrl = (t) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${t.title} ${t.artist || ''}`.trim())}`;
 export const searchUrl = (t) => `https://open.spotify.com/search/${encodeURIComponent(`${t.title} ${t.artist || ''}`.trim())}`;

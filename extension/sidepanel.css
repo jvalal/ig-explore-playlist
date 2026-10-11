@@ -277,6 +277,7 @@ input {
 .picker li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
 .picker li span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker li small { color: var(--muted); }
+.picker .row-actions { gap: 4px 16px; }
 .picker .row-actions a { font-size: 12px; align-self: center; }
 .linkish { border: 0; background: none; padding: 0; color: var(--accent); font-size: 11px; font-weight: 600; text-decoration: underline; }
 .version .linkish { color: var(--muted); font-weight: 400; }

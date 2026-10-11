@@ -1,6 +1,6 @@
 // The captured-songs list. Keyed: existing rows stay in the DOM (so nothing re-animates);
 // rows for songs captured since the last render roll in from the top.
-import { $, el, postUrl, searchUrl, webLink } from './dom.js';
+import { $, el, postUrl, searchUrl, youtubeUrl, webLink } from './dom.js';
 import { coreTitle } from './spotify.js';
 import { matchOf, inPlaylist, addedBefore, isExcluded } from './store.js';
 
@@ -255,7 +255,12 @@ function pickerRow(t, ctx) {
   const a = el('a', null, 'Search Spotify yourself');
   a.href = searchUrl(t);
   a.target = '_blank';
-  actions.append(a);
+  // Not on Spotify at all? YouTube often has it; that only helps to hear it, not to add it.
+  const yt = el('a', null, 'Search YouTube');
+  yt.href = youtubeUrl(t);
+  yt.target = '_blank';
+  yt.rel = 'noopener';
+  actions.append(a, yt);
   li.append(actions);
   return li;
 }

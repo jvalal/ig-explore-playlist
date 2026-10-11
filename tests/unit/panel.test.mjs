@@ -69,6 +69,10 @@ await waitUntil(() => rowBy('Mystery Tune').querySelector('.play').textContent =
 check('miss gets the Choose button', rowBy('Mystery Tune').querySelector('.play').textContent === 'Choose');
 rowBy('Mystery Tune').querySelector('.play').click();
 await waitUntil(() => document.querySelector('#list > li.picker button'));
+{
+  const links = [...document.querySelectorAll('#list > li.picker .row-actions a')];
+  check('the picker ends with two ways to look yourself: Spotify, then YouTube (title and artist in the search)', links.length === 2 && /Search Spotify/.test(links[0].textContent) && links[1].textContent === 'Search YouTube' && /^https:\/\/www\.youtube\.com\/results\?search_query=.+/.test(links[1].href) && links[1].target === '_blank', links.map((l) => `${l.textContent} ${l.href}`).join(' | '));
+}
 check('picker opens under the row', rows().indexOf(rowBy('Mystery Tune')) === 0 && document.querySelector('#list > li:nth-child(2)').classList.contains('picker'));
 document.querySelector('#list > li.picker button').click();
 await tick(150);

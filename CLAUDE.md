@@ -6,7 +6,12 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.24)
+## Current status (v0.11.25)
+
+**The Choose picker also offers "Search YouTube"** (v0.11.25, the user's idea: when Spotify
+doesn't have the song). A link beside "Search Spotify yourself", to YouTube's search for the
+title and artist (`youtubeUrl` in dom.js), in a new tab. It only helps to hear the song:
+nothing from YouTube can go into the Spotify playlist.
 
 **A Spotify app that was deleted** (v0.11.24). In a second Chrome profile the user created an
 app, connected, disconnected, deleted the app on Spotify, and pressed Connect: Chrome's
