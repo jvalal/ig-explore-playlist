@@ -163,6 +163,27 @@ function rateError() {
   return codedError(`Spotify is limiting how often this app can ask. Try again in ${wait}. Songs already found still play.`, 'RATE');
 }
 
+// How much the app asks of Spotify per day (storage key `spotifyCounts`, by local date, last 14
+// days), to learn where Spotify's limit is: it doesn't say. `limit` is the count when a long
+// limit began. Temporary (v0.11.10); shown in the panel's header and in Debug data.
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+let counting = Promise.resolve();
+function count(change) {
+  counting = counting.then(async () => {
+    const { spotifyCounts = {} } = await chrome.storage.local.get('spotifyCounts');
+    const day = dayKey();
+    const c = spotifyCounts[day] || { requests: 0, searches: 0, songs: 0 };
+    change(c);
+    const days = Object.keys(spotifyCounts).filter((k) => k !== day).sort().slice(-13);
+    await chrome.storage.local.set({ spotifyCounts: { ...Object.fromEntries(days.map((k) => [k, spotifyCounts[k]])), [day]: c } });
+  }).catch(() => {});
+  return counting;
+}
+export async function countsToday() {
+  const { spotifyCounts = {} } = await chrome.storage.local.get('spotifyCounts').catch(() => ({}));
+  return spotifyCounts[dayKey()] || { requests: 0, searches: 0, songs: 0 };
+}
+
 export async function api(path, { method = 'GET', body, query } = {}) {
   const url = new URL(API + path);
   if (query) for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
@@ -184,6 +205,7 @@ export async function api(path, { method = 'GET', body, query } = {}) {
     });
     callLog.push({ at: Date.now(), method, path, status: r.status });
     if (callLog.length > 60) callLog.shift();
+    await count((c) => { c.requests++; if (path === '/search') c.searches++; });
 
     if (r.status === 401 && !refreshed) {
       refreshed = true;
@@ -196,6 +218,7 @@ export async function api(path, { method = 'GET', body, query } = {}) {
       if (after > SHORT_WAIT_S) {
         limitedUntil = Date.now() + after * 1000;
         await chrome.storage.local.set({ spotifyLimit: limitedUntil }).catch(() => {});
+        await count((c) => { c.limit = { at: Date.now(), retryAfter: after, requests: c.requests, searches: c.searches, songs: c.songs }; });
         throw rateError();
       }
       if (waits < MAX_429_RETRIES) {
@@ -384,6 +407,7 @@ export function buildQueries(track) {
 
 export async function matchTrack(track, { pause = 100 } = {}) {
   let best = null;
+  await count((c) => { c.songs++; });
   for (const [q, limit] of buildQueries(track)) {
     const res = await api('/search', { query: { q, type: 'track', limit: String(limit) } });
     const hit = pickBest(track, res && res.tracks && res.tracks.items);

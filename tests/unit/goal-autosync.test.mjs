@@ -162,10 +162,11 @@ check('the x brings the previous playlist back, nothing created, nothing added',
 toggle('#auto-sync', true); // for the check below
 await tick(60);
 
-// ---- Clear keeps the goal and auto-add settings
+// ---- Clear keeps the goal; auto-add goes off with the playlist it was for
 $('#clear').click();
 $('#clear').click();
 await waitUntil(() => !data.tracks);
-check('Clear keeps the goal and auto-add settings', data.prefs.goal === 2 && data.prefs.autoSync === true);
+await waitUntil(() => !data.playlist);
+check('Clear keeps the goal, and turns auto-add off for the new playlist', data.prefs.goal === 2 && data.prefs.autoSync === false && !data.playlist, JSON.stringify(data.prefs));
 
 done();

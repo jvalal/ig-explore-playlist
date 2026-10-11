@@ -6,7 +6,39 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.9)
+## Current status (v0.11.10)
+
+**Songs that arrive while the list is scrolled down** (v0.11.10; the user couldn't tell songs
+were being added "above the fold"). Measured in Chrome: the rows on screen already stay put
+(scroll anchoring; the page grows above them), so only a cue was missing. A pill hangs under
+the pinned block, "3 new songs" with an up arrow (`#new-above`, inside `#build`), swelling at
+each arrival and counting on. Pressing it scrolls to the top; scrolling up does the same job.
+When the top of the list comes into view those rows glow and swell once more (`.row.late`,
+`glowLate` in list.js; `renderList` returns the rows that entered) and the pill goes. "Hidden"
+means the list's top is above the pinned block's bottom edge (`listTopHidden`). Tested in
+Chrome (layout.test.mjs); **not yet in the user's Chrome**, where the side panel's own
+scroll anchoring is assumed to behave as in a tab.
+
+**Clear captures starts a new playlist** (v0.11.10, the user's call: the box still said
+yesterday's playlist). Clear now does what Start a new playlist does: the playlist is put aside
+in `playlistUndo` (the x brings it back; nothing is deleted on Spotify) and auto-add goes off.
+New playlist names carry the time, "Explore finds, Oct 11, 2:30 PM" (`defaultName` in
+build.js), set when the box is filled, not when the playlist is created. The status line says
+"Last checked just now." (was "Last just now."). Unit-tested; **not yet in the user's Chrome**.
+
+**Daily Spotify count** (v0.11.10, temporary; the user: "to understand where that break is").
+Left of the settings icon the panel shows two flip-clock counters (the user's ask, after a
+first version in words): SONGS (looked up today, 3 digits) and REQUESTS (4 digits), in
+split-flap tiles whose changed digits flip (`#api-count`, `.flip` / `.flap`, `setFlap` in
+sidepanel.js; still with reduced motion; hidden at zero; the tooltip says it in words, splits
+searches from other calls and says when a limit began). spotify.js `count()` adds one per fetch in `api()` and one per `matchTrack()`,
+in storage key `spotifyCounts` (by local date, last 14 days; Clear keeps it). When a long limit
+begins, that day gets `limit: {at, retryAfter, requests, searches, songs}`: the number we are
+after. Token requests aren't counted (accounts.spotify.com, not the API). One song costs 1 to 5
+searches (`buildQueries`), a miss all of them. Debug data has it as `spotify_counts`. The total
+from 2026-10-10 that caused the 16-hour limit is not known: nothing kept a count then.
+Unit-tested (auth.test.mjs, panel.test.mjs) and looked at in Chrome with Spotify stubbed;
+**not yet loaded in the user's Chrome**. The user likely won't keep it.
 
 **Cover for songs known only from the playlist** (v0.11.9; the user: Keep on top "loses album
 art"). Those matches (v0.11.7, below) have no `image`. mini.js `coverOf()` now gets it from
@@ -367,7 +399,7 @@ extension/platform.js   desktop platform (chrome.identity); the Safari build swa
 ```
 
 Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
-`playlistUndo`, `spotifyLimit`,
+`playlistUndo`, `spotifyLimit`, `spotifyCounts`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`

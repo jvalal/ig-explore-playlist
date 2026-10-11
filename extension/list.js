@@ -33,6 +33,7 @@ export function renderList(ctx) {
   const animate = knownKeys !== null;
   let stagger = 0;
   const nodes = [];
+  const entered = [];
   for (const t of ctx.items) {
     let li = rowEls.get(t.key);
     if (!li) {
@@ -44,10 +45,11 @@ export function renderList(ctx) {
       li.style.animationDelay = `${Math.min(stagger++, 8) * 70}ms`;
       li.addEventListener('animationend', (e) => {
         if (e.animationName.startsWith('new-glow')) { // new-glow, or new-glow-card in the light look
-          li.classList.remove('enter');
+          li.classList.remove('enter', 'late');
           li.style.animationDelay = '';
         }
       });
+      entered.push(li);
     }
     fillRow(li, t, ctx);
     nodes.push(li);
@@ -64,6 +66,20 @@ export function renderList(ctx) {
     const nx = cursor.nextSibling;
     cursor.remove();
     cursor = nx;
+  }
+  return entered; // the rows that are new in this render
+}
+
+// Rows that arrived while the top of the list was scrolled out of sight: glow and swell again
+// now that they can be seen (they are already in place, so no roll-in).
+export function glowLate(rows) {
+  let i = 0;
+  for (const li of rows) {
+    if (!li.isConnected) continue;
+    li.classList.remove('enter');
+    void li.offsetWidth; // a glow still running out of sight would otherwise just carry on and end
+    li.style.animationDelay = `${Math.min(i++, 8) * 70}ms`;
+    li.classList.add('late');
   }
 }
 

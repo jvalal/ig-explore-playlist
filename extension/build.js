@@ -2,7 +2,9 @@
 import * as S from './spotify.js';
 import { pending, matchOf } from './store.js';
 
-export const defaultName = () => `Explore finds, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+// "Explore finds, Oct 11, 2:30 PM": the time tells apart the playlists of one day.
+export const defaultName = (d = new Date()) => `Explore finds, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ` +
+  d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 // report(text, isError) shows progress. Returns nothing; throws on Spotify errors.
 export async function buildPlaylist({ store, queue, name, report }) {

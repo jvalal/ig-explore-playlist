@@ -15,6 +15,12 @@ const S = await import(EXT_DIR + 'spotify.js');
 
 // Three callers at once with an expired token: exactly one refresh, everyone gets through.
 const results = await Promise.all([S.api('/me'), S.api('/me'), S.api('/me')]);
+// Every request to the API is counted for the day (to learn where Spotify's limit is).
+const apiCalls = () => sim.calls.filter((c) => !c.startsWith('token')).length;
+{
+  const c = await S.countsToday();
+  check('requests are counted per day, none lost when they overlap', c.requests === apiCalls() && c.requests >= 3 && c.searches === 0, JSON.stringify(c));
+}
 check('three concurrent calls with an expired token: one refresh', sim.tokenRequests === 1, `token requests: ${sim.tokenRequests}`);
 check('all three calls succeed', results.every((r) => r && r.id === 'jkidd'));
 check('the rotated refresh token is stored', storage.data.spotify.refresh_token === sim.refreshToken, storage.data.spotify.refresh_token);
@@ -56,6 +62,10 @@ let again = null;
 try { await S.api('/me'); } catch (e) { again = e; }
 check('...and further calls fail the same way without reaching Spotify', !!again && again.code === 'RATE' && sim.calls.length === callsBefore && sim.rateLimitNext === 9);
 check('...the panel can ask how long is left', S.rateLimitedFor() > 1700 && S.rateLimitedFor() <= 1800, String(S.rateLimitedFor()));
+{
+  const c = await S.countsToday();
+  check('...and the count when the limit began is kept, with the refused call not counted', !!c.limit && c.limit.retryAfter === 1800 && c.limit.requests === apiCalls() && c.requests === apiCalls(), JSON.stringify(c) + ' calls ' + apiCalls());
+}
 check('...and the limit is written down, so reopening the panel does not knock on Spotify again', storage.data.spotifyLimit > Date.now() + 1700e3, String(storage.data.spotifyLimit));
 {
   // A freshly opened page (a new copy of the module) learns it from storage, with no call.

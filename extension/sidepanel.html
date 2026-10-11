@@ -13,6 +13,10 @@
   <header>
     <h1>Explore finds</h1>
     <p class="status" id="status">Waiting for Instagram Explore</p>
+    <div class="api-count" id="api-count" role="img" hidden>
+      <div><span class="flip" id="flip-songs" aria-hidden="true"></span><span class="flip-label" aria-hidden="true">songs</span></div>
+      <div><span class="flip" id="flip-requests" aria-hidden="true"></span><span class="flip-label" aria-hidden="true">requests</span></div>
+    </div>
     <button class="icon-btn" id="open-settings" aria-label="Settings" title="Settings"><svg class="sliders" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 12h1M11 12h9M4 17h9M19 17h1"/><circle cx="16" cy="7" r="2.500"/><circle cx="8" cy="12" r="2.500"/><circle cx="16" cy="17" r="2.500"/></svg></button>
   </header>
   <p class="connect-note" id="connect-note" hidden>Spotify isn't connected. <button class="linkish" id="connect-note-btn">Connect Spotify</button></p>
@@ -63,6 +67,8 @@
     </div>
     <p class="msg" id="msg" role="status"></p>
     <label class="check-all" id="check-all-row" hidden><input type="checkbox" id="check-all" autocomplete="off"> <span id="check-all-text">Select all</span></label>
+    <!-- Songs that arrived at the top while the list is scrolled down. -->
+    <button id="new-above" class="new-above" hidden title="Go to the new songs"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10V2.500M2.500 6L6 2.500 9.500 6"/></svg><span id="new-above-text" role="status"></span></button>
   </section>
 
   <ol class="list" id="list" aria-live="polite"></ol>

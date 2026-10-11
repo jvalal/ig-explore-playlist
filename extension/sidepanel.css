@@ -75,6 +75,26 @@ body.settings-open #main { transform: translateX(-100%); visibility: hidden; tra
 #main > header { position: relative; padding-right: 52px; }
 #open-settings { position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; }
 #open-settings svg { width: 24px; height: 24px; }
+/* Today's Spotify use, left of the settings icon (temporary, v0.11.10). */
+.api-count { position: absolute; top: 12px; right: 58px; display: flex; gap: 8px; }
+.api-count > div { display: grid; justify-items: center; gap: 2px; }
+.flip-label { font-size: 9px; line-height: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+/* Split-flap digits, as on a flip clock: each digit is a top and a bottom half; on a change the
+   old top half falls and the new bottom half lands (.flipping, set by sidepanel.js). */
+.flip { display: flex; gap: 1px; font-size: 13px; font-variant-numeric: tabular-nums; --flap: #2b3448; --flap-ink: #f1f4fa; }
+:root[data-scheme="light"] .flip { --flap: #1d2436; }
+.flap { position: relative; width: 12px; height: 18px; perspective: 80px; }
+.flap::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; background: #000; opacity: 0.45; z-index: 2; }
+.flap b { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; text-align: center; font-weight: 700; background: var(--flap); color: var(--flap-ink); backface-visibility: hidden; }
+.flap .top, .flap .fold-top { top: 0; line-height: 18px; border-radius: 3px 3px 0 0; }
+.flap .bot, .flap .fold-bot { bottom: 0; line-height: 0; border-radius: 0 0 3px 3px; }
+.flap .top { filter: brightness(0.9); }
+.flap .fold-top, .flap .fold-bot { visibility: hidden; z-index: 1; }
+.flap.flipping .fold-top { visibility: visible; transform-origin: bottom; animation: flap-fall 170ms ease-in forwards; }
+.flap.flipping .fold-bot { visibility: visible; transform-origin: top; transform: rotateX(90deg); animation: flap-land 170ms ease-out 170ms forwards; }
+@keyframes flap-fall { from { transform: rotateX(0); filter: brightness(0.9); } to { transform: rotateX(-90deg); filter: brightness(0.5); } }
+@keyframes flap-land { from { transform: rotateX(90deg); filter: brightness(1.5); } to { transform: rotateX(0); filter: none; } }
+@media (prefers-reduced-motion: reduce) { .flap.flipping .fold-top, .flap.flipping .fold-bot { animation: none; visibility: hidden; } }
 /* Settings icon: three sliders, drawn as lines. */
 .icon-btn .sliders { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .icon-btn .sliders circle { fill: var(--bg); }
@@ -260,6 +280,23 @@ input {
   from { background-color: var(--accent-soft); }
   to { background-color: var(--surface); }
 }
+/* A row that arrived out of sight glows and swells once more when it is scrolled to. */
+.row.late { position: relative; z-index: 1; animation: new-glow 2200ms ease-out both, key-press 640ms ease-in-out both; }
+:root[data-scheme="light"] .row.late { animation-name: new-glow-card, key-press; }
+/* "3 new songs", hanging under the pinned block while new songs are above what is on screen. */
+.new-above {
+  position: absolute; top: calc(100% + 10px); left: 50%; translate: -50% 0; z-index: 3;
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px 5px 9px;
+  border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+  font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.55);
+}
+.new-above svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.new-above.swell { animation: pill-swell 700ms ease-out both; }
+@keyframes pill-swell {
+  0% { scale: 0.9; box-shadow: 0 0 0 0 var(--accent); }
+  35% { scale: 1.14; }
+  100% { scale: 1; box-shadow: 0 0 0 14px transparent, 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
+}
 .row.enter {
   overflow: hidden; position: relative; z-index: 1;
   animation: roll-in 460ms cubic-bezier(0.2, 0.75, 0.25, 1) both, new-glow 2200ms ease-out both, key-press 640ms ease-in-out both;
@@ -267,8 +304,9 @@ input {
 :root[data-scheme="light"] .row.enter { animation-name: roll-in, new-glow-card, key-press; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
-  .row.enter { animation: new-glow 2200ms ease-out both; }
-  :root[data-scheme="light"] .row.enter { animation-name: new-glow-card; }
+  .row.enter, .row.late { animation: new-glow 2200ms ease-out both; }
+  :root[data-scheme="light"] .row.enter, :root[data-scheme="light"] .row.late { animation-name: new-glow-card; }
+  .new-above.swell { animation: none; }
 }
 
 /* ---------- Daylight (the light look): shapes, beyond the colours above ---------- */

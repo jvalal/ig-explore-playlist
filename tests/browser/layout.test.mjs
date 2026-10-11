@@ -142,6 +142,42 @@ try {
   check('goal/auto-add: no page errors', g.errors.length === 0, g.errors.join(' | '));
   await g.page.screenshot({ path: new URL('./last-run-goal.png', import.meta.url).pathname });
   await g.close();
+
+  // Scrolled down the list while songs arrive at the top: what is on screen stays where it is,
+  // and a pill under the pinned block says songs arrived (the user: "not 100% sure that songs
+  // are being added above the fold").
+  const a = await open({ songs: 30 });
+  await waitFor(a.page, () => document.querySelectorAll('#list > li.row').length === 30);
+  const addSongs = (n, tag) => a.page.evaluate(async (n, tag) => {
+    const { tracks } = await chrome.storage.local.get('tracks');
+    for (let i = 0; i < n; i++) tracks[`${tag}${i}`] = { key: `${tag}${i}`, kind: 'song', title: `Song ${i}`, artist: `Artist ${i}`, first_seen: Date.now() + i, last_seen: Date.now() + i, posts: [{ code: `${tag}${i}`, type: 'clips' }], areas: { explore: 1 } };
+    await chrome.storage.local.set({ tracks });
+  }, n, tag);
+  const pill = () => a.page.evaluate(() => { const p = document.querySelector('#new-above'); const r = p.getBoundingClientRect(); return { shown: !p.hidden && r.width > 0 && r.top >= document.querySelector('#build').getBoundingClientRect().bottom && r.bottom < innerHeight, text: p.textContent.trim(), swell: p.classList.contains('swell') }; });
+  await addSongs(1, 'top');
+  await tick(900);
+  check('at the top of the list a new song just rolls in: no pill', !(await pill()).shown && (await a.page.evaluate(() => scrollY)) === 0, JSON.stringify(await pill()));
+  await a.page.evaluate(() => { window.scrollTo(0, 900); window.__mid = [...document.querySelectorAll('#list > li.row')].find((li) => li.getBoundingClientRect().top > 400); });
+  await tick(300);
+  const top0 = await a.page.evaluate(() => Math.round(window.__mid.getBoundingClientRect().top));
+  await addSongs(3, 'n');
+  await tick(1200);
+  const st1 = await a.page.evaluate(() => ({ top: Math.round(window.__mid.getBoundingClientRect().top), y: Math.round(scrollY), rows: document.querySelectorAll('#list > li.row').length }));
+  check('scrolled down: songs added above leave the rows on screen where they are', st1.rows === 34 && Math.abs(st1.top - top0) <= 2 && st1.y > 900, JSON.stringify({ top0, ...st1 }));
+  const p1 = await pill();
+  check('...and a pill under the pinned block says how many arrived, with a swell', p1.shown && p1.text === '3 new songs' && p1.swell, JSON.stringify(p1));
+  await addSongs(1, 'o');
+  await tick(700);
+  check('...counting on as more arrive', (await pill()).text === '4 new songs', JSON.stringify(await pill()));
+  await a.page.click('#new-above');
+  await waitFor(a.page, () => scrollY === 0, 4000);
+  await tick(200);
+  const st2 = await a.page.evaluate(() => ({ y: scrollY, late: document.querySelectorAll('#list > li.row.late').length, first4: [...document.querySelectorAll('#list > li.row')].slice(0, 4).every((li) => li.classList.contains('late')) }));
+  check('pressing it goes to the top, where those songs glow once more; the pill is gone', st2.y === 0 && st2.late === 4 && st2.first4 && !(await pill()).shown, JSON.stringify({ ...st2, pill: await pill() }));
+  await tick(2600);
+  check('...and then they settle like any other row', (await a.page.evaluate(() => document.querySelectorAll('#list > li.row.late, #list > li.row.enter').length)) === 0);
+  check('new songs above: no page errors', a.errors.length === 0, a.errors.join(' | '));
+  await a.close();
 } catch (err) {
   check('browser test crashed', false, err.stack);
 }

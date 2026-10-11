@@ -3,7 +3,7 @@ import * as S from './spotify.js';
 import { $, setMsg, ago, EXPLORE_URL, quietWhenOrphaned } from './dom.js';
 import { createStore, connected, list, matchFor, matchOf, pending, inPlaylist } from './store.js';
 import { MatchQueue } from './match-queue.js';
-import { renderList, resetList, showProgress } from './list.js';
+import { renderList, resetList, showProgress, glowLate } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
 import { renderGoal } from './goal.js';
 import { renderSetup, wireSetup, openSetup, openSettingsForSetup } from './setup.js';
@@ -269,10 +269,40 @@ function renderStatus() {
   const posts = new Set(st.seen || []);
   for (const t of songs) for (const p of t.posts || []) posts.add(p.code);
   const n = songs.length;
-  const last = log.length ? ` Last ${ago(log[log.length - 1].at)}.` : '';
+  const last = log.length ? ` Last checked ${ago(log[log.length - 1].at)}.` : '';
   $('#status').textContent = `${posts.size} Explore ${posts.size === 1 ? 'post' : 'posts'} checked, ` +
     `${n} ${n === 1 ? 'song' : 'songs'} found.${last}`;
 }
+
+// ---------- songs that arrive above what is on screen ----------
+// New songs go in at the top. Scrolled down, Chrome keeps the rows on screen where they are
+// (the page grows above them), so nothing would show that songs arrived. A pill under the
+// pinned block says how many, with the new rows' swell and glow; pressing it, or scrolling up,
+// goes to them, and they glow once more when they come into view.
+const unseen = new Set();
+const listTopHidden = () => $('#list').getBoundingClientRect().top < $('#build').getBoundingClientRect().bottom;
+function newAbove(rows) {
+  if (!rows.length) return;
+  rows.forEach((li) => unseen.add(li));
+  const pill = $('#new-above');
+  $('#new-above-text').textContent = `${unseen.size} new ${unseen.size === 1 ? 'song' : 'songs'}`;
+  pill.hidden = false;
+  pill.classList.remove('swell');
+  void pill.offsetWidth; // swell again for each arrival
+  pill.classList.add('swell');
+}
+function forgetNewAbove() {
+  unseen.clear();
+  $('#new-above').hidden = true;
+}
+window.addEventListener('scroll', () => {
+  if (!unseen.size || listTopHidden()) return;
+  glowLate(unseen);
+  forgetNewAbove();
+}, { passive: true });
+$('#new-above').addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
 
 let renderQueued = false;
 function render() {
@@ -283,7 +313,8 @@ function render() {
     const items = list(st, 'song');
     renderGoal(items.length, Number(st.prefs.goal) || 0);
 
-    renderList({
+    const hidden = listTopHidden(); // before the new rows go in
+    const entered = renderList({
       st,
       items,
       picker: ui.picker,
@@ -299,6 +330,7 @@ function render() {
       onChoose: togglePicker,
       onUse: useCandidate,
     });
+    if (hidden) newAbove(entered);
     $('#empty').hidden = items.length > 0;
     renderCheckAll();
     renderStatus();
@@ -415,12 +447,63 @@ wireSetup({
   },
 });
 
+// ---------- today's Spotify use (temporary: to learn where Spotify's limit is) ----------
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const FLIP_MS = 340; // both halves, as in sidepanel.css
+const flipTimers = new WeakMap();
+// One digit of a flip counter: top and bottom halves, and the two that move during a flip.
+function setFlap(flap, d, animate) {
+  const old = flap.dataset.d;
+  if (old === d) return;
+  flap.dataset.d = d;
+  const [top, bot, foldTop, foldBot] = flap.children;
+  clearTimeout(flipTimers.get(flap));
+  flap.classList.remove('flipping');
+  if (!animate || old === undefined) { top.textContent = bot.textContent = d; return; }
+  foldTop.textContent = bot.textContent = old; // the old top falls; the old bottom shows until covered
+  top.textContent = foldBot.textContent = d;
+  void flap.offsetWidth; // restart the animation when a digit changes again mid-flip
+  flap.classList.add('flipping');
+  flipTimers.set(flap, setTimeout(() => { bot.textContent = d; flap.classList.remove('flipping'); }, FLIP_MS));
+}
+function setFlip(el, n, width, animate) {
+  const text = String(n).padStart(width, '0');
+  if (el.children.length !== text.length) {
+    el.replaceChildren(...[...text].map(() => {
+      const flap = document.createElement('span');
+      flap.className = 'flap';
+      flap.innerHTML = '<b class="top"></b><b class="bot"></b><b class="fold-top"></b><b class="fold-bot"></b>';
+      return flap;
+    }));
+    animate = false;
+  }
+  [...text].forEach((d, i) => setFlap(el.children[i], d, animate));
+}
+let countShown = false;
+async function renderApiCount() {
+  const c = await S.countsToday();
+  const el = $('#api-count');
+  el.hidden = !c.requests;
+  setFlip($('#flip-songs'), c.songs, 3, countShown);
+  setFlip($('#flip-requests'), c.requests, 4, countShown);
+  countShown = true;
+  const text = `${plural(c.songs, 'song')} looked up today, ${plural(c.requests, 'Spotify request')}`;
+  el.setAttribute('aria-label', text);
+  el.title = `${text} (${c.searches} ${c.searches === 1 ? 'search' : 'searches'}, ${c.requests - c.searches} other)` +
+    (c.limit ? `. Spotify's limit began at ${new Date(c.limit.at).toLocaleTimeString()}, after ${plural(c.limit.requests, 'request')}` : '');
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.spotifyCounts) renderApiCount();
+});
+renderApiCount();
+
 // ---------- list controls & exports ----------
 
 $('#dl-csv').addEventListener('click', () => downloadCsv(st));
 $('#dl-json').addEventListener('click', async () => {
-  const { playerTrace = null } = await chrome.storage.local.get('playerTrace'); // the mini player's log
-  downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog, player_trace: playerTrace });
+  const { playerTrace = null, spotifyCounts = null } = await chrome.storage.local.get(['playerTrace', 'spotifyCounts']); // the mini player's log
+  downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog, spotify_counts: spotifyCounts, player_trace: playerTrace });
 });
 
 // The player and playlist block is pinned to the top and covers what scrolls under it. Tell the
@@ -448,11 +531,16 @@ $('#clear').addEventListener('click', async (e) => {
   tellMini('close');
   ui.picker = { key: null, items: null };
   resetList(); // songs captured after this roll in
+  forgetNewAbove();
   // `matches` (what each song is on Spotify) stays: a song captured again is recognised without
   // a new search. Clearing it made every Clear cost a search per song, and a day of that got the
   // app rate-limited by Spotify for 16 hours (2026-10-10).
   await store.remove(['tracks', 'log', 'samples', 'seen', 'excluded']);
-  setMsg('Cleared. Your Spotify connection and playlist are kept.');
+  // A new round of captures gets a new playlist, named for now (the user's call, v0.11.10). As
+  // with Start a new playlist: the old one stays on Spotify, the x goes back to it, auto-add off.
+  $('#pl-name').value = defaultName();
+  if (st.playlist) await store.set({ playlist: null, playlistUndo: st.playlist, prefs: { ...st.prefs, autoSync: false } });
+  setMsg('Cleared. The next playlist starts fresh. Your old one stays in Spotify.');
 });
 
 // ---------- start ----------

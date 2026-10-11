@@ -53,6 +53,17 @@ check('miss recorded as not found', data.matches.k3.status === 'none');
 const searches = sim.calls.filter((c) => c.startsWith('GET /search')).length;
 await tick(800);
 check('background matching does not repeat searches', sim.calls.filter((c) => c.startsWith('GET /search')).length === searches);
+// Today's Spotify use, beside the settings icon (temporary: to learn where Spotify's limit is).
+{
+  const api = sim.calls.filter((c) => !c.startsWith('token')).length;
+  const c = Object.values(data.spotifyCounts || {})[0] || {};
+  check('the header counter shows how many songs were looked up and how many requests that took today',
+    c.songs === 3 && c.searches === searches && c.requests === api && !$('#api-count').hidden &&
+    [...$('#flip-songs').children].map((f) => f.dataset.d).join('') === '003' &&
+    [...$('#flip-requests').children].map((f) => f.dataset.d).join('') === String(api).padStart(4, '0') &&
+    $('#api-count').getAttribute('aria-label') === `3 songs looked up today, ${api} Spotify requests`,
+    `${JSON.stringify(c)} / ${$('#api-count').getAttribute('aria-label')} / ${$('#api-count').textContent} / api ${api}`);
+}
 
 await waitUntil(() => rowBy('Mystery Tune').querySelector('.play').textContent === 'Choose');
 check('miss gets the Choose button', rowBy('Mystery Tune').querySelector('.play').textContent === 'Choose');
@@ -143,7 +154,12 @@ await waitUntil(() => !data.tracks);
 await tick(100);
 check('Clear removes captures and resets the list and player', rows().length === 0 && $('#dock').hidden && !data.tracks);
 check('...but keeps what was found on Spotify, so the same songs are not searched for again', !!data.matches && data.matches.k1.status === 'matched');
-check('Clear keeps the Spotify connection and playlist', !!data.spotify.refresh_token && !!data.playlist);
+check('Clear keeps the Spotify connection', !!data.spotify.refresh_token);
+// A new round of captures gets a new playlist, named with today's date and the time.
+check('Clear starts a new playlist: the old one is put aside (the x brings it back), nothing deleted on Spotify',
+  !data.playlist && !!data.playlistUndo && !!sim.playlists[data.playlistUndo.id] && !$('#build-new').hidden && !$('#pl-undo').hidden,
+  JSON.stringify({ pl: data.playlist, undo: data.playlistUndo && data.playlistUndo.id }));
+check('...and its name has the date and the time', /^Explore finds, \w+ \d+, \d+:\d\d/.test($('#pl-name').value), $('#pl-name').value);
 await external({ tracks: { k9: track('k9', 'Song A', 'Artist A', 9000) } });
 await tick(100);
 check('songs captured after Clear roll in', rows().length === 1 && rows()[0].classList.contains('enter'));
