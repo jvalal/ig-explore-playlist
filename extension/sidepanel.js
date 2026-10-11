@@ -1,15 +1,16 @@
 // Side panel controller: wires storage, the list, matching, playback and the playlist together.
 import * as S from './spotify.js';
 import { $, setMsg, ago, EXPLORE_URL, quietWhenOrphaned } from './dom.js';
-import { createStore, connected, list, matchFor, matchOf, pending, inPlaylist } from './store.js';
+import { createStore, connected, list, matchFor, matchOf, pending, inPlaylist, noteAdded, isExcluded, withChoice } from './store.js';
 import { MatchQueue } from './match-queue.js';
 import { renderList, resetList, showProgress, glowLate } from './list.js';
 import { buildPlaylist, syncMatched, defaultName } from './build.js';
 import { renderGoal } from './goal.js';
-import { renderSetup, wireSetup, openSetup, openSettingsForSetup } from './setup.js';
+import { renderSetup, wireSetup, openSettingsForSetup } from './setup.js';
 import { downloadCsv, downloadDebug } from './exports.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
+import { initWelcome, renderWelcome } from './welcome.js';
 
 quietWhenOrphaned();
 
@@ -28,7 +29,6 @@ const EXPECTED = new Set(['AUTH', 'INPUT', 'RATE']);
 function handleError(err) {
   if (!(err && EXPECTED.has(err.code))) console.warn('[Explore Finds]', err);
   if (err && err.code === 'AUTH') {
-    openSetup();
     setMsg('Spotify needs you to connect again, in Settings.', true);
   } else {
     setMsg((err && err.message) || 'Something went wrong.', true);
@@ -321,10 +321,7 @@ function render() {
       finding: (key) => queue.isFinding(key),
       rowPlayback: (t) => (miniOpen ? remoteRowState(t) : playback.rowState(t)),
       onToggleExclude: (t, include) => {
-        const excluded = { ...st.excluded };
-        if (include) delete excluded[t.key];
-        else excluded[t.key] = true;
-        store.set({ excluded });
+        store.set({ excluded: withChoice(st, [t], include) });
       },
       onPlayButton: playRow,
       onChoose: togglePicker,
@@ -335,6 +332,7 @@ function render() {
     renderCheckAll();
     renderStatus();
     renderSetup(st);
+    renderWelcome();
     renderBuild();
     renderDock();
   });
@@ -356,19 +354,14 @@ setInterval(() => {
 const selectable = () => songs().filter((t) => !inPlaylist(st, t));
 function renderCheckAll() {
   const all = selectable();
-  const included = all.filter((t) => !st.excluded[t.key]).length;
+  const included = all.filter((t) => !isExcluded(st, t)).length;
   $('#check-all-row').hidden = all.length === 0;
   $('#check-all').checked = all.length > 0 && included === all.length;
   $('#check-all').indeterminate = included > 0 && included < all.length;
   $('#check-all-text').textContent = included === all.length ? 'All selected' : included ? `${included} of ${all.length} selected` : 'None selected';
 }
 $('#check-all').addEventListener('change', (e) => {
-  const excluded = { ...st.excluded };
-  for (const t of selectable()) {
-    if (e.target.checked) delete excluded[t.key];
-    else excluded[t.key] = true;
-  }
-  store.set({ excluded });
+  store.set({ excluded: withChoice(st, selectable(), e.target.checked) });
 });
 
 // ---------- playlist ----------
@@ -566,5 +559,17 @@ $('#reload-ig').addEventListener('click', async (e) => {
 setInterval(render, 30_000); // keep "Last … ago" fresh
 await store.load();
 store.watch();
+initWelcome({ connected: () => connected(st) });
+// The record of songs ever added starts with the playlists known today (v0.11.14); when they
+// were added isn't known.
+if (!(await chrome.storage.local.get('added')).added) {
+  let added = st.added;
+  for (const pl of [st.playlistUndo, st.playlist]) {
+    if (!pl) continue;
+    const paired = pl.keys.length === pl.uris.length;
+    added = noteAdded({ added }, paired ? pl.keys.map((k, i) => [k, pl.uris[i]]) : [...pl.keys.map((k) => [k, null]), ...pl.uris.map((u) => [null, u])], pl.name, null);
+  }
+  await store.set({ added });
+}
 await readMini();
 takePopIn(); // the side panel may have just been opened by Back to panel

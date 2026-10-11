@@ -106,10 +106,36 @@ h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .status { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
 
 .setup { margin: 4px 12px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-.setup summary { padding: 10px 12px; font-weight: 600; cursor: pointer; }
+.setup .setup-title { margin: 0; padding: 10px 12px; font-weight: 600; }
 .setup-body { padding: 0 12px 12px; font-size: 13px; }
 .setup ol { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
 .setup p { margin: 0 0 8px; }
+/* The Spotify setup as two steps; the one to do now is open, a finished one shows a tick. */
+.setup-why { color: var(--muted); }
+.setup ol.steps { list-style: none; padding: 0; gap: 10px; }
+.sstep { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.sstep.now { border-color: var(--accent); }
+.sstep h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 700; }
+.sstep:not(.now):not(.done) h3 { color: var(--muted); }
+.step-n { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+.sstep.now .step-n { background: var(--accent); color: var(--accent-ink); }
+.sstep.done .step-n { background: var(--ok); color: var(--bg); font-size: 0; }
+.sstep.done .step-n::after { content: "✓"; font-size: 12px; }
+.step-state { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--ok); }
+.step-body { margin-top: 8px; }
+.step-body .btn, .step-body button.primary { display: inline-block; font-size: 13px; padding: 8px 14px; border-radius: 8px; }
+a.btn.primary { font-weight: 600; text-decoration: none; background: var(--accent); color: var(--accent-ink); }
+/* What to do on Spotify's page right now: above the button, outlined so it can't be missed. */
+.setup .step-live { margin: 0 0 10px; padding: 10px 12px 10px 34px; position: relative; border: 1.5px solid var(--accent); border-radius: 10px; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; font-weight: 700; animation: live-in 900ms ease-out; }
+.setup .step-live::before { content: ""; position: absolute; left: 13px; top: 15px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+@keyframes live-in { 0% { box-shadow: 0 0 0 0 var(--accent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+@media (prefers-reduced-motion: reduce) { .setup .step-live { animation: none; } }
+.setup .step-note { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+.setup .step-done { margin: 6px 0 0 28px; font-size: 12px; color: var(--muted); }
+.by-hand { margin-top: 10px; font-size: 12px; }
+.by-hand summary { padding: 0; font-weight: 600; color: var(--accent); cursor: pointer; }
+.by-hand p { margin: 8px 0 4px; }
+.setup .msg { margin: 10px 0 0; }
 .copyline { display: flex; gap: 6px; margin-top: 4px; align-items: center; }
 .copyline code {
   flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap;
@@ -164,6 +190,10 @@ input {
 .artist { color: var(--muted); font-size: 13px; }
 .note { color: var(--muted); font-size: 11px; margin-top: 1px; }
 .note.miss { color: var(--danger); }
+/* "Added Oct 10": a tag in a colour nothing else here uses, so it reads at a glance. */
+.note.before { display: inline-block; max-width: 100%; margin-top: 4px; padding: 2px 8px; border-radius: 6px; font-weight: 700; background: #fef3d9; color: #7a4a00; }
+:root[data-scheme="dark"] .note.before { background: #40330f; color: #f3cd7a; }
+@media (prefers-color-scheme: dark) { :root:not([data-scheme]) .note.before { background: #40330f; color: #f3cd7a; } }
 .side { display: flex; align-items: center; gap: 8px; }
 .seen { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .play { border-radius: 999px; background: var(--accent-soft); border-color: transparent; color: var(--accent); padding: 4px 10px; }

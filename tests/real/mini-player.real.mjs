@@ -81,6 +81,7 @@ try {
     await chrome.storage.local.set({
       spotify: { clientId: 'x'.repeat(32), access_token: 't', refresh_token: 'r', expires_at: now + 3.6e6, user: 'Test' },
       tracks: { [A.key]: t(A, 0), [B.key]: t(B, 1) }, matches: { [A.key]: m(A), [B.key]: m(B) },
+      welcomed: true, // not a first run
     });
   }, A, B);
   await panel.reload();

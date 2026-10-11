@@ -10,6 +10,7 @@ sim.addTrack('b', 'Song B', 'Artist B');
 sim.addTrack('c', 'Song C', 'Artist C');
 sim.addTrack('d', 'Song D', 'Artist D');
 sim.addTrack('e', 'Song E', 'Artist E');
+sim.addTrack('f', 'Song F', 'Artist F');
 sim.searchOverride = (q) => (q.includes('Mystery') ? [] : undefined);
 sim.playlists.PL1 = { name: 'Mine', uris: [] };
 
@@ -140,11 +141,11 @@ const marks = () => ({ inPl: document.querySelectorAll('#list .in-pl-mark').leng
   boxes: document.querySelectorAll('#list input[type=checkbox]').length, rows: document.querySelectorAll('#list > li.row').length });
 const m0 = marks();
 check('songs in the playlist show a mark in place of the checkbox, and none is "New"', m0.inPl === data.playlist.keys.length && m0.inPl > 0 && m0.fresh === 0 && m0.boxes === m0.rows - m0.inPl, JSON.stringify(m0));
-await external({ tracks: { ...data.tracks, kn: track('kn', 'Song C', 'Artist C', 99000) } });
+await external({ tracks: { ...data.tracks, kn: track('kn', 'Song F', 'Artist F', 99000) } });
 await waitUntil(() => $('#build-btn').textContent === 'Add 1 new song', 5000).catch(() => {});
 const m1 = marks();
 check('a song captured afterwards is marked New, with a checkbox, and is the one the button counts',
-  $('#build-btn').textContent === 'Add 1 new song' && m1.fresh === 1 && !!rowBy('Song C') && m1.inPl === m0.inPl, `${$('#build-btn').textContent} ${JSON.stringify(m1)}`);
+  $('#build-btn').textContent === 'Add 1 new song' && m1.fresh === 1 && !!rowBy('Song F') && m1.inPl === m0.inPl, `${$('#build-btn').textContent} ${JSON.stringify(m1)}`);
 toggle('#auto-sync', true);
 await tick(60);
 $('#pl-new').click();

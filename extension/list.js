@@ -2,10 +2,11 @@
 // rows for songs captured since the last render roll in from the top.
 import { $, el, postUrl, searchUrl, webLink } from './dom.js';
 import { coreTitle } from './spotify.js';
-import { matchOf, inPlaylist } from './store.js';
+import { matchOf, inPlaylist, addedBefore, isExcluded } from './store.js';
 
 const PLAY_ICON = 'M2.500 1l7 4-7 4z';
 const PAUSE_ICON = 'M2 1h2.200v8H2zM5.800 1H8v8H5.800z';
+const shortDate = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 // Repeatable pseudo-random numbers (0..1) from a string, for a song's wave shape.
 function seeded(text) {
   let h = 2166136261;
@@ -99,17 +100,24 @@ function fillRow(li, t, ctx) {
     else if (m && m.status === 'matched' && coreTitle(m.name) !== coreTitle(t.title)) note = ['note', `Spotify match: ${m.name}`];
     else if (inPlaylist(st, t)) note = ['note', 'In playlist'];
   }
+  // A song that was put in an earlier playlist says so. It stays ticked: that playlist may not
+  // exist any more (the user's call).
+  const before = isSong ? addedBefore(st, t) : null;
+  if (before && !(note && note[0] === 'note miss') && !ctx.finding(t.key)) {
+    note = ['note before', before.at ? `Added ${shortDate(before.at)}` : 'Added before', before.pl ? `Added to "${before.pl}"` : 'Added to an earlier playlist'];
+  }
+  const excluded = isSong && isExcluded(st, t);
   const choose = isSong && m && m.status === 'none';
   // With a playlist, a row says which side of it the song is on: already in it (a mark where
   // the checkbox was), or new, which is what the Add button counts (checked, and on Spotify).
   const inPl = isSong && inPlaylist(st, t);
-  const fresh = isSong && !!st.playlist && !inPl && !st.excluded[t.key] && !choose;
-  const sig = JSON.stringify([isSong, !!st.excluded[t.key], t.title, t.artist, t.posts[0] && postUrl(t.posts[0]),
+  const fresh = isSong && !!st.playlist && !inPl && !excluded && !choose;
+  const sig = JSON.stringify([isSong, excluded, t.title, t.artist, t.posts[0] && postUrl(t.posts[0]),
     t.posts.length, note, choose, choose && ctx.picker.key === t.key, inPl, fresh]);
 
   if (li._sig !== sig) {
     li._sig = sig;
-    buildRow(li, t, { isSong, excluded: !!st.excluded[t.key], note, choose, pickerOpen: ctx.picker.key === t.key, inPl, fresh });
+    buildRow(li, t, { isSong, excluded, note, choose, pickerOpen: ctx.picker.key === t.key, inPl, fresh });
   }
   if (li._play) {
     // A round icon button; the word (Play / Pause / Starting…) is there for screen readers and
@@ -160,7 +168,11 @@ function buildRow(li, t, { isSong, excluded, note, choose, pickerOpen, inPl, fre
     el('span', 'title', t.title),
     el('span', 'artist', !isSong && t.artist ? `@${t.artist}` : t.artist || 'Unknown artist')
   );
-  if (note) main.append(el('span', note[0], note[1]));
+  if (note) {
+    const n = el('span', note[0], note[1]);
+    if (note[2]) n.title = note[2];
+    main.append(n);
+  }
   li.append(main);
 
   // Right-hand side, left to right: post count, the wave, "New", the button.

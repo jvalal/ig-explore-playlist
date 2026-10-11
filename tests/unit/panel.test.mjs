@@ -97,8 +97,8 @@ await (async () => {
   await tick(50);
   $('#build-btn').click();
   await waitUntil(() => data.playlist && data.playlist.keys.length > 0, 8000);
-  check('next build adds to that playlist instead of creating another', Object.keys(sim.playlists).length === 2 && sim.playlists[data.playlist.id].uris.length === 4,
-    `${Object.keys(sim.playlists).length} playlists`);
+  check('next build adds to that playlist instead of creating another', Object.keys(sim.playlists).length === 2 && sim.playlists[data.playlist.id].uris.join() === 'spotify:track:d', // the three from the earlier playlist start unticked
+    `${Object.keys(sim.playlists).length} playlists, ${sim.playlists[data.playlist.id].uris}`);
 })();
 
 // Play wiring (the player itself is a stub until the embed protocol is documented).

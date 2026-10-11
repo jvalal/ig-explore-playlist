@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Explore finds</title>
   <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="welcome.css">
   <script src="theme.js"></script>
 </head>
 <body>
@@ -85,21 +86,37 @@
     <h1>Settings</h1>
   </header>
   <h2>Spotify</h2>
-  <details class="setup" id="setup">
-    <summary id="setup-summary">Connect Spotify</summary>
+  <div class="setup" id="setup">
+    <p class="setup-title" id="setup-summary">Connect Spotify</p>
     <div class="setup-body" id="setup-steps">
-      <ol>
-        <li>Open <a href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Create app</a> on Spotify's developer dashboard. Explore Finds fills in the form for you; tick the terms box and click <strong>Save</strong>, then click <strong>Use this app</strong>. (Values below, if you'd rather do it by hand.)</li>
-        <li>Add this as the Redirect URI:
-          <div class="copyline"><code id="redirect-uri"></code><button id="copy-redirect">Copy</button></div>
+      <p class="setup-why">Spotify lets each app serve only five people, so Explore Finds runs on a free key of your own. It takes about three minutes and needs Spotify Premium.</p>
+      <ol class="steps">
+        <li class="sstep" id="step-app">
+          <h3><span class="step-n" aria-hidden="true">1</span> Create your Spotify app <span class="step-state" id="step-app-state"></span></h3>
+          <div class="step-body" id="step-app-body">
+            <p>Spotify's page opens in a tab. Explore Finds fills in the form there. You tick Spotify's terms box and click <strong>Save</strong>, and this step ticks itself.</p>
+            <p class="step-live" id="step-live" role="status" hidden></p>
+            <a class="btn primary" id="open-create" href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Open Spotify's page</a>
+            <p class="step-note">Already have a Spotify app? Spotify allows one per person, so open <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">your app</a> instead and press <strong>Use this app</strong> there.</p>
+            <details class="by-hand" id="by-hand">
+              <summary>By hand, or with a key someone gave you</summary>
+              <p>In the app on Spotify's dashboard, add this Redirect URI and tick <strong>Web API</strong>:</p>
+              <div class="copyline"><code id="redirect-uri"></code><button id="copy-redirect">Copy</button></div>
+              <p>Then paste the app's <strong>Client ID</strong> here. A friend's Client ID works too, once they have added your Spotify email under <strong>User Management</strong> in their app.</p>
+              <div class="copyline"><input id="client-id" placeholder="Client ID" autocomplete="off" spellcheck="false"><button id="save-client">Save</button></div>
+            </details>
+          </div>
+          <p class="step-done" id="step-app-done" hidden>Using the app <code id="app-id"></code> · <button class="linkish" id="change-app">Change</button> · <button class="linkish" id="start-over">Start over</button></p>
         </li>
-        <li>Under the API question, tick <strong>Web API</strong>, agree to the terms, and save.</li>
-        <li>Open the app's <strong>User Management</strong> tab and add the email of the Spotify account you'll log in with, even if it's your own.</li>
-        <li>In the app's settings, copy the <strong>Client ID</strong> and paste it here:
-          <div class="copyline"><input id="client-id" placeholder="Client ID" autocomplete="off" spellcheck="false"><button id="save-client">Save</button></div>
+        <li class="sstep" id="step-connect">
+          <h3><span class="step-n" aria-hidden="true">2</span> Connect your Spotify account</h3>
+          <div class="step-body" id="step-connect-body">
+            <p>Spotify asks you to approve it once: making playlists, and saving songs you like.</p>
+            <button class="primary" id="connect">Connect Spotify</button>
+          </div>
         </li>
-        <li><button class="primary" id="connect">Connect Spotify</button></li>
       </ol>
+      <p class="msg" id="setup-msg" role="status"></p>
     </div>
     <div class="setup-body" id="setup-mobile" hidden>
       <p>A few steps connect your Spotify account. They open on a full page.</p>
@@ -109,9 +126,18 @@
       <p>Connected as <strong id="sp-user"></strong>.</p>
       <div class="row-actions">
         <button id="disconnect">Disconnect</button>
+        <button id="show-connect-help">How connecting works</button>
       </div>
     </div>
-  </details>
+  </div>
+  <h2>How it works</h2>
+  <div class="setup" id="howto">
+    <p class="setup-title">How Explore Finds works</p>
+    <div class="setup-body">
+      <p>A short walkthrough: scroll Explore, pick the songs you like, send them to Spotify.</p>
+      <button class="primary" id="show-welcome">Watch the walkthrough</button>
+    </div>
+  </div>
   <h2>Appearance</h2>
   <div class="theme-pick" role="radiogroup" aria-label="Theme">
     <label><input type="radio" name="theme" value="light"> Light</label>
@@ -120,6 +146,65 @@
   </div>
   <h2>About</h2>
   <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
+ </section>
+
+
+ <!-- First run: a short walkthrough over the panel (welcome.js). Also from Settings › How it works. -->
+ <section class="welcome" id="welcome" aria-label="How Explore finds works" tabindex="-1" hidden>
+  <div class="w-top">
+    <div class="w-bars" id="w-bars"><button aria-label="Step 1"></button><button aria-label="Step 2"></button><button aria-label="Step 3"></button><button aria-label="Step 4"></button></div>
+    <button class="linkish w-skip" id="w-skip">Skip</button>
+  </div>
+  <!-- The steps and their buttons are one block: Back and Next sit right under the drawing. -->
+  <div class="w-body">
+  <div class="w-step" hidden>
+    <span class="w-count">Step 1 of 4</span>
+    <h2>Scroll Explore as usual</h2>
+    <p>Open Instagram Explore and scroll. The song on each post lands in this panel. Nothing is clicked, liked or posted for you.</p>
+    <div class="w-art art-scroll" aria-hidden="true">
+      <div class="page"><div class="grid"><i></i><i class="song"></i><i></i><i></i><i></i><i class="song"></i><i></i><i></i><i></i><i class="song"></i><i></i><i></i><i></i><i class="song"></i><i></i><i></i><i></i><i class="song"></i><i></i><i></i><i></i><i class="song"></i><i></i><i></i></div></div>
+      <div class="pane"><div class="w-row"><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div><div class="w-row"><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div><div class="w-row"><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div><div class="w-row"><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div></div>
+    </div>
+  </div>
+  <div class="w-step" hidden>
+    <span class="w-count">Step 2 of 4</span>
+    <h2>Listen and pick</h2>
+    <p>Press Play to hear a song right here. Untick the ones you don't want to keep.</p>
+    <div class="w-art art-pick" aria-hidden="true">
+      <div class="w-row"><span class="tick"></span><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div>
+      <div class="w-row play-me"><span class="tick"></span><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="waves"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ring"></span></div>
+      <div class="w-row skip-me"><span class="tick"></span><span class="lines"><span class="bar t"></span><span class="bar a"></span></span><span class="ring"></span></div>
+    </div>
+  </div>
+  <div class="w-step" hidden>
+    <span class="w-count">Step 3 of 4</span>
+    <h2>Send them to Spotify</h2>
+    <p>One button puts your picks in a new Spotify playlist, named for the day.</p>
+    <div class="w-art art-send" aria-hidden="true">
+      <span class="btn">Create it on Spotify with 12 songs</span>
+      <div class="done"><span class="cover">♪</span><span><b>Explore finds, today</b><small>✓ 12 songs added</small></span></div>
+    </div>
+  </div>
+  <div class="w-step w-step-connect" hidden>
+    <span class="w-count">Step 4 of 4</span>
+    <h2>Connect Spotify</h2>
+    <p class="w-connected" id="w-connected" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10"/><path d="M5.500 10.400l3 3 6-6.600"/></svg>Spotify is connected. You're all set.</p>
+    <p>Spotify lets each app serve only five people, so you make a free key of your own, once. Explore Finds fills in Spotify's form; you tick its terms box and click Save, then approve the connection.</p>
+    <!-- Not connected: the real steps (the block from Settings is moved in here while this shows). -->
+    <div class="setup w-setup" id="w-setup-slot"></div>
+    <!-- Connected: a drawing of what the steps were. -->
+    <div class="w-art art-connect" id="w-art-connect" aria-hidden="true" hidden>
+      <div class="form"><span class="field"><i></i></span><span class="field"><i></i></span><span class="terms"><span class="tick"></span><span class="bar"></span></span><span class="save">Save</span></div>
+      <div class="done"><span class="cover">✓</span><span><b>Spotify connected</b><small>Ready to play and build playlists</small></span></div>
+    </div>
+  </div>
+  <div class="w-nav">
+    <button id="w-back" class="quiet" hidden>Back</button>
+    <span class="grow"></span>
+    <button id="w-next" class="primary">Next</button>
+    <a id="w-go" class="w-go" target="_blank" rel="noopener" hidden>Open Instagram Explore</a>
+  </div>
+  </div>
  </section>
 
   <script type="module" src="sidepanel.js"></script>

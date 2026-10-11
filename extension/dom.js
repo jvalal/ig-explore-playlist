@@ -17,9 +17,12 @@ export function el(tag, cls, text) {
 }
 
 export function setMsg(text, isError = false) {
-  const m = $('#msg');
-  m.textContent = text || '';
-  m.classList.toggle('error', !!isError);
+  // The same line on the songs screen and in Settings' Spotify steps, whichever is in view.
+  for (const m of [$('#msg'), $('#setup-msg')]) {
+    if (!m) continue;
+    m.textContent = text || '';
+    m.classList.toggle('error', !!isError);
+  }
 }
 
 export function ago(ts) {

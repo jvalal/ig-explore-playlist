@@ -178,6 +178,27 @@ try {
   check('...and then they settle like any other row', (await a.page.evaluate(() => document.querySelectorAll('#list > li.row.late, #list > li.row.enter').length)) === 0);
   check('new songs above: no page errors', a.errors.length === 0, a.errors.join(' | '));
   await a.close();
+
+  // First run: Back and Next sit right under the drawing, not at the bottom of the panel.
+  const w = await open({ songs: 3, store: { welcomed: false, spotify: {} } });
+  await waitFor(w.page, () => !document.querySelector('#welcome').hidden, 4000);
+  const nav = () => w.page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); const art = document.querySelector('.w-step.on .w-art').getBoundingClientRect(); const n = r('.w-nav'); return { gap: Math.round(n.top - art.bottom), below: Math.round(innerHeight - n.bottom), left: Math.round(n.left - art.left), right: Math.round(n.right - art.right) }; });
+  const n1 = await nav();
+  check('walkthrough: Next is just under the drawing, lined up with it, well clear of the bottom', n1.gap >= 8 && n1.gap <= 30 && n1.below > 80 && Math.abs(n1.left) <= 1 && Math.abs(n1.right) <= 1, JSON.stringify(n1));
+  if (process.env.SHOT) await w.page.screenshot({ path: `${process.env.SHOT}/w1.png` });
+  await w.page.click('#w-bars button:nth-child(4)');
+  await tick(300);
+  const n4 = await w.page.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); return { gap: Math.round(r('.w-nav').top - r('#w-setup-slot').bottom), top: Math.round(r('.w-step.on').top), back: r('#w-back').bottom <= innerHeight, go: document.querySelector('#w-go').hidden }; });
+  check('...and on the Connect step Back follows the setup steps, on screen, with no second button', n4.gap >= 8 && n4.gap <= 30 && n4.back && n4.go && n4.top < 80, JSON.stringify(n4));
+  if (process.env.SHOT) await w.page.screenshot({ path: `${process.env.SHOT}/w4.png` });
+  await w.page.click('#w-skip');
+  await w.page.click('#open-settings');
+  await tick(500);
+  const cards = await w.page.evaluate(() => ({ folds: document.querySelectorAll('#settings details:not(#by-hand)').length, steps: document.querySelector('#setup-steps').getBoundingClientRect().height > 50, how: document.querySelector('#show-welcome').getBoundingClientRect().height > 10 }));
+  check('Settings: the Spotify and How it works cards are open, with nothing to fold', cards.folds === 0 && cards.steps && cards.how, JSON.stringify(cards));
+  if (process.env.SHOT) await w.page.screenshot({ path: `${process.env.SHOT}/s.png` });
+  check('walkthrough: no page errors', w.errors.length === 0, w.errors.join(' | '));
+  await w.close();
 } catch (err) {
   check('browser test crashed', false, err.stack);
 }

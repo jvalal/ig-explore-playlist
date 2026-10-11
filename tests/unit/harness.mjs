@@ -17,7 +17,7 @@ export async function boot(sim, initial = {}) {
     document: dom.window.document,
     requestAnimationFrame: (f) => setTimeout(f, 0),
   });
-  const storage = makeChromeStorage({ spotify: connectedSpotify(), tracks: {}, matches: {}, ...initial });
+  const storage = makeChromeStorage({ spotify: connectedSpotify(), tracks: {}, matches: {}, welcomed: true, ...initial });
   globalThis.chrome = {
     storage: { local: storage.local, onChanged: storage.onChanged },
     identity: { getRedirectURL: () => 'https://abc.chromiumapp.org/' },

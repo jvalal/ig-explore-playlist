@@ -63,6 +63,7 @@ export async function open({ songs = 30, misses = [], viewport = { width: 380, h
     const data = {
       spotify: { clientId: 'a'.repeat(32), access_token: 't', refresh_token: 'r', expires_at: Date.now() + 3.6e6, user: 'jkidd' },
       tracks, matches: {},
+      welcomed: true, // not a first run, unless the test says so
       ...extraStore,
     };
     window.__store = data;

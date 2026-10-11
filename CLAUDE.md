@@ -6,7 +6,134 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.13)
+## Current status (v0.11.24)
+
+**A Spotify app that was deleted** (v0.11.24). In a second Chrome profile the user created an
+app, connected, disconnected, deleted the app on Spotify, and pressed Connect: Chrome's
+"Authorization page could not be loaded" (Spotify's error page is never shown), which the
+panel reported as a Client ID / Redirect URI problem with no way on. Read from that profile's
+storage: the next app they made connected in 18 s, so it was the deleted app, not a delay.
+Now `connect()` marks that error `refused`, the message says the app may have been deleted,
+and setup.js reopens step 1 (as Change does). **Start over** (next to Change, two presses)
+forgets the Client ID and the login (`S.saveClientId('')`, `setupSeen` removed); nothing is
+touched on Spotify. Disconnect still keeps the Client ID. Also seen: Spotify let this account
+create a fifth and sixth app, so "one per person" (the step-1 note) isn't enforced for it.
+Same version, the user's asks: the helper's banner on Spotify has a 2 px indigo border and a
+soft ring; the walkthrough's text is larger (title 23, text 15.5); the block sits near the top
+under the bars instead of the middle (all four steps, so nothing jumps); "Spotify is
+connected. You're all set." is a green outlined tag with a check that pops in.
+Unit-tested (setup-steps.test.mjs) and looked at in Chrome with stubs; **not yet in the
+user's Chrome**.
+
+**Songs added before start unticked, and the mark is an amber tag** (v0.11.23, the user's
+calls; this reverses v0.11.15, where I had read "doesn't mean that playlist still exists" as
+"don't untick"). `isExcluded(st, t)` in store.js: `excluded[key]` is true (unticked), false
+(ticked on purpose) or unset, and unset means unticked when the song is in `added` and not in
+the current playlist. `withChoice` writes the person's choice (a tick on such a song is kept
+as `false`); Select all uses it too. So Build and auto-add leave those songs out until they
+are ticked. A side effect: when a playlist is put aside or forgotten (Start a new playlist, or
+deleted on Spotify), its songs still in the list turn to "Added …" and unticked, so the new
+playlist gets only the new finds unless they are ticked (panel.test.mjs expects this now). The mark is `.note.before`, bold on pale amber (dark:
+amber on brown), picked by the user from six pictures. Unit-tested (added-before.test.mjs,
+bug planted); **not yet in the user's Chrome**.
+
+**The helper's banner on Spotify's pages is at mid-height** (v0.11.22; it was at the bottom
+right, over Spotify's footer, the user's screenshot). On the Create form it sits 24 px right of
+the `#name` field when there is room (`place()` in spotify-dashboard.js, re-run twice a
+second and on resize), else at the right edge. Unit-tested with a hand-made field box; **the
+real form's column width was not measured**, so which of the two the user gets is unknown.
+
+**Walkthrough step 4, one thing to do at a time** (v0.11.21, the user: "showing two CTA's can
+be confusing"): Open Instagram Explore is hidden until Spotify is connected (`renderWelcome`),
+and "Spotify is connected. You're all set." is right under the title, above the drawing.
+
+**The live line of setup step 1** (`#step-live`, "Terms ticked. Now click Save on Spotify's
+page.") is above the Open Spotify's page button and outlined in the accent colour with a dot
+(v0.11.20, the user, while walking the setup in a second Chrome profile).
+
+**Walkthrough buttons under the drawing; Settings cards always open** (v0.11.19, the user's
+calls). Back / Next / Open Instagram Explore are in one block with the step (`.w-body`,
+centred in the panel), right under the drawing and as wide as it: "users are focused where the
+text and image are, keep actions in that space". In Settings, Spotify (`#setup`) and How it
+works (`#howto`) are plain cards (`div.setup` with a `.setup-title`), no longer `<details>`:
+no arrows, nothing folds; `openSetup` and the `touched` flag are gone. "By hand" inside step 1
+still folds. Unit- and Chrome-tested (welcome.test.mjs, layout.test.mjs); **not yet in the
+user's Chrome**. To see it as a new person: a second Chrome profile with the folder loaded
+unpacked has empty storage (Disconnect alone keeps the Client ID, so step 1 shows as done).
+
+**The walkthrough has four steps, the last is connecting Spotify** (v0.11.18, the user: "shouldn't
+that be part of the first run experience?"). In each step the words come first, then the
+drawing (their call). Step 4, not connected, holds the real setup steps: `#setup-steps` is
+moved from Settings into `#w-setup-slot` while that step shows and put back when it closes or
+another step shows (`placeSetup` in welcome.js), so there is one set. Connected, step 4 shows
+a drawing of the form being filled, ticked and saved, and "Spotify is connected".
+Settings: the connected block has **How connecting works** (opens the walkthrough on step 4),
+and **How it works** is its own section under Spotify, built like the Spotify card (`#howto`,
+"Watch the walkthrough"); the link in the About line is gone. The "Connect Spotify now" link
+of v0.11.16 is gone too.
+
+**Guided Spotify setup** (v0.11.17; the user: the hard part for a new person is "connecting and
+creating a spotify developer account"). Who it is for is undecided, so both ways in are there.
+- **In the panel** (Settings › Connect Spotify, `#setup-steps`, setup.js): one line of why
+  (five people per app, so a free key of your own; about three minutes; needs Premium), then
+  two steps with one open at a time. 1 "Create your Spotify app": a button opens Spotify's
+  Create app page; a live line follows what the person does there; "By hand, or with a key
+  someone gave you" holds the Redirect URI and the Client ID field. 2 "Connect your Spotify
+  account". Step 1 ticks itself when a Client ID arrives; "Change" reopens it.
+- **On Spotify's dashboard** (spotify-dashboard.js) the helper is now a coach: on the app list
+  it points at Create app (or says to open the app the person already has); on the form it
+  fills the fields, rings the terms box, then Save (`[data-ef-next]`); the new app's page,
+  reached from the form, has its Client ID saved at once with no button; other app pages
+  offer "Use this app" and say when our Redirect URI is missing; User Management of the app in
+  use explains adding a friend. It reports to the panel through storage key `setupSeen`
+  ({page, filled, terms, at}; shown for 10 minutes). It still never ticks the terms or saves.
+- **Login errors in plain words**, and now visible in Settings: `setMsg` also writes to
+  `#setup-msg` (before, the line was on the songs screen only, out of sight). Closed login
+  window, Spotify's error page (bad key or Redirect URI), and `server_error` (Premium for an
+  owner, User Management for a friend's key) each have their own sentence.
+- **Read from the live pages in the user's Chrome, 2026-10-11** (with their leave for that day;
+  ask again another day): the Create form's fields are as on 2026-10-06; an app page lists
+  its Redirect URIs as text and links to `/dashboard/{id}/users`; that page has `#name`,
+  `#email`, "Add user", "n/5 added". **The owner needs no entry there**: the user's own app
+  shows 0/5 and their connection works. Not seen: where Spotify goes after Save on the form
+  (assumed the new app's page; if it is the list, the banner there says to open the app), the
+  Edit form (the click didn't open it), and whether a second app is refused.
+- Unit-tested (setup-steps.test.mjs, dashboard-helper.test.mjs) and looked at in Chrome with
+  stubs. **Nothing was created or saved on Spotify, so the whole path has not been walked for
+  real**; that needs a Spotify account without an app.
+
+**First-run walkthrough** (v0.11.16; the user: "a panel before the sidebar with the songs",
+"even a video explainer?"). `welcome.js` + `welcome.css`, markup in sidepanel.html
+(`#welcome`, laid over the whole panel, `#main` inert meanwhile). Three steps (four since
+v0.11.18, above), each a small CSS drawing that moves: Scroll Explore as usual (posts scroll, songs land in a side pane),
+Listen and pick (a row starts playing, one is unticked), Send them to Spotify (the button
+becomes a playlist). It plays through by itself like a short film, 6.5 s a step, with story
+bars at the top, and stops on step 3; Next, Back, the bars, arrow keys and Esc also work. The
+last step has "Open Instagram Explore" (a link, opens a tab) and, when not connected, "Connect
+Spotify now" (opens the steps in Settings). Closing it any way sets storage key `welcomed`, so
+it shows once; Settings has "How it works" to watch it again. Reduced motion: still drawings,
+no auto-advance. Not shown on iPhone (it has onboarding.html). It is not a recorded video:
+nothing to host or re-record when the panel changes; a real screen recording could be added
+later. Test storage starts with `welcomed: true` (both harnesses and the real test).
+Unit-tested (welcome.test.mjs) and watched in Chrome with stubs; **not yet in the user's
+Chrome**, where it will show once after the update.
+
+**Songs added before** (v0.11.15, the user's pick from five ideas). Storage key `added` is the
+record of every song ever put in a playlist: `{ keys: {trackKey: e}, uris: {spotifyUri: e} }`,
+`e = { at, pl }` (when, and the playlist's name; the first time is the one kept). Build and
+auto-add write it (`noteAdded` in store.js); Clear keeps it. At first run it is seeded from
+`playlist` and `playlistUndo` with `at: null` (shown as "Added before"). A listed song that is
+in the record and not in the current playlist shows "Added Oct 10" (`.note.before`, tooltip:
+the playlist's name). It is known by its key or by its Spotify URI, so the same song under
+another Instagram audio counts too. (Until v0.11.23, above, the song stayed ticked.)
+v0.11.14 unticked such songs; the user turned that down the same day: "even if it was already
+added, doesn't mean that playlist still exists". Unit-tested (added-before.test.mjs);
+**not yet in the user's Chrome**.
+
+**No "+" on the rows** (tried in v0.11.14, removed in v0.11.15, the user's call): saving to
+Liked Songs from a row isn't reflected in Spotify's own player in the panel (the embed's "+"
+keeps its own state), so the two would disagree. The floating window keeps its "+", where
+Spotify's player isn't shown. The v0.11.14 code was never committed.
 
 **Songs that arrive while the list is scrolled down** (v0.11.10; the user couldn't tell songs
 were being added "above the fold"). Measured in Chrome: the rows on screen already stay put
@@ -378,6 +505,7 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     build.js        playlist create / add, and auto-add (syncMatched)
     goal.js         song goal: count, progress bar, chime
     setup.js, exports.js, dom.js
+    welcome.js/css  first-run walkthrough over the panel
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
     player.js       drives the embed iframe (protocol below); shared with the mini player
   player.html, mini.js, mini.css   pop-out mini player window (desktop only)
@@ -400,7 +528,7 @@ extension/platform.js   desktop platform (chrome.identity); the Safari build swa
 ```
 
 Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
-`playlistUndo`, `spotifyLimit`, `spotifyCounts`,
+`playlistUndo`, `spotifyLimit`, `spotifyCounts`, `added`, `welcomed`, `setupSeen`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 
 Pinned extension ID: `adnfnkniiefhlojabhejngpkefohmnhg`
@@ -445,7 +573,10 @@ Explore audio was licensed songs.
 
 ## Spotify constraints (verified Oct 2026, re-check if something breaks)
 
-- Development mode: max 5 allowlisted users per app; the app owner must have Premium.
+- Development mode: max 5 allowlisted users per app; the app owner must have Premium; **one
+  Client ID per developer** (Spotify's post of 2026-02-06, read 2026-10-11: for new apps from
+  Feb 11, for existing ones from Mar 9; the user's dashboard still lists four apps). The
+  owner doesn't have to be on the app's own user list.
   Extended quota: organizations only, 250k MAU minimum (since May 15, 2025).
 - February 2026 API changes: create playlist is `POST /me/playlists`; add tracks is
   `POST /playlists/{id}/items` (body `{uris}`), search `limit` max 10, `popularity` removed.

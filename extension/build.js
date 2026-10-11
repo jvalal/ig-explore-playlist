@@ -1,6 +1,6 @@
 // Create the playlist, or add the songs found since the last build.
 import * as S from './spotify.js';
-import { pending, matchOf } from './store.js';
+import { pending, matchOf, noteAdded } from './store.js';
 
 // "Explore finds, Oct 11, 2:30 PM": the time tells apart the playlists of one day.
 export const defaultName = (d = new Date()) => `Explore finds, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ` +
@@ -24,11 +24,13 @@ export async function buildPlaylist({ store, queue, name, report }) {
   const have = new Set(pl ? pl.uris : []);
   const uris = [];
   const keys = [];
+  const pairs = []; // [key, uri] of each song, for the record of what was ever added
   let missing = 0;
   for (const t of todo) {
     const m = matchOf(st, t);
     if (m && m.status === 'matched') {
       keys.push(t.key);
+      pairs.push([t.key, m.uri]);
       if (!have.has(m.uri)) { have.add(m.uri); uris.push(m.uri); }
     } else missing++;
   }
@@ -52,7 +54,7 @@ export async function buildPlaylist({ store, queue, name, report }) {
     await S.addItems(pl.id, uris);
   }
   pl = { ...pl, keys: [...pl.keys, ...keys], uris: [...pl.uris, ...uris] };
-  await store.set({ playlist: pl });
+  await store.set({ playlist: pl, added: noteAdded(st, pairs, pl.name) });
 
   const added = `Added ${uris.length} ${uris.length === 1 ? 'song' : 'songs'} to "${pl.name}".`;
   report(missing ? `${added} ${missing} need you to pick them with Choose.` : added);
@@ -68,17 +70,19 @@ export async function syncMatched({ store, report }) {
   const have = new Set(pl.uris);
   const uris = [];
   const keys = [];
+  const pairs = [];
   for (const t of pending(st)) {
     const m = matchOf(st, t);
     if (!m || m.status !== 'matched') continue;
     keys.push(t.key);
+    pairs.push([t.key, m.uri]);
     if (!have.has(m.uri)) { have.add(m.uri); uris.push(m.uri); }
   }
   if (!keys.length) return 0;
   if (uris.length) await S.addItems(pl.id, uris);
   const latest = store.st.playlist;
   if (!latest || latest.id !== pl.id) return 0; // "Start a new playlist" was pressed meanwhile
-  await store.set({ playlist: { ...latest, keys: [...latest.keys, ...keys], uris: [...latest.uris, ...uris] } });
+  await store.set({ playlist: { ...latest, keys: [...latest.keys, ...keys], uris: [...latest.uris, ...uris] }, added: noteAdded(store.st, pairs, latest.name) });
   if (uris.length) report(`Added ${uris.length} new ${uris.length === 1 ? 'song' : 'songs'} to "${latest.name}".`);
   return uris.length;
 }

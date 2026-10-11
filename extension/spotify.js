@@ -91,14 +91,29 @@ export async function connect() {
     state,
   }).toString();
 
-  const back = await P.launchAuth(url.toString());
+  let back;
+  try {
+    back = await P.launchAuth(url.toString());
+  } catch (err) {
+    // Chrome: "The user did not approve access." when the login window is closed, and
+    // "Authorization page could not be loaded." when Spotify shows an error page instead.
+    if (err && err.code) throw err; // the platform already said it in words (the iPhone build does)
+    const text = (err && err.message) || '';
+    if (/could not be loaded/i.test(text)) {
+      // Seen for real (2026-10-11) with the Client ID of an app that had been deleted on Spotify.
+      const refused = codedError('Spotify doesn\'t recognise this app. It may have been deleted, or it doesn\'t list the Redirect URI shown under "By hand". Create a new app, or fix this one, then connect again.', 'INPUT');
+      refused.refused = true; // the setup steps go back to step 1
+      throw refused;
+    }
+    throw codedError('The Spotify window was closed before it finished. Press Connect Spotify to try again.', 'INPUT');
+  }
   const params = new URL(back).searchParams;
   const authError = params.get('error');
   if (authError) {
     const message = authError === 'access_denied'
       ? 'Spotify login was cancelled or denied. Try Connect again.'
       : authError === 'server_error'
-        ? "Spotify rejected the login. In your Spotify app's settings, open User Management and add the email of the Spotify account you're logging in with, then try again."
+        ? "Spotify didn't let this account in. If the app is yours, the account needs Spotify Premium. If someone gave you the key, ask them to add your Spotify email under User Management in their app."
         : `Spotify returned: ${authError}`;
     throw codedError(message, 'INPUT');
   }

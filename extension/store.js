@@ -1,7 +1,7 @@
 // The panel's copy of chrome.storage.local. Loaded once, then kept current from
 // storage.onChanged deltas (only the keys that changed), instead of re-reading everything
 // on every capture the bridge writes.
-export const KEYS = ['tracks', 'log', 'samples', 'seen', 'matches', 'excluded', 'spotify', 'playlist', 'playlistUndo', 'prefs', 'nowPlaying'];
+export const KEYS = ['tracks', 'log', 'samples', 'seen', 'matches', 'excluded', 'spotify', 'playlist', 'playlistUndo', 'prefs', 'nowPlaying', 'added'];
 
 const DEFAULTS = {
   tracks: () => ({}),
@@ -15,6 +15,9 @@ const DEFAULTS = {
   playlistUndo: () => null, // the playlist that was current before "new playlist": the x goes back to it
   prefs: () => ({}), // { goal: number (0 = off), autoSync: boolean }; kept by Clear
   nowPlaying: () => null, // written by the mini player: { host: 'mini', key, status }
+  // Every song ever added to a playlist: { keys: {trackKey: e}, uris: {spotifyUri: e} },
+  // e = { at: ms or null (not known), pl: playlist name }. Kept by Clear.
+  added: () => ({ keys: {}, uris: {} }),
 };
 
 export function createStore() {
@@ -109,10 +112,49 @@ export function matchFor(st, key) {
 export const matchOf = (st, t) => matchFor(st, t.key);
 export const inPlaylist = (st, t) => !!(st.playlist && st.playlist.keys.includes(t.key));
 
+// Was this song put in an earlier playlist (not the current one)? Known by the song itself, or
+// by what it is on Spotify (the same song can come back under another Instagram audio).
+// Returns { at, pl } or null.
+export function addedBefore(st, t) {
+  if (inPlaylist(st, t)) return null;
+  const a = st.added || {};
+  const m = matchOf(st, t);
+  return (a.keys && a.keys[t.key]) || (m && m.uri && a.uris && a.uris[m.uri]) || null;
+}
+// `added` with these songs (pairs of [trackKey, spotifyUri]) noted as put in playlist `pl`.
+export function noteAdded(st, pairs, pl, at = Date.now()) {
+  const a = st.added || {};
+  const keys = { ...a.keys };
+  const uris = { ...a.uris };
+  const e = { at, pl };
+  for (const [key, uri] of pairs) {
+    if (key && !keys[key]) keys[key] = e;
+    if (uri && !uris[uri]) uris[uri] = e;
+  }
+  return { keys, uris };
+}
+
+// Left out of the next playlist: unticked by the person, or, until they say otherwise, a song
+// that was added before. `excluded[key]` is true (unticked), false (ticked on purpose) or unset.
+export function isExcluded(st, t) {
+  const c = st.excluded[t.key];
+  return c === undefined ? !!addedBefore(st, t) : !!c;
+}
+// `excluded` with the person's choice for these songs written in.
+export function withChoice(st, tracks, include) {
+  const excluded = { ...st.excluded };
+  for (const t of tracks) {
+    if (!include) excluded[t.key] = true;
+    else if (addedBefore(st, t)) excluded[t.key] = false; // it would start unticked again
+    else delete excluded[t.key];
+  }
+  return excluded;
+}
+
 // Songs the next Build would add.
 export function pending(st) {
   return list(st, 'song').filter((t) => {
     const m = matchOf(st, t);
-    return !st.excluded[t.key] && !inPlaylist(st, t) && !(m && m.status === 'none');
+    return !isExcluded(st, t) && !inPlaylist(st, t) && !(m && m.status === 'none');
   });
 }
