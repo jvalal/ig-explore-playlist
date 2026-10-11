@@ -6,13 +6,14 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.10)
+## Current status (v0.11.13)
 
 **Songs that arrive while the list is scrolled down** (v0.11.10; the user couldn't tell songs
 were being added "above the fold"). Measured in Chrome: the rows on screen already stay put
 (scroll anchoring; the page grows above them), so only a cue was missing. A pill hangs under
 the pinned block, "3 new songs" with an up arrow (`#new-above`, inside `#build`), swelling at
-each arrival and counting on. Pressing it scrolls to the top; scrolling up does the same job.
+each arrival and counting on (v0.11.13, tuned with the user: 12.5px text, and a double echo, two rings
+one after the other, each spreading 30px, 1.1 s in all: `pill-echo`). Pressing it scrolls to the top; scrolling up does the same job.
 When the top of the list comes into view those rows glow and swell once more (`.row.late`,
 `glowLate` in list.js; `renderList` returns the rows that entered) and the pill goes. "Hidden"
 means the list's top is above the pinned block's bottom edge (`listTopHidden`). Tested in

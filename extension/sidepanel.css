@@ -286,16 +286,24 @@ input {
 /* "3 new songs", hanging under the pinned block while new songs are above what is on screen. */
 .new-above {
   position: absolute; top: calc(100% + 10px); left: 50%; translate: -50% 0; z-index: 3;
-  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px 5px 9px;
+  display: inline-flex; align-items: center; gap: 5px; padding: 7px 15px 7px 11px;
   border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
-  font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.55);
+  font-size: 12.5px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.55);
 }
-.new-above svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.new-above.swell { animation: pill-swell 700ms ease-out both; }
+.new-above svg { width: 12.5px; height: 12.5px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* The swell is quick; then two rings spread from the pill, one after the other (the echo),
+   each going out 30px at the same pace and fading as it goes. */
+.new-above.swell { animation: pill-swell 700ms ease-out both, pill-echo 1100ms linear both; }
 @keyframes pill-swell {
-  0% { scale: 0.9; box-shadow: 0 0 0 0 var(--accent); }
+  0% { scale: 0.9; }
   35% { scale: 1.14; }
-  100% { scale: 1; box-shadow: 0 0 0 14px transparent, 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
+  100% { scale: 1; }
+}
+@keyframes pill-echo {
+  0% { box-shadow: 0 0 0 0 var(--accent), 0 0 0 0 var(--accent), 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
+  40% { box-shadow: 0 0 0 20px color-mix(in srgb, var(--accent) 33%, transparent), 0 0 0 0 var(--accent), 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
+  60% { box-shadow: 0 0 0 30px transparent, 0 0 0 10px color-mix(in srgb, var(--accent) 67%, transparent), 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
+  100% { box-shadow: 0 0 0 30px transparent, 0 0 0 30px transparent, 0 6px 16px -6px rgba(0, 0, 0, 0.55); }
 }
 .row.enter {
   overflow: hidden; position: relative; z-index: 1;
