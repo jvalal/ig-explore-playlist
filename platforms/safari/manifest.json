@@ -19,7 +19,8 @@
     "https://www.instagram.com/*",
     "https://accounts.spotify.com/*",
     "https://api.spotify.com/*",
-    "http://127.0.0.1/*"
+    "http://127.0.0.1/*",
+    "https://developer.spotify.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -52,6 +53,15 @@
         "bridge.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://developer.spotify.com/dashboard*"
+      ],
+      "js": [
+        "spotify-dashboard.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }

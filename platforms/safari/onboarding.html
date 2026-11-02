@@ -24,7 +24,13 @@
 
     <section data-step="spotify" hidden>
       <h1>Your Spotify app</h1>
-      <p>Explore Playlist Gen talks to Spotify through a free developer app that you own. If you set up Explore Playlist Gen on your computer, use the same app.</p>
+      <p>Explore Playlist Gen talks to Spotify through a free developer app that you own. If you set up Explore Playlist Gen on another device, use the same app.</p>
+      <ol class="ob-points">
+        <li>Open Spotify's page and log in. Safari may ask to let Explore Playlist Gen use the site: choose <strong>Always Allow</strong>.</li>
+        <li>It fills in the form for you. Tick Spotify's terms box and click <strong>Save</strong>.</li>
+        <li>Come back to this tab: your Client ID appears below by itself.</li>
+      </ol>
+      <div class="ob-actions"><a class="primary-link" id="ob-create" href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Open Spotify's page</a></div>
       <label class="field">Client ID
         <span class="copyline"><input id="ob-client" placeholder="32 letters and numbers" autocomplete="off" spellcheck="false" autocapitalize="off"><button id="ob-save">Save</button></span>
       </label>
@@ -34,11 +40,10 @@
         <p class="copyline"><code class="ob-uri" id="ob-redirect"></code><button id="ob-copy">Copy</button></p>
       </div>
       <details class="ob-how">
-        <summary>Don't have a Spotify app yet?</summary>
+        <summary>Filling it in by hand, or already have an app?</summary>
         <ol>
-          <li>On a computer (easier) or here, open <a href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Create app</a> and log in with your Spotify account.</li>
-          <li>Any name and description. Add the Redirect URI above, tick <strong>Web API</strong>, agree to the terms, and <strong>Save</strong>.</li>
-          <li>Copy the <strong>Client ID</strong> from the app's page and paste it above.</li>
+          <li>On Spotify's <a href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Create app</a> page: any name and description, add the Redirect URI above, tick <strong>Web API</strong>, agree to the terms, and <strong>Save</strong>.</li>
+          <li>Copy the <strong>Client ID</strong> from the app's page, paste it above and press Save. An app you already have works too: open it on Spotify and choose <strong>Use this app</strong>, or paste its Client ID.</li>
         </ol>
       </details>
       <div class="ob-actions"><button data-back>Back</button><button class="primary" data-next id="ob-spotify-next" disabled>Next</button></div>

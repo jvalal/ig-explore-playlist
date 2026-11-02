@@ -15,8 +15,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(root, 'extension');
 const plat = path.join(root, 'platforms', 'safari');
 const out = path.join(root, 'dist', 'safari');
-// Desktop-only: the Spotify dashboard helper, and the pop-out mini player (no windows API on iPhone).
-const DESKTOP_ONLY = new Set(['spotify-dashboard.js', 'player.html', 'mini.js', 'mini.css']);
+// Desktop-only: the pop-out mini player (no windows API on iPhone).
+const DESKTOP_ONLY = new Set(['player.html', 'mini.js', 'mini.css']);
 const REPLACED = new Set(['manifest.json', 'background.js', 'platform.js']);
 
 fs.rmSync(out, { recursive: true, force: true });
@@ -33,6 +33,14 @@ const desktop = JSON.parse(fs.readFileSync(path.join(src, 'manifest.json'), 'utf
 const manifest = JSON.parse(fs.readFileSync(path.join(plat, 'manifest.json'), 'utf8'));
 manifest.version = desktop.version;
 fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+
+// The dashboard helper puts the Redirect URI into Spotify's form: Safari's loopback one, not Chrome's.
+const REDIRECT = fs.readFileSync(path.join(plat, 'platform.js'), 'utf8').match(/REDIRECT = '([^']+)'/)[1];
+const helper = path.join(out, 'spotify-dashboard.js');
+const helperSrc = fs.readFileSync(helper, 'utf8');
+const chromeRedirect = 'const REDIRECT = `https://${chrome.runtime.id}.chromiumapp.org/`;';
+if (!helperSrc.includes(chromeRedirect)) { console.error('spotify-dashboard.js: Redirect URI line not found'); process.exit(1); }
+fs.writeFileSync(helper, helperSrc.replace(chromeRedirect, `const REDIRECT = '${REDIRECT}';`));
 
 const page = path.join(out, 'sidepanel.html');
 fs.writeFileSync(page, fs.readFileSync(page, 'utf8')

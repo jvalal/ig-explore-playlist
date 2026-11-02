@@ -18,7 +18,12 @@ const manifest = JSON.parse(fs.readFileSync(DIST + 'manifest.json', 'utf8'));
 const desktop = JSON.parse(fs.readFileSync(path.join(root, 'extension', 'manifest.json'), 'utf8'));
 check('same version as the desktop build', manifest.version === desktop.version, manifest.version);
 check('no side panel, popup is the panel page', !manifest.side_panel && manifest.action.default_popup === 'sidepanel.html' && !manifest.permissions.includes('sidePanel'));
-check('desktop-only helper left out', !fs.existsSync(DIST + 'spotify-dashboard.js'));
+// The Spotify dashboard helper ships too (it fills Spotify's form and catches the Client ID), with
+// Safari's loopback Redirect URI in place of Chrome's chromiumapp.org one.
+const helper = fs.existsSync(DIST + 'spotify-dashboard.js') ? fs.readFileSync(DIST + 'spotify-dashboard.js', 'utf8') : '';
+check('the dashboard helper ships', !!helper);
+check('...with the Safari Redirect URI, not Chrome\'s', helper.includes("'http://127.0.0.1:43821/explore-finds'") && !helper.includes('chromiumapp.org'));
+check('...and runs on Spotify\'s dashboard', manifest.content_scripts.some((c) => c.js.includes('spotify-dashboard.js') && c.matches.includes('https://developer.spotify.com/dashboard*')));
 const shipped = fs.readdirSync(DIST).filter((f) => f.endsWith('.js') && f !== 'platform.js')
   .filter((f) => /chrome\.(identity|sidePanel)/.test(fs.readFileSync(DIST + f, 'utf8')));
 check('no Chrome-only API outside platform.js', shipped.length === 0, shipped.join(','));
