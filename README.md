@@ -1,6 +1,6 @@
 # Explore Finds
 
-<a href="https://ko-fi.com/jkidd"><img src="https://img.shields.io/badge/Ko--fi-Support%20this%20project-29abe0?style=flat-square&logo=ko-fi&logoColor=white" alt="Support this project on Ko-fi" height="30"></a>
+<a href="https://ko-fi.com/jkidd"><img src=".github/kofi-badge.svg" alt="Support this project on Ko-fi" height="45"></a>
 
 Chrome extension: songs from your Instagram Explore feed → side panel → Spotify playlist.
 
