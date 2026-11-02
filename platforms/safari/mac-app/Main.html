@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../Style.css">
+    <script src="../Script.js" defer></script>
+</head>
+<body>
+    <header>
+        <img src="../Icon.png" width="88" height="88" alt="">
+        <h1>Explore Playlist Gen</h1>
+        <p class="tagline">The songs from your Instagram Explore feed, in a Spotify playlist.</p>
+    </header>
+
+    <section class="when-off">
+        <p class="status">Turn on the extension in Safari to start.</p>
+        <ol>
+            <li>Click <strong>Open Safari Settings</strong> below.</li>
+            <li>In <strong>Extensions</strong>, tick <strong>Explore Playlist Gen</strong>.</li>
+            <li>Come back to this window.</li>
+        </ol>
+        <button class="primary" data-msg="open-preferences">Open Safari Settings</button>
+    </section>
+
+    <section class="when-on">
+        <p class="status ok">The extension is on in Safari.</p>
+        <ol>
+            <li>Open Instagram Explore in Safari and scroll as usual.</li>
+            <li>Click the <img class="inline" src="../Icon.png" alt="Explore Playlist Gen"> button in Safari's toolbar to see the songs.</li>
+            <li>The first time, it walks you through connecting Spotify.</li>
+        </ol>
+        <button class="primary" data-msg="open-explore">Open Instagram Explore in Safari</button>
+        <button class="link" data-msg="open-preferences">Safari extension settings</button>
+    </section>
+
+    <p class="foot">No data collection. No auto-scrolling. Not affiliated with Instagram, Meta or Spotify.</p>
+</body>
+</html>

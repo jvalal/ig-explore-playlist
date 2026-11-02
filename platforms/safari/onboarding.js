@@ -1,13 +1,14 @@
 // iPhone setup page: Welcome → Spotify app → Connect → Allow Instagram → Done.
 // Opens on install (background.js) or from the popup's "Set up Explore Playlist Gen".
-// Progress is kept in storage key `onboarding` ({ step }), so leaving for Spotify's login or
-// Safari's settings and coming back picks up where you were.
+// Progress is kept in storage key `onboarding` ({ step, at }), so leaving for Spotify's login or
+// Safari's settings and coming back picks up where you were. A visit older than RESUME_MS starts over.
 import * as S from './spotify.js';
-import { runConnect, redirectUri } from './platform.js';
+import { runConnect, redirectUri, askForSites, DASHBOARD_SITES } from './platform.js';
 
 const $ = (s) => document.querySelector(s);
 const STEPS = ['welcome', 'spotify', 'connect', 'instagram', 'done'];
 const CLIENT_ID = /^[a-z0-9]{32}$/i;
+const RESUME_MS = 30 * 60_000;
 let step = 0;
 let spotify = {};
 
@@ -17,7 +18,7 @@ function show(i) {
   step = Math.max(0, Math.min(STEPS.length - 1, i));
   document.querySelectorAll('section[data-step]').forEach((s) => { s.hidden = s.dataset.step !== STEPS[step]; });
   $('#ob-progress').textContent = `Step ${step + 1} of ${STEPS.length}`;
-  chrome.storage.local.set({ onboarding: { step: STEPS[step] } });
+  chrome.storage.local.set({ onboarding: { step: STEPS[step], at: Date.now() } });
   renderSpotify();
   renderConnect();
   window.scrollTo(0, 0);
@@ -81,10 +82,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
   renderConnect();
 });
 
+// Safari runs the form helper on developer.spotify.com only once the site is allowed, and doesn't ask.
+$('#ob-create').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const url = e.currentTarget.href;
+  const ok = await askForSites(DASHBOARD_SITES);
+  note('#ob-client-msg', ok ? '' : "Without Safari's OK for developer.spotify.com, the form can't be filled in for you. Fill it in by hand (steps below), or press the button again and choose Allow.");
+  if (!ok) $('.ob-how').open = true;
+  await chrome.tabs.create({ url });
+});
+
 $('#ob-explore').addEventListener('click', () => chrome.storage.local.set({ onboarding: { step: 'done', finished: true } }));
 
 const saved = await chrome.storage.local.get(['spotify', 'onboarding']);
 spotify = saved.spotify || {};
-const at = STEPS.indexOf((saved.onboarding || {}).step);
+const last = saved.onboarding || {};
+const at = last.at && Date.now() - last.at < RESUME_MS ? STEPS.indexOf(last.step) : -1;
 // Already connected (e.g. set up before): no need to repeat the Spotify steps.
 show(isConnected() ? Math.max(at, STEPS.indexOf('instagram')) : Math.max(at, 0));
