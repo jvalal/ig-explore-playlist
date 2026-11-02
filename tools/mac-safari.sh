@@ -34,8 +34,11 @@ BUILT="$(find "$OUT/DerivedData/Build/Products" -maxdepth 2 -name "$APP.app" | h
 # Safari ignores extensions from apps inside a cloud-synced folder (this repo is in OneDrive), so
 # the app runs from ~/Applications. Unregister the build copy so Safari doesn't see two.
 APPDIR="$HOME/Applications/$APP.app"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+osascript -e "quit app \"$APP\"" 2>/dev/null || true # a running copy would only come to the front, still old
 mkdir -p "$HOME/Applications"; rm -rf "$APPDIR"; ditto "$BUILT" "$APPDIR"
 pluginkit -r "$BUILT/Contents/PlugIns/$APP Extension.appex" 2>/dev/null || true
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APPDIR"
+"$LSREGISTER" -u "$BUILT" 2>/dev/null || true # so Spotlight and Launchpad open only the ~/Applications copy
+"$LSREGISTER" -f "$APPDIR"
 open "$APPDIR"
 echo "Installed $APPDIR. Next, in Safari: Develop → Allow Unsigned Extensions, then Settings → Extensions → $APP."
