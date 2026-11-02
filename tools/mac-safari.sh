@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Builds the Safari extension as a macOS app and opens it, for testing in your own Safari.
 #   tools/mac-safari.sh
-# No paid Apple account needed: the app is signed ad hoc. In Safari: Settings → Advanced →
+# No paid Apple account needed: it is signed with your free Personal Team. In Safari: Settings → Advanced →
 # "Show features for web developers", then Develop → "Allow Unsigned Extensions" (resets each
 # Safari launch), then Settings → Extensions → tick Explore Playlist Gen.
 set -euo pipefail
@@ -19,8 +19,12 @@ xcrun safari-web-extension-converter dist/safari --project-location "$OUT" --app
   --bundle-identifier "$BUNDLE" --macos-only --no-open --no-prompt --copy-resources --force
 
 PROJECT="$(find "$OUT" -maxdepth 2 -name '*.xcodeproj' | head -1)"
+# Safari refuses ad hoc signing ("Computing the code signing dictionary failed"). A free Personal
+# Team (Xcode › Settings › Accounts, any Apple ID) is enough for your own Safari. TEAM overrides.
+TEAM="${TEAM:-$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);/\1/p' | head -1)}"
+[[ -n "$TEAM" ]] || { echo "No Apple team in Xcode. Add your Apple ID in Xcode › Settings › Accounts, or set TEAM=<team id>."; exit 1; }
 xcodebuild -project "$PROJECT" -scheme "$APP" -configuration Debug -derivedDataPath "$OUT/DerivedData" \
-  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build | tail -3
+  -allowProvisioningUpdates CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$TEAM" build | tail -3
 BUILT="$(find "$OUT/DerivedData/Build/Products" -maxdepth 2 -name "$APP.app" | head -1)"
 # Safari ignores extensions from apps inside a cloud-synced folder (this repo is in OneDrive), so
 # the app runs from ~/Applications. Unregister the build copy so Safari doesn't see two.
