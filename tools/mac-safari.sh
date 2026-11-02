@@ -13,9 +13,9 @@ OUT="build/mac"
 
 xcodebuild -version >/dev/null 2>&1 || { echo "Full Xcode isn't selected: sudo xcode-select -s /Applications/Xcode.app"; exit 1; }
 
-node tools/build-safari.mjs
+node tools/build-safari.mjs --mac
 rm -rf "$OUT"
-xcrun safari-web-extension-converter dist/safari --project-location "$OUT" --app-name "$APP" \
+xcrun safari-web-extension-converter dist/safari-mac --project-location "$OUT" --app-name "$APP" \
   --bundle-identifier "$BUNDLE" --macos-only --no-open --no-prompt --copy-resources --force
 
 PROJECT="$(find "$OUT" -maxdepth 2 -name '*.xcodeproj' | head -1)"
