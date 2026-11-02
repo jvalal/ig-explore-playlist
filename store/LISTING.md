@@ -29,7 +29,7 @@ As you scroll Explore, the side panel lists the songs used in the posts you pass
 
 Setup takes about three minutes: Spotify only lets each developer app have five users, so you make your own free Spotify app and the extension walks you through it, filling in Spotify's form for you. Needs Spotify Premium.
 
-Private by design: no account with us, no server, no analytics. Your list stays in your browser; the extension only talks to Spotify, through your own account. It reads the posts Instagram has already loaded for you and makes no requests of its own to Instagram.
+Private by design: no data collection, no account with us, no server, no analytics. Your list stays in your browser; the extension only talks to Spotify, through your own account. No auto-scrolling or automation: you scroll yourself, and it never scrolls, clicks, likes, follows or posts for you. It reads the posts Instagram has already loaded for you and makes no requests of its own to Instagram.
 
 Not affiliated with Instagram, Meta or Spotify.
 
