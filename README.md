@@ -1,5 +1,7 @@
 # Explore Finds
 
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/jkidd)
+
 Chrome extension: songs from your Instagram Explore feed → side panel → Spotify playlist.
 
 ## Load it
