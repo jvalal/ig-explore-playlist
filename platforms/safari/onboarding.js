@@ -3,7 +3,7 @@
 // Progress is kept in storage key `onboarding` ({ step, at }), so leaving for Spotify's login or
 // Safari's settings and coming back picks up where you were. A visit older than RESUME_MS starts over.
 import * as S from './spotify.js';
-import { runConnect, redirectUri } from './platform.js';
+import { runConnect, redirectUri, askForSites, DASHBOARD_SITES } from './platform.js';
 
 const $ = (s) => document.querySelector(s);
 const STEPS = ['welcome', 'spotify', 'connect', 'instagram', 'done'];
@@ -80,6 +80,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
   spotify = changes.spotify.newValue || {};
   renderSpotify();
   renderConnect();
+});
+
+// Safari runs the form helper on developer.spotify.com only once the site is allowed, and doesn't ask.
+$('#ob-create').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const url = e.currentTarget.href;
+  const ok = await askForSites(DASHBOARD_SITES);
+  note('#ob-client-msg', ok ? '' : "Without Safari's OK for developer.spotify.com, the form can't be filled in for you. Fill it in by hand (steps below), or press the button again and choose Allow.");
+  if (!ok) $('.ob-how').open = true;
+  await chrome.tabs.create({ url });
 });
 
 $('#ob-explore').addEventListener('click', () => chrome.storage.local.set({ onboarding: { step: 'done', finished: true } }));

@@ -22,6 +22,7 @@ async function openPage(file, initial) {
   dom.window.scrollTo = () => {};
   const storage = makeChromeStorage(initial);
   const created = [];
+  const asked = [];
   let connects = 0;
   globalThis.chrome = {
     storage: { local: storage.local, onChanged: storage.onChanged },
@@ -38,6 +39,7 @@ async function openPage(file, initial) {
       },
     },
     tabs: { create: async (o) => created.push(o.url) },
+    permissions: { request: async (o) => { asked.push(...o.origins); return globalThis.__grant !== false; } },
   };
   globalThis.fetch = makeSim().fetch;
   await import(`${DIST}${file.replace('.html', '.js')}?${Math.random()}`);
@@ -46,7 +48,7 @@ async function openPage(file, initial) {
   const visible = () => [...document.querySelectorAll('section[data-step]')].filter((s) => !s.hidden).map((s) => s.dataset.step);
   const click = (s) => $(s).click();
   const next = () => [...document.querySelectorAll('section[data-step]')].find((s) => !s.hidden).querySelector('[data-next]').click();
-  return { $, storage, visible, click, next, created, connects: () => connects, window: dom.window };
+  return { $, storage, visible, click, next, created, asked, connects: () => connects, window: dom.window };
 }
 
 // ---- first run, step by step
@@ -85,6 +87,17 @@ async function openPage(file, initial) {
   check('reopening soon after resumes at the saved step', p.visible().join() === 'connect');
   p.window.close();
 }
+// ---- "Open Spotify's page": Safari runs the form helper there only once the site is allowed
+for (const grant of [true, false]) {
+  globalThis.__grant = grant;
+  const p = await openPage('onboarding.html', { onboarding: { step: 'spotify', at: Date.now() } });
+  p.click('#ob-create'); await tick(20);
+  const asks = p.asked.includes('https://developer.spotify.com/*');
+  if (grant) check('Open Spotify\'s page asks Safari for developer.spotify.com, then opens the form', asks && p.created.includes('https://developer.spotify.com/dashboard/create'), JSON.stringify([p.asked, p.created]));
+  else check('...turned down: says how to fill it in by hand instead', asks && p.created.length === 1 && /by hand/i.test(p.$('#ob-client-msg').textContent), p.$('#ob-client-msg').textContent);
+  p.window.close();
+}
+globalThis.__grant = true;
 // ---- coming back much later (or from a build that kept no time): starts again at step 1
 for (const saved of [{ step: 'spotify', at: Date.now() - 3 * 3600e3 }, { step: 'spotify' }]) {
   const p = await openPage('onboarding.html', { spotify: { clientId: CID }, onboarding: saved });

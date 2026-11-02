@@ -43,13 +43,16 @@ export async function launchAuth(url) {
 // that fails to load (the loopback one), so the login would hang on "can't connect". Ask for both
 // sites first, before any other await, while the click still counts as the person's gesture.
 const LOGIN_SITES = ['https://accounts.spotify.com/*', 'http://127.0.0.1/*'];
+export const DASHBOARD_SITES = ['https://developer.spotify.com/*'];
+
+// True when Safari lets the extension use these sites (it asks the person if needed).
+export const askForSites = (origins) => (chrome.permissions && chrome.permissions.request
+  ? chrome.permissions.request({ origins }).catch(() => false)
+  : Promise.resolve(true));
 
 export async function runConnect() {
-  if (chrome.permissions && chrome.permissions.request) {
-    const ok = await chrome.permissions.request({ origins: LOGIN_SITES }).catch(() => false);
-    if (!ok) {
-      throw Object.assign(new Error('Safari needs your OK for accounts.spotify.com and 127.0.0.1 to finish the Spotify login. Press Connect Spotify again and choose Allow.'), { code: 'INPUT' });
-    }
+  if (!(await askForSites(LOGIN_SITES))) {
+    throw Object.assign(new Error('Safari needs your OK for accounts.spotify.com and 127.0.0.1 to finish the Spotify login. Press Connect Spotify again and choose Allow.'), { code: 'INPUT' });
   }
   const r = await chrome.runtime.sendMessage({ type: 'ef-connect' });
   if (r && r.error) throw Object.assign(new Error(r.error), { code: r.code });
