@@ -7,6 +7,15 @@ Chrome extension: songs from your Instagram Explore feed → side panel → Spot
 ## Why I built it
 Some of the best new music I hear is in the background of posts on Instagram's Explore feed. By the time I'd scrolled on, the song was gone, and finding it again meant digging back for the post and searching Spotify by hand. Explore Finds keeps a list of the songs as you scroll, lets you play them right in the side panel, and turns the ones you like into a Spotify playlist. Nothing to tap or copy. Your list stays in your browser; the only place it talks to is Spotify, through your own account.
 
+> [!IMPORTANT]
+> **No data collection. No auto-scrolling.**
+> - **Nothing is collected.** No account, no server, no analytics. Your list stays in your browser; the only service it talks to is Spotify, through your own account. See [PRIVACY.md](PRIVACY.md).
+> - **No automation.** You scroll Explore yourself. The extension never scrolls, clicks, likes, follows, posts or sends messages for you.
+> - **No requests to Instagram.** It only reads the posts Instagram has already loaded in your browser while you scroll.
+> - **No Instagram login.** It never asks for or reads your Instagram password or login cookies.
+>
+> Not affiliated with Instagram, Meta or Spotify.
+
 ## Load it
 1. `chrome://extensions` → Developer mode on → **Load unpacked** → select the `extension/` folder.
 2. Open the side panel from the toolbar icon and connect Spotify (the panel shows the Redirect URI).

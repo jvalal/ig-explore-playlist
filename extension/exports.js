@@ -14,7 +14,9 @@ function download(name, mime, text) {
 }
 
 const csvCell = (v) => {
-  const s = v === null || v === undefined ? '' : String(v);
+  let s = v === null || v === undefined ? '' : String(v);
+  // Titles come from strangers; a leading ' keeps a spreadsheet from running them as formulas.
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

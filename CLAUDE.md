@@ -6,7 +6,24 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.25)
+## Current status (v0.11.28)
+
+**Chrome Web Store build** (v0.11.27–28, 2026-11-02; the repo is public since 2026-11-01, with a
+Ko-fi button and `.github/FUNDING.yml`). `node tools/build-webstore.mjs` writes
+`dist/explore-finds-<version>.zip`: the manifest without `key` and without "(test build)". **The
+store copy gets its own extension ID**, so its own Spotify Redirect URI and its own storage;
+`redirectUri()` and the dashboard helper read the ID at run time. Listing text, permission
+justifications and data answers are in `store/LISTING.md`; the privacy policy is `PRIVACY.md`
+(linked from the listing; keep it true when data handling changes). Unlisted vs public: recommended
+unlisted to start; not decided. Icons (`extension/icon-{16,32,48,128}.png`, flat for the Safari build) are the user's own
+set from a claude.ai chat: magnifier, play button and sparkle on an Instagram-style gradient.
+The user leans to keeping it ("you can't copyright a gradient"): several live Instagram extensions use the gradient, the
+glyph, or both; no case found of removal over the gradient alone; enforcement seen is
+trademark complaints over name and logo. Not submitted yet; the Safari build has no icon.
+v0.11.28: Download CSV puts `'` in front of a cell starting with = + - @ (an original-audio title
+is typed by a stranger and a spreadsheet would run it as a formula; csv.test.mjs).
+v0.11.26: a token refresh answered `invalid_client` (the app deleted on Spotify) says so in plain
+words and points to Start over (invalid-client.test.mjs).
 
 **The Choose picker also offers "Search YouTube"** (v0.11.25, the user's idea: when Spotify
 doesn't have the song). A link beside "Search Spotify yourself", to YouTube's search for the
@@ -529,6 +546,7 @@ platforms/safari/   Safari (iPhone) build parts: manifest, background (login, bu
                     setup.js shows the desktop steps or, when PLATFORM is 'safari', a link
                     to onboarding.html.
 tools/build-safari.mjs  assembles dist/safari (gitignored). tools/ios-sim.sh: Xcode → Simulator.
+tools/build-webstore.mjs  zips the Chrome Web Store upload into dist/. store/LISTING.md, PRIVACY.md.
 extension/platform.js   desktop platform (chrome.identity); the Safari build swaps this file.
 ```
 
