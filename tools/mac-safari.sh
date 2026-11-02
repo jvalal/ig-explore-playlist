@@ -19,6 +19,11 @@ xcrun safari-web-extension-converter dist/safari --project-location "$OUT" --app
   --bundle-identifier "$BUNDLE" --macos-only --no-open --no-prompt --copy-resources --force
 
 PROJECT="$(find "$OUT" -maxdepth 2 -name '*.xcodeproj' | head -1)"
+# Our own start screen in place of the converter's default one (platforms/safari/mac-app/).
+SRC="$(dirname "$PROJECT")/$APP"
+cp platforms/safari/mac-app/Main.html "$SRC/Resources/Base.lproj/Main.html"
+cp platforms/safari/mac-app/Script.js platforms/safari/mac-app/Style.css "$SRC/Resources/"
+cp platforms/safari/mac-app/ViewController.swift "$SRC/ViewController.swift"
 # Safari refuses ad hoc signing ("Computing the code signing dictionary failed"). A free Personal
 # Team (Xcode › Settings › Accounts, any Apple ID) is enough for your own Safari. TEAM overrides.
 TEAM="${TEAM:-$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);/\1/p' | head -1)}"
