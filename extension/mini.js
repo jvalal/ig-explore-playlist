@@ -136,7 +136,7 @@ function changed() {
 function render() {
   const t = byKey(playback.wantKey || playback.key);
   ui.now.textContent = t ? `${t.title} · ${t.artist || 'Unknown artist'}` : 'Nothing playing';
-  document.title = t ? `${t.title} · Explore finds` : 'Explore finds player';
+  document.title = t ? `${t.title} · Explore Playlist Gen` : 'Explore Playlist Gen player';
   const { i, n } = playback.position();
   ui.pos.textContent = i >= 0 ? `${i + 1} of ${n}` : '';
   ui.prev.disabled = i <= 0;

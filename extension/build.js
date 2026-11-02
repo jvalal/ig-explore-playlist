@@ -2,8 +2,8 @@
 import * as S from './spotify.js';
 import { pending, matchOf, noteAdded } from './store.js';
 
-// "Explore finds, Oct 11, 2:30 PM": the time tells apart the playlists of one day.
-export const defaultName = (d = new Date()) => `Explore finds, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ` +
+// "Explore Playlist Gen, Oct 11, 2:30 PM": the time tells apart the playlists of one day.
+export const defaultName = (d = new Date()) => `Explore Playlist Gen, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ` +
   d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 // report(text, isError) shows progress. Returns nothing; throws on Spotify errors.
@@ -43,7 +43,7 @@ export async function buildPlaylist({ store, queue, name, report }) {
   if (!pl) {
     report('Creating the playlist…');
     const finalName = (name || '').trim() || defaultName();
-    const created = await S.createPlaylist(finalName, 'Songs found on Instagram Explore, collected by Explore Finds.');
+    const created = await S.createPlaylist(finalName, 'Songs found on Instagram Explore, collected by Explore Playlist Gen.');
     pl = { id: created.id, url: created.url, name: finalName, keys: [], uris: [] };
     // Saved before adding songs: if adding fails, the next build adds to this playlist
     // instead of creating a second one.

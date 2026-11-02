@@ -1,5 +1,5 @@
 // iPhone setup page: Welcome → Spotify app → Connect → Allow Instagram → Done.
-// Opens on install (background.js) or from the popup's "Set up Explore Finds".
+// Opens on install (background.js) or from the popup's "Set up Explore Playlist Gen".
 // Progress is kept in storage key `onboarding` ({ step }), so leaving for Spotify's login or
 // Safari's settings and coming back picks up where you were.
 import * as S from './spotify.js';

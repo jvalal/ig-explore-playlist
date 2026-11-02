@@ -98,7 +98,7 @@ async function openPage(file, initial) {
   await tick(50);
   const popupIg = [...document.querySelectorAll('a[href*="instagram.com"]')].map((a) => a.href);
   check('popup: the empty list links to Explore, kept in Safari', popupIg.includes('https://www.instagram.com/explore/#weblink'), popupIg.join(' '));
-  check('popup, not connected: shows "Set up Explore Finds", hides the desktop steps',
+  check('popup, not connected: shows "Set up Explore Playlist Gen", hides the desktop steps',
     !p.$('#setup-mobile').hidden && p.$('#setup-steps').hidden, `${p.$('#setup-mobile').hidden} ${p.$('#setup-steps').hidden}`);
   p.click('#open-onboarding'); await tick(20);
   check('...which opens the setup page and closes the popup', p.created[0] === 'safari-web-extension://x/onboarding.html' && p.closed);

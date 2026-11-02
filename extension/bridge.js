@@ -64,7 +64,7 @@
       if (store.seen.length > MAX_SEEN) store.seen.splice(0, store.seen.length - MAX_SEEN);
     }
 
-    // Explore finds only. Capture runs on every instagram.com page, and the Explore page also
+    // Explore Playlist Gen only. Capture runs on every instagram.com page, and the Explore page also
     // loads the home feed; those responses are logged but their songs aren't kept.
     for (const h of area === 'explore' ? msg.hits || [] : []) {
       const k = trackKey(h);
@@ -148,7 +148,7 @@
     queue = [];
     chain = chain.then(() => mergeBatch(batch)).catch((err) => {
       if (!alive()) detach();
-      else console.warn('[Explore Finds]', err);
+      else console.warn('[Explore Playlist Gen]', err);
     });
   };
 

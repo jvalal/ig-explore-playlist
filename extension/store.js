@@ -87,7 +87,7 @@ export function createStore() {
 
 export const connected = (st) => !!(st.spotify && st.spotify.refresh_token);
 
-// Explore finds, newest first. first_seen never changes, so existing rows never reshuffle.
+// Explore Playlist Gen, newest first. first_seen never changes, so existing rows never reshuffle.
 // (Captures from other pages saved before v0.6.4 stay in storage but aren't listed.)
 export function list(st, kind) {
   return Object.values(st.tracks)

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Explore Finds",
+  "name": "Explore Playlist Gen",
   "version": "0.0.0",
   "description": "Captures song info from the posts Instagram loads in your browser while you browse Explore, and turns it into a Spotify playlist.",
   "permissions": ["storage", "scripting", "tabs", "webNavigation"],
@@ -11,7 +11,7 @@
     "http://127.0.0.1/*"
   ],
   "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "Explore Finds", "default_popup": "sidepanel.html" },
+  "action": { "default_title": "Explore Playlist Gen", "default_popup": "sidepanel.html" },
   "content_scripts": [
     { "matches": ["https://www.instagram.com/*"], "js": ["inject.js"], "run_at": "document_start", "world": "MAIN" },
     { "matches": ["https://www.instagram.com/*"], "js": ["bridge.js"], "run_at": "document_start" }

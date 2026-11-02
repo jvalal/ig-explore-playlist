@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Explore finds</title>
+  <title>Explore Playlist Gen</title>
   <link rel="stylesheet" href="sidepanel.css">
   <link rel="stylesheet" href="welcome.css">
   <script src="theme.js"></script>
@@ -12,7 +12,7 @@
  <!-- Two screens: the songs, and Settings, which slides in from the right and pushes this one out. -->
  <div class="screen" id="main">
   <header>
-    <h1>Explore finds</h1>
+    <h1>Explore Playlist Gen</h1>
     <p class="status" id="status">Waiting for Instagram Explore</p>
     <div class="api-count" id="api-count" role="img" hidden>
       <div><span class="flip" id="flip-songs" aria-hidden="true"></span><span class="flip-label" aria-hidden="true">songs</span></div>
@@ -89,12 +89,12 @@
   <div class="setup" id="setup">
     <p class="setup-title" id="setup-summary">Connect Spotify</p>
     <div class="setup-body" id="setup-steps">
-      <p class="setup-why">Spotify lets each app serve only five people, so Explore Finds runs on a free key of your own. It takes about three minutes and needs Spotify Premium.</p>
+      <p class="setup-why">Spotify lets each app serve only five people, so Explore Playlist Gen runs on a free key of your own. It takes about three minutes and needs Spotify Premium.</p>
       <ol class="steps">
         <li class="sstep" id="step-app">
           <h3><span class="step-n" aria-hidden="true">1</span> Create your Spotify app <span class="step-state" id="step-app-state"></span></h3>
           <div class="step-body" id="step-app-body">
-            <p>Spotify's page opens in a tab. Explore Finds fills in the form there. You tick Spotify's terms box and click <strong>Save</strong>, and this step ticks itself.</p>
+            <p>Spotify's page opens in a tab. Explore Playlist Gen fills in the form there. You tick Spotify's terms box and click <strong>Save</strong>, and this step ticks itself.</p>
             <p class="step-live" id="step-live" role="status" hidden></p>
             <a class="btn primary" id="open-create" href="https://developer.spotify.com/dashboard/create" target="_blank" rel="noopener">Open Spotify's page</a>
             <p class="step-note">Already have a Spotify app? Spotify allows one per person, so open <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">your app</a> instead and press <strong>Use this app</strong> there.</p>
@@ -120,7 +120,7 @@
     </div>
     <div class="setup-body" id="setup-mobile" hidden>
       <p>A few steps connect your Spotify account. They open on a full page.</p>
-      <button class="primary" id="open-onboarding">Set up Explore Finds</button>
+      <button class="primary" id="open-onboarding">Set up Explore Playlist Gen</button>
     </div>
     <div class="setup-body" id="setup-done" hidden>
       <p>Connected as <strong id="sp-user"></strong>.</p>
@@ -132,7 +132,7 @@
   </div>
   <h2>How it works</h2>
   <div class="setup" id="howto">
-    <p class="setup-title">How Explore Finds works</p>
+    <p class="setup-title">How Explore Playlist Gen works</p>
     <div class="setup-body">
       <p>A short walkthrough: scroll Explore, pick the songs you like, send them to Spotify.</p>
       <button class="primary" id="show-welcome">Watch the walkthrough</button>
@@ -150,7 +150,7 @@
 
 
  <!-- First run: a short walkthrough over the panel (welcome.js). Also from Settings › How it works. -->
- <section class="welcome" id="welcome" aria-label="How Explore finds works" tabindex="-1" hidden>
+ <section class="welcome" id="welcome" aria-label="How Explore Playlist Gen works" tabindex="-1" hidden>
   <div class="w-top">
     <div class="w-bars" id="w-bars"><button aria-label="Step 1"></button><button aria-label="Step 2"></button><button aria-label="Step 3"></button><button aria-label="Step 4"></button></div>
     <button class="linkish w-skip" id="w-skip">Skip</button>
@@ -182,14 +182,14 @@
     <p>One button puts your picks in a new Spotify playlist, named for the day.</p>
     <div class="w-art art-send" aria-hidden="true">
       <span class="btn">Create it on Spotify with 12 songs</span>
-      <div class="done"><span class="cover">♪</span><span><b>Explore finds, today</b><small>✓ 12 songs added</small></span></div>
+      <div class="done"><span class="cover">♪</span><span><b>Explore Playlist Gen, today</b><small>✓ 12 songs added</small></span></div>
     </div>
   </div>
   <div class="w-step w-step-connect" hidden>
     <span class="w-count">Step 4 of 4</span>
     <h2>Connect Spotify</h2>
     <p class="w-connected" id="w-connected" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10"/><path d="M5.500 10.400l3 3 6-6.600"/></svg>Spotify is connected. You're all set.</p>
-    <p>Spotify lets each app serve only five people, so you make a free key of your own, once. Explore Finds fills in Spotify's form; you tick its terms box and click Save, then approve the connection.</p>
+    <p>Spotify lets each app serve only five people, so you make a free key of your own, once. Explore Playlist Gen fills in Spotify's form; you tick its terms box and click Save, then approve the connection.</p>
     <!-- Not connected: the real steps (the block from Settings is moved in here while this shows). -->
     <div class="setup w-setup" id="w-setup-slot"></div>
     <!-- Connected: a drawing of what the steps were. -->

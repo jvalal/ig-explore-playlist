@@ -21,9 +21,9 @@ The user leans to keeping it ("you can't copyright a gradient"): several live In
 glyph, or both; no case found of removal over the gradient alone; enforcement seen is
 trademark complaints over name and logo. Not submitted yet; the Safari build has no icon.
 v0.11.29: the product name is **Instagram Explore Playlist Generator** (the user's pick, 2026-11-02;
-Google features other "Instagram …" names, e.g. Instagram Transcript Generator). Changed in the
-manifest, README, PRIVACY.md and store/LISTING.md only; the panel header, banners, log prefixes
-and default playlist names still say "Explore finds".
+Google features other "Instagram …" names, e.g. Instagram Transcript Generator). Inside the extension it is
+**Explore Playlist Gen** (panel header, walkthrough, setup banners, Spotify app name the helper fills,
+new playlists "Explore Playlist Gen, Nov 2, 9:30 PM", Safari build). Older playlists keep their names.
 v0.11.28: Download CSV puts `'` in front of a cell starting with = + - @ (an original-audio title
 is typed by a stranger and a spreadsheet would run it as a formula; csv.test.mjs).
 v0.11.26: a token refresh answered `invalid_client` (the app deleted on Spotify) says so in plain

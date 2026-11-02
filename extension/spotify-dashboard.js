@@ -1,12 +1,12 @@
 // Setup helper on Spotify's developer dashboard (content script, developer.spotify.com/dashboard*).
-// It coaches the person through making the app Explore Finds needs, and tells the panel where
+// It coaches the person through making the app Explore Playlist Gen needs, and tells the panel where
 // they are (storage key `setupSeen`), so the steps in the panel follow along.
-//  - App list (/dashboard), while Explore Finds has no app yet: points at "Create app".
+//  - App list (/dashboard), while Explore Playlist Gen has no app yet: points at "Create app".
 //  - "Create app": fills the empty fields (name, description, Redirect URI, Web API) and points
 //    at Spotify's terms box, then at Save. The person ticks the terms and clicks Save themselves.
 //  - The new app's page, reached from that form: its Client ID is saved at once.
 //  - Any other app page (/dashboard/{Client ID}): offers "Use this app", and says so when the app
-//    lacks Explore Finds' Redirect URI.
+//    lacks Explore Playlist Gen's Redirect URI.
 //  - User Management of the app in use: how to let a friend in.
 // Observed on the live pages (2026-10-06 and 2026-10-11): #name, #description, #newRedirectUri,
 // button[aria-label="Add redirect URI"], checkbox labelled "Web API", #termsAccepted, a submit
@@ -22,7 +22,7 @@
   }
 
   const REDIRECT = `https://${chrome.runtime.id}.chromiumapp.org/`;
-  const APP_NAME = 'Explore Finds';
+  const APP_NAME = 'Explore Playlist Gen';
   const APP_DESC = 'Personal tool: turns songs from my Instagram Explore feed into a Spotify playlist.';
   const APP_PATH = /^\/dashboard\/([0-9a-f]{32})(?:\/|$)/i;
 
@@ -46,7 +46,7 @@
       button { font: inherit; font-weight: 600; border-radius: 8px; padding: 6px 10px; cursor: pointer;
         border: 1px solid #3346c9; background: #3346c9; color: #fff; }
       button.q { background: none; color: #3346c9; border-color: #c9d0e4; }
-    </style><div class="b" role="status"><div class="t">Explore Finds</div><div class="m"></div><div class="a"></div></div>`;
+    </style><div class="b" role="status"><div class="t">Explore Playlist Gen</div><div class="m"></div><div class="a"></div></div>`;
     root.querySelector('.m').innerHTML = html;
     const bar = root.querySelector('.a');
     for (const [label, fn, quiet] of [...actions, ['Close', () => hide(), true]]) {
@@ -129,7 +129,7 @@
     const listed = [...document.querySelectorAll('main *, form *')].some((e) => e.childElementCount === 0 && e.textContent.trim() === REDIRECT);
     if (!listed) { setValue(uri, REDIRECT); add.click(); done.push('Redirect URI'); }
     if (!webApi.checked) { webApi.click(); done.push('Web API'); }
-    filledNote = done.length ? `Filled in the ${done.join(', ')}.` : 'The form already has what Explore Finds needs.';
+    filledNote = done.length ? `Filled in the ${done.join(', ')}.` : 'The form already has what Explore Playlist Gen needs.';
     return true;
   }
   // What is left is the person's: Spotify's terms box, then Save. Called twice a second.
@@ -150,23 +150,23 @@
   }
 
   // ---------- App page ----------
-  const NEXT = '<b>Step 2 of 2.</b> Go back to the Explore Finds panel and press <b>Connect Spotify</b>.';
+  const NEXT = '<b>Step 2 of 2.</b> Go back to the Explore Playlist Gen panel and press <b>Connect Spotify</b>.';
   // The page lists its Redirect URIs as text; it renders a moment after the address changes.
   const lacksRedirect = () => {
     const text = (document.querySelector('main') || document.body).textContent || '';
     return /Redirect URIs/.test(text) && !text.includes(REDIRECT);
   };
-  const REDIRECT_HELP = `This app doesn't list Explore Finds' Redirect URI yet. Click <b>Edit</b>, add this one, and save:<br><code>${REDIRECT}</code>`;
+  const REDIRECT_HELP = `This app doesn't list Explore Playlist Gen's Redirect URI yet. Click <b>Edit</b>, add this one, and save:<br><code>${REDIRECT}</code>`;
   const copyRedirect = ['Copy it', () => { try { navigator.clipboard.writeText(REDIRECT); } catch (_) { /* no clipboard */ } }, true];
 
   async function onAppPage(clientId, fromCreate) {
     let current = null;
     try { current = await storedClientId(); } catch (_) { return; }
     if (fromCreate && current !== clientId) {
-      // They just made this app for Explore Finds: no need to ask.
+      // They just made this app for Explore Playlist Gen: no need to ask.
       try {
         await useApp(clientId);
-        banner(`Your app is saved in Explore Finds. ${NEXT}`);
+        banner(`Your app is saved in Explore Playlist Gen. ${NEXT}`);
       } catch (_) {
         banner('Couldn\'t save it (the extension was probably reloaded). Reload this page and try again.');
       }
@@ -174,11 +174,11 @@
     }
     if (current === clientId) {
       if (lacksRedirect()) banner(REDIRECT_HELP, [copyRedirect]);
-      else banner('Explore Finds is already set to use this app. If you haven\'t yet, click <b>Connect Spotify</b> in the Explore Finds panel.');
+      else banner('Explore Playlist Gen is already set to use this app. If you haven\'t yet, click <b>Connect Spotify</b> in the Explore Playlist Gen panel.');
       return;
     }
     seen('app');
-    banner(`Use this app (<code>${clientId.slice(0, 6)}…</code>) with Explore Finds?${lacksRedirect() ? `<br><br>${REDIRECT_HELP}` : ''}`, [[
+    banner(`Use this app (<code>${clientId.slice(0, 6)}…</code>) with Explore Playlist Gen?${lacksRedirect() ? `<br><br>${REDIRECT_HELP}` : ''}`, [[
       'Use this app', async () => {
         try {
           await useApp(clientId);
@@ -190,15 +190,15 @@
     ], ...(lacksRedirect() ? [copyRedirect] : [])]);
   }
 
-  // User Management of the app Explore Finds uses: how to let someone else in.
+  // User Management of the app Explore Playlist Gen uses: how to let someone else in.
   async function onUsersPage(clientId) {
     let current = null;
     try { current = await storedClientId(); } catch (_) { return; }
     if (current !== clientId) return;
-    banner('To let a friend use Explore Finds with your key, add their name and the email of their Spotify account here (five people at most), then give them your Client ID. You don\'t need to add yourself.');
+    banner('To let a friend use Explore Playlist Gen with your key, add their name and the email of their Spotify account here (five people at most), then give them your Client ID. You don\'t need to add yourself.');
   }
 
-  // The app list, for someone who has no app in Explore Finds yet.
+  // The app list, for someone who has no app in Explore Playlist Gen yet.
   async function onListPage() {
     let current = null;
     try { current = await storedClientId(); } catch (_) { return; }
@@ -208,8 +208,8 @@
     point(apps.length ? null : create);
     seen('list');
     banner(apps.length
-      ? '<b>Step 1 of 2.</b> You already have a Spotify app, and Spotify allows one per person. Open it, and Explore Finds will offer to use it.'
-      : '<b>Step 1 of 2.</b> Click <b>Create app</b>. Explore Finds fills in the form for you.');
+      ? '<b>Step 1 of 2.</b> You already have a Spotify app, and Spotify allows one per person. Open it, and Explore Playlist Gen will offer to use it.'
+      : '<b>Step 1 of 2.</b> Click <b>Create app</b>. Explore Playlist Gen fills in the form for you.');
   }
 
   // ---------- follow the dashboard's in-page navigation ----------
@@ -223,7 +223,7 @@
       if (fillTries >= 0 && fillTries < 20) {
         fillTries = fillCreateForm() ? -1 : fillTries + 1;
         if (fillTries === 20) {
-          banner('Couldn\'t fill this form automatically. The setup steps in the Explore Finds panel list the values to use ("By hand").');
+          banner('Couldn\'t fill this form automatically. The setup steps in the Explore Playlist Gen panel list the values to use ("By hand").');
           seen('create', { filled: false });
         }
       }

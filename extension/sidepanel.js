@@ -27,7 +27,7 @@ const songs = () => list(st, 'song');
 // ---------- errors ----------
 const EXPECTED = new Set(['AUTH', 'INPUT', 'RATE']);
 function handleError(err) {
-  if (!(err && EXPECTED.has(err.code))) console.warn('[Explore Finds]', err);
+  if (!(err && EXPECTED.has(err.code))) console.warn('[Explore Playlist Gen]', err);
   if (err && err.code === 'AUTH') {
     setMsg('Spotify needs you to connect again, in Settings.', true);
   } else {

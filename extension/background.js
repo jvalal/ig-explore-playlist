@@ -14,7 +14,7 @@ async function reattachToOpenTabs() {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['inject.js'], world: 'MAIN' });
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['bridge.js'] });
     } catch (err) {
-      console.warn('[Explore Finds] could not reattach to tab', tab.id, err);
+      console.warn('[Explore Playlist Gen] could not reattach to tab', tab.id, err);
     }
   }
 }

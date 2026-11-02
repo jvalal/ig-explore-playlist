@@ -163,7 +163,7 @@ check('Clear keeps the Spotify connection', !!data.spotify.refresh_token);
 check('Clear starts a new playlist: the old one is put aside (the x brings it back), nothing deleted on Spotify',
   !data.playlist && !!data.playlistUndo && !!sim.playlists[data.playlistUndo.id] && !$('#build-new').hidden && !$('#pl-undo').hidden,
   JSON.stringify({ pl: data.playlist, undo: data.playlistUndo && data.playlistUndo.id }));
-check('...and its name has the date and the time', /^Explore finds, \w+ \d+, \d+:\d\d/.test($('#pl-name').value), $('#pl-name').value);
+check('...and its name has the date and the time', /^Explore Playlist Gen, \w+ \d+, \d+:\d\d/.test($('#pl-name').value), $('#pl-name').value);
 await external({ tracks: { k9: track('k9', 'Song A', 'Artist A', 9000) } });
 await tick(100);
 check('songs captured after Clear roll in', rows().length === 1 && rows()[0].classList.contains('enter'));

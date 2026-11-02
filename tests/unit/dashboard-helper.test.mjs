@@ -49,7 +49,7 @@ function page(path, body, stored = {}) {
 {
   const p = page('/dashboard/create', CREATE_FORM);
   await tick(50);
-  check('fills the app name and description', p.$('#name').value === 'Explore Finds' && p.$('#description').value.length > 10);
+  check('fills the app name and description', p.$('#name').value === 'Explore Playlist Gen' && p.$('#description').value.length > 10);
   check('adds the Redirect URI through the Add button', p.events.adds === 1 && p.$('#uris').textContent === REDIRECT, p.$('#uris').textContent);
   check('ticks Web API (and nothing else)', p.$('#apis-used-1').checked && !p.$('#apis-used-3').checked);
   check('leaves Spotify\'s terms box for the person', !p.$('#termsAccepted').checked);
@@ -136,7 +136,7 @@ const CID = 'c0ffee00c0ffee00c0ffee00c0ffee00';
 {
   const p = page(`/dashboard/${CID}`, '<main>Basic Information Redirect URIs https://example.org/cb APIs used</main>', { spotify: {} });
   await tick(50);
-  check('an app without our Redirect URI: says to add it, and offers to copy it', /doesn't list Explore Finds' Redirect URI/.test(p.shadow().textContent) && p.shadow().textContent.includes(REDIRECT) &&
+  check('an app without our Redirect URI: says to add it, and offers to copy it', /doesn't list Explore Playlist Gen's Redirect URI/.test(p.shadow().textContent) && p.shadow().textContent.includes(REDIRECT) &&
     [...p.shadow().querySelectorAll('button')].some((b) => b.textContent === 'Copy it'), p.shadow().textContent);
   p.w.close();
 }

@@ -10,7 +10,7 @@ async function reattachToOpenTabs() {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['inject.js'], world: 'MAIN' });
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['bridge.js'] });
     } catch (err) {
-      console.warn('[Explore Finds] could not reattach to tab', tab.id, err);
+      console.warn('[Explore Playlist Gen] could not reattach to tab', tab.id, err);
     }
   }
 }
@@ -25,7 +25,7 @@ async function registerMainWorldCapture() {
       id: 'ef-inject-main', js: ['inject.js'], matches: ['https://www.instagram.com/*'], runAt: 'document_start', world: 'MAIN',
     }]);
   } catch (err) {
-    console.warn('[Explore Finds] could not register the capture script', err);
+    console.warn('[Explore Playlist Gen] could not register the capture script', err);
   }
 }
 
@@ -37,7 +37,7 @@ async function updateBadge() {
     const n = Object.values(tracks).filter((t) => t.kind === 'song' && t.areas && t.areas.explore).length;
     await chrome.action.setBadgeText({ text: n ? (n > 999 ? '999+' : String(n)) : '' });
   } catch (err) {
-    console.warn('[Explore Finds] could not update the button count', err);
+    console.warn('[Explore Playlist Gen] could not update the button count', err);
   }
 }
 chrome.storage.onChanged.addListener((changes, area) => {

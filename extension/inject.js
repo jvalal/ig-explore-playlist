@@ -216,7 +216,7 @@
           if (withSample) sample = hits.length ? text.slice(0, 300_000) : IGMP.diagnose(text).slice(0, 20_000);
           send(at, { url, name: name || null, relevant, hits, posts: [...codes].slice(0, 500), sample });
         } catch (err) {
-          console.warn('[Explore Finds]', err);
+          console.warn('[Explore Playlist Gen]', err);
         }
       }, 0);
     };
