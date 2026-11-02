@@ -8,6 +8,24 @@ Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Pr
 
 ## Current status (v0.11.29)
 
+**Safari on Mac** (2026-11-02, merged from branch `safari-mac`; the user confirmed it works in
+their Safari). `tools/mac-safari.sh` builds `dist/safari-mac` (`node tools/build-safari.mjs --mac`),
+wraps it with Apple's converter, swaps in our start screen (`platforms/safari/mac-app/`: shows
+whether the extension is on, opens Instagram Explore in Safari) and installs to `~/Applications`.
+Learned the hard way: Safari ignores an app inside the OneDrive folder; it refuses ad hoc signing
+("Computing the code signing dictionary failed", seen with `log show`), so the build signs with the
+user's free Personal Team; a rebuild must quit the running app first. Safari shows an extension
+only after Settings › Developer › "Allow unsigned extensions" (reset at every Safari quit).
+Differences from the iPhone build: no popup (Mac Safari's popup closes when you click the page),
+so the toolbar button opens the panel page as a 400 px window docked right of the Safari window,
+which shrinks if it stays ≥ 900 px (`openPanel` in platforms/safari/background.js; window id kept
+in storage `panelWindowId`). Both Safari builds now ship the Spotify dashboard helper with the
+loopback Redirect URI. Safari runs an extension on a site only once the person allows it and
+never asks for a page that fails to load, so Connect asks for accounts.spotify.com and 127.0.0.1
+and "Open Spotify's page" asks for developer.spotify.com (`askForSites` in platforms/safari/
+platform.js, `permissions.request` during the click). The setup page resumes a visit only from the
+last 30 minutes. Not yet: Mac App Store ($99/yr Apple account), a real iPhone run.
+
 **Chrome Web Store build** (v0.11.27–28, 2026-11-02; the repo is public since 2026-11-01, with a
 Ko-fi button and `.github/FUNDING.yml`). `node tools/build-webstore.mjs` writes
 `dist/explore-finds-<version>.zip`: the manifest without `key` and without "(test build)". **The
@@ -551,6 +569,7 @@ platforms/safari/   Safari (iPhone) build parts: manifest, background (login, bu
                     to onboarding.html.
 tools/build-safari.mjs  assembles dist/safari (gitignored). tools/ios-sim.sh: Xcode → Simulator.
 tools/build-webstore.mjs  zips the Chrome Web Store upload into dist/. store/LISTING.md, PRIVACY.md.
+tools/mac-safari.sh  builds and installs the Safari Mac app (build-safari.mjs --mac; platforms/safari/mac-app/).
 extension/platform.js   desktop platform (chrome.identity); the Safari build swaps this file.
 ```
 

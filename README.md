@@ -16,9 +16,26 @@ Some of the best new music I hear is in the background of posts on Instagram's E
 >
 > Not affiliated with Instagram, Meta or Spotify.
 
-## Load it
-1. `chrome://extensions` → Developer mode on → **Load unpacked** → select the `extension/` folder.
-2. Open the side panel from the toolbar icon and connect Spotify (the panel shows the Redirect URI).
+## Install
+
+One codebase, a package for each browser. You also need **Spotify Premium**; the first-run steps
+walk you through connecting your own free Spotify developer app (about three minutes).
+
+### Chrome
+Chrome Web Store listing: in review. Until then, load it yourself:
+1. Download this repo (Code → Download ZIP) and unzip it.
+2. `chrome://extensions` → **Developer mode** on → **Load unpacked** → select the `extension/` folder.
+3. Click the extension's toolbar icon: the side panel opens and walks you through setup.
+
+### Safari on Mac
+Mac App Store: planned. Until then, build it yourself (needs Xcode, free; an Apple ID added in
+Xcode › Settings › Accounts is enough):
+1. Run `tools/mac-safari.sh`. It builds the app into `~/Applications` and opens it.
+2. Safari › Settings › **Developer** → tick **Allow unsigned extensions** (Safari turns this off
+   each time it quits).
+3. Safari › Settings › **Extensions** → tick **Explore Playlist Gen**.
+4. Open Instagram Explore and click the extension's toolbar button: the panel opens as a window
+   beside Safari. When Safari asks to let it use a site (instagram.com, Spotify), choose **Allow**.
 
 ## Test it
 ```
