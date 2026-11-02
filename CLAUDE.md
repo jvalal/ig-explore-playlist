@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.28)
+## Current status (v0.11.29)
 
 **Chrome Web Store build** (v0.11.27–28, 2026-11-02; the repo is public since 2026-11-01, with a
 Ko-fi button and `.github/FUNDING.yml`). `node tools/build-webstore.mjs` writes
@@ -20,6 +20,10 @@ set from a claude.ai chat: magnifier, play button and sparkle on an Instagram-st
 The user leans to keeping it ("you can't copyright a gradient"): several live Instagram extensions use the gradient, the
 glyph, or both; no case found of removal over the gradient alone; enforcement seen is
 trademark complaints over name and logo. Not submitted yet; the Safari build has no icon.
+v0.11.29: the product name is **Instagram Explore Playlist Generator** (the user's pick, 2026-11-02;
+Google features other "Instagram …" names, e.g. Instagram Transcript Generator). Changed in the
+manifest, README, PRIVACY.md and store/LISTING.md only; the panel header, banners, log prefixes
+and default playlist names still say "Explore finds".
 v0.11.28: Download CSV puts `'` in front of a cell starting with = + - @ (an original-audio title
 is typed by a stranger and a spreadsheet would run it as a formula; csv.test.mjs).
 v0.11.26: a token refresh answered `invalid_client` (the app deleted on Spotify) says so in plain

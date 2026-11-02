@@ -1,8 +1,8 @@
-# Explore Finds privacy policy
+# Instagram Explore Playlist Generator privacy policy
 
 Last updated: November 1, 2026
 
-Explore Finds is a Chrome extension that lists the songs used in posts on your Instagram Explore
+Instagram Explore Playlist Generator is a Chrome extension that lists the songs used in posts on your Instagram Explore
 feed and helps you put them in a Spotify playlist. It has no server of its own: nothing is sent
 to the developer, and there are no analytics, ads or trackers.
 

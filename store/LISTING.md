@@ -5,7 +5,7 @@ Upload `dist/explore-finds-<version>.zip` from `node tools/build-webstore.mjs`.
 
 ## Store listing tab
 
-**Name** (from the manifest): Explore Finds
+**Name** (from the manifest): Instagram Explore Playlist Generator
 
 **Summary** (from the manifest, 132 characters max):
 Captures song info from the posts Instagram loads in your browser while you browse Explore, and turns it into a Spotify playlist.
@@ -16,7 +16,7 @@ Captures song info from the posts Instagram loads in your browser while you brow
 
 **Description:**
 
-Hear a great song on an Instagram Explore post, scroll on, and it's gone. Explore Finds keeps it for you.
+Hear a great song on an Instagram Explore post, scroll on, and it's gone. Instagram Explore Playlist Generator keeps it for you.
 
 As you scroll Explore, the side panel lists the songs used in the posts you pass, newest first. Play any of them right in the panel, untick the ones you don't want, and send the rest to a Spotify playlist with one click. Turn on auto-add and new finds go straight into that playlist as you scroll.
 
