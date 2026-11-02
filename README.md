@@ -1,4 +1,4 @@
-# Instagram Explore Playlist Generator
+# IG Explore Playlist
 
 <a href="https://ko-fi.com/jkidd"><img src=".github/kofi-badge.svg" alt="Support this project on Ko-fi" height="45"></a>
 
