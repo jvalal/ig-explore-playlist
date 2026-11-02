@@ -16,3 +16,6 @@ HEADFUL=1 npm run test:browser   # needed to judge autoplay behavior
 Browser tests drive your installed Google Chrome (override with `CHROME_PATH`).
 
 See `CLAUDE.md` for architecture, constraints, and the current open issue.
+
+## Support
+Tips are appreciated: [buy me a coffee on Ko-fi](https://ko-fi.com/jkidd).
