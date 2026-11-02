@@ -62,6 +62,13 @@ async function tokenRequest(body) {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {
+    // "invalid_client: Failed to get client": Spotify doesn't know this Client ID any more
+    // (seen 2026-10-30, the app deleted or reset on Spotify). Reconnecting with it can't work.
+    if (j.error === 'invalid_client') {
+      const gone = codedError('Spotify doesn\'t recognise your Client ID any more. The app may have been deleted on Spotify. In Settings, press Start over and set up a new app.', 'INPUT');
+      gone.refused = true;
+      throw gone;
+    }
     throw codedError(j.error_description || j.error || `Spotify login failed (${r.status}).`,
       j.error === 'invalid_grant' ? 'AUTH' : undefined);
   }

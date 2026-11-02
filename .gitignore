@@ -5,3 +5,4 @@ tests/browser/last-run-*.png
 .DS_Store
 dist/
 build/
+graphify-out/
