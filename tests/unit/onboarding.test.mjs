@@ -81,8 +81,14 @@ async function openPage(file, initial) {
 
 // ---- coming back: picks up where you left off
 {
-  const p = await openPage('onboarding.html', { spotify: { clientId: CID }, onboarding: { step: 'connect' } });
-  check('reopening resumes at the saved step', p.visible().join() === 'connect');
+  const p = await openPage('onboarding.html', { spotify: { clientId: CID }, onboarding: { step: 'connect', at: Date.now() - 60e3 } });
+  check('reopening soon after resumes at the saved step', p.visible().join() === 'connect');
+  p.window.close();
+}
+// ---- coming back much later (or from a build that kept no time): starts again at step 1
+for (const saved of [{ step: 'spotify', at: Date.now() - 3 * 3600e3 }, { step: 'spotify' }]) {
+  const p = await openPage('onboarding.html', { spotify: { clientId: CID }, onboarding: saved });
+  check(`an old visit starts at Welcome (${saved.at ? 'hours ago' : 'no time kept'})`, p.visible().join() === 'welcome' && p.$('#ob-progress').textContent === 'Step 1 of 5', p.visible().join());
   p.window.close();
 }
 {
