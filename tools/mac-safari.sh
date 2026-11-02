@@ -21,6 +21,12 @@ xcrun safari-web-extension-converter dist/safari --project-location "$OUT" --app
 PROJECT="$(find "$OUT" -maxdepth 2 -name '*.xcodeproj' | head -1)"
 xcodebuild -project "$PROJECT" -scheme "$APP" -configuration Debug -derivedDataPath "$OUT/DerivedData" \
   CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build | tail -3
-APPDIR="$(find "$OUT/DerivedData/Build/Products" -maxdepth 2 -name "$APP.app" | head -1)"
+BUILT="$(find "$OUT/DerivedData/Build/Products" -maxdepth 2 -name "$APP.app" | head -1)"
+# Safari ignores extensions from apps inside a cloud-synced folder (this repo is in OneDrive), so
+# the app runs from ~/Applications. Unregister the build copy so Safari doesn't see two.
+APPDIR="$HOME/Applications/$APP.app"
+mkdir -p "$HOME/Applications"; rm -rf "$APPDIR"; ditto "$BUILT" "$APPDIR"
+pluginkit -r "$BUILT/Contents/PlugIns/$APP Extension.appex" 2>/dev/null || true
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APPDIR"
 open "$APPDIR"
-echo "Built $APPDIR. Next, in Safari: Develop → Allow Unsigned Extensions, then Settings → Extensions → $APP."
+echo "Installed $APPDIR. Next, in Safari: Develop → Allow Unsigned Extensions, then Settings → Extensions → $APP."
