@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.31)
+## Current status (v0.11.32)
 
 **"Open Instagram Explore" comes back when you're elsewhere** (v0.11.31, the user's ask). Under the
 title, `#explore-note` shows when the tab in front isn't Explore (explore-tab.js: Explore, and
@@ -224,7 +224,7 @@ build.js), set when the box is filled, not when the playlist is created. The sta
 "Last checked just now." (was "Last just now."). Unit-tested; **not yet in the user's Chrome**.
 
 **Daily Spotify count** (v0.11.10, temporary; the user: "to understand where that break is").
-Left of the settings icon the panel shows two flip-clock counters (the user's ask, after a
+Beside the status line, under the title (since v0.11.32: pinned top right, they covered the end of the title, the user's screenshot), the panel shows two flip-clock counters (the user's ask, after a
 first version in words): SONGS (looked up today, 3 digits) and REQUESTS (4 digits), in
 split-flap tiles whose changed digits flip (`#api-count`, `.flip` / `.flap`, `setFlap` in
 sidepanel.js; still with reduced motion; hidden at zero; the tooltip says it in words, splits

@@ -205,6 +205,24 @@ try {
   if (process.env.SHOT) await w.page.screenshot({ path: `${process.env.SHOT}/s.png` });
   check('walkthrough: no page errors', w.errors.length === 0, w.errors.join(' | '));
   await w.close();
+
+  // The daily Spotify counters show beside the status line, clear of the title and the gear,
+  // at a narrow panel (they used to sit over the end of the title).
+  const d = new Date();
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  for (const width of [300, 350]) {
+    const hd = await open({ songs: 3, viewport: { width, height: 500 }, store: { spotifyCounts: { [day]: { songs: 43, requests: 50, searches: 40 } } } });
+    await tick(800);
+    const r = await hd.page.evaluate(() => {
+      const b = (q) => document.querySelector(q).getBoundingClientRect();
+      const hit = (a, c) => !(a.right <= c.left || c.right <= a.left || a.bottom <= c.top || c.bottom <= a.top);
+      const [h1, st, ac, gear] = ['#main h1', '#status', '#api-count', '#open-settings'].map(b);
+      return { shown: !document.querySelector('#api-count').hidden, hits: [hit(h1, ac), hit(st, ac), hit(h1, gear), hit(ac, gear)], titleOneLine: h1.height < 30, inside: ac.right <= innerWidth };
+    });
+    check(`${width}px panel: title, status, counters and settings don't overlap; the title stays on one line`,
+      r.shown && !r.hits.some(Boolean) && r.titleOneLine && r.inside, JSON.stringify(r));
+    await hd.close();
+  }
 } catch (err) {
   check('browser test crashed', false, err.stack);
 }

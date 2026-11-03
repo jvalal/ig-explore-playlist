@@ -74,11 +74,13 @@ body.settings-open #main { transform: translateX(-100%); visibility: hidden; tra
 .icon-btn { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); }
 .icon-btn:hover { background: var(--accent-soft); color: var(--ink); }
 .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
-#main > header { position: relative; padding-right: 52px; }
+/* Title on its own row beside the settings button; the counters sit beside the status line. */
+#main > header { position: relative; padding-right: 52px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
+#main > header h1 { grid-column: 1 / -1; }
 #open-settings { position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; }
 #open-settings svg { width: 24px; height: 24px; }
 /* Today's Spotify use, left of the settings icon (temporary, v0.11.10). */
-.api-count { position: absolute; top: 12px; right: 58px; display: flex; gap: 8px; }
+.api-count { grid-column: 2; grid-row: 2; align-self: start; margin-top: 3px; display: flex; gap: 8px; }
 .api-count > div { display: grid; justify-items: center; gap: 2px; }
 .flip-label { font-size: 9px; line-height: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 /* Split-flap digits, as on a flip clock: each digit is a top and a bottom half; on a change the
