@@ -12,6 +12,7 @@ import { saveBackup, restoreBackup, backupIfDue } from './backup.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
 import { initWelcome, renderWelcome } from './welcome.js';
+import { watchExploreTab } from './explore-tab.js';
 
 quietWhenOrphaned();
 
@@ -21,6 +22,7 @@ const { st } = store;
 const ui = {
   busy: false,                       // building a playlist
   picker: { key: null, items: null }, // manual-match picker (items null while loading)
+  onExplore: true,                    // the tab in front is Instagram Explore
 };
 
 const songs = () => list(st, 'song');
@@ -330,6 +332,7 @@ function render() {
     });
     if (hidden) newAbove(entered);
     $('#empty').hidden = items.length > 0;
+    renderExploreNote();
     renderCheckAll();
     renderStatus();
     renderSetup(st);
@@ -578,6 +581,10 @@ store.subscribe((keys) => {
 });
 $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;
 $('#open-explore').href = EXPLORE_URL;
+// Not on Explore: the link comes back under the title (the empty list has its own).
+$('#explore-note-link').href = EXPLORE_URL;
+function renderExploreNote() { $('#explore-note').hidden = ui.onExplore || !$('#empty').hidden; }
+watchExploreTab((yes) => { ui.onExplore = yes; renderExploreNote(); });
 // "reload that tab" in the empty text: reloads the Instagram tabs that are open (capture only
 // starts in a tab loaded after the extension was installed).
 $('#reload-ig').addEventListener('click', async (e) => {

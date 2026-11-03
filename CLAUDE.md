@@ -6,7 +6,16 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.30)
+## Current status (v0.11.31)
+
+**"Open Instagram Explore" comes back when you're elsewhere** (v0.11.31, the user's ask). Under the
+title, `#explore-note` shows when the tab in front isn't Explore (explore-tab.js: Explore, and
+`/p/` or `/reel/` opened from it, count as there; other sites read as no address, so as not
+there); hidden while the empty text, which has the same link, shows. Chrome: the panel's own
+window (`currentWindow`); Safari: the last normal window (`windowType`, untried in Safari). No
+new permission (tab addresses are readable for instagram.com through the host permission).
+Tested: unit/explore-tab.test.mjs (planted bug) and once in Chrome for Testing with stand-in
+Instagram pages. **Not yet in the user's Chrome.**
 
 **Back up and Restore** (v0.11.30, 2026-11-03; the user: "so a Chrome update can't cost me my
 data"). Settings › Your data (`#backup`, backup.js). **Back up** saves every kept storage key
@@ -566,6 +575,7 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     goal.js         song goal: count, progress bar, chime
     setup.js, exports.js, dom.js, backup.js (Back up / Restore)
     welcome.js/css  first-run walkthrough over the panel
+    explore-tab.js  is the tab in front Explore? (the link under the title)
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
     player.js       drives the embed iframe (protocol below); shared with the mini player
   player.html, mini.js, mini.css   pop-out mini player window (desktop only)
