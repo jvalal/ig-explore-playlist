@@ -6,7 +6,23 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.29)
+## Current status (v0.11.30)
+
+**Back up and Restore** (v0.11.30, 2026-11-03; the user: "so a Chrome update can't cost me my
+data"). Settings › Your data (`#backup`, backup.js). **Back up** saves every kept storage key
+(`BACKUP_KEYS`) to `Downloads/explore-playlist-gen-backup-YYYY-MM-DD.json` through
+`chrome.downloads` (new `downloads` permission, no Save dialog); `spotify` is cut to the Client
+ID, never tokens; who-is-playing keys (`nowPlaying`, `popIn`) are left out. **Restore** reads a
+picked file (refused unless `app` is ours; broken songs and a bad Client ID dropped) and merges:
+maps entry by entry, newer `last_seen`/`at` wins, a tie keeps what is here; lists as a union;
+playlist/prefs and such only fill what is empty; a Client ID already here stays. **Weekly**: the
+panel checks on open and when songs arrive (`backupIfDue`, storage key `lastBackupAt`, written
+before the download so two panel windows don't both save); so it runs only when the panel is open.
+Hidden in Safari (no `chrome.downloads`). Tested: unit/backup.test.mjs (jsdom panel, planted
+bugs) and tests/real/backup.real.mjs (Chrome for Testing: unpacked copy and store build side by
+side, back up from one, restore into the other: 25 of 25 rows). The real check found two weekly
+files on one open; fixed. **Not yet in the user's Chrome.** Store screenshots:
+tools/store-shots.mjs → store/screenshots/ (real panel page, stubbed data, made-up songs).
 
 **Safari on Mac** (2026-11-02, merged from branch `safari-mac`; the user confirmed it works in
 their Safari). `tools/mac-safari.sh` builds `dist/safari-mac` (`node tools/build-safari.mjs --mac`),
@@ -28,12 +44,12 @@ last 30 minutes. Not yet: Mac App Store ($99/yr Apple account), a real iPhone ru
 
 **Chrome Web Store build** (v0.11.27–28, 2026-11-02; the repo is public since 2026-11-01, with a
 Ko-fi button and `.github/FUNDING.yml`). `node tools/build-webstore.mjs` writes
-`dist/explore-finds-<version>.zip`: the manifest without `key` and without "(test build)". **The
+`dist/explore-finds-store.zip`: the manifest without `key` and without "(test build)". **The
 store copy gets its own extension ID**, so its own Spotify Redirect URI and its own storage;
 `redirectUri()` and the dashboard helper read the ID at run time. Listing text, permission
-justifications and data answers are in `store/LISTING.md`; the privacy policy is `PRIVACY.md`
-(linked from the listing; keep it true when data handling changes). Unlisted vs public: recommended
-unlisted to start; not decided. Icons (`extension/icon-{16,32,48,128}.png`, flat for the Safari build) are the user's own
+justifications and data answers are in `store/LISTING.md`; the privacy policy is `docs/privacy.md`
+(linked from the listing; keep it true when data handling changes). Visibility: **Private**, the
+user as trusted tester (their call, 2026-11-03). Icons (`extension/icon-{16,32,48,128}.png`, flat for the Safari build) are the user's own
 set from a claude.ai chat: magnifier, play button and sparkle on an Instagram-style gradient.
 The user leans to keeping it ("you can't copyright a gradient"): several live Instagram extensions use the gradient, the
 glyph, or both; no case found of removal over the gradient alone; enforcement seen is
@@ -548,7 +564,7 @@ extension/          the unpacked extension (load this folder in chrome://extensi
     match-queue.js  one matching queue for background prematch, Play and Build
     build.js        playlist create / add, and auto-add (syncMatched)
     goal.js         song goal: count, progress bar, chime
-    setup.js, exports.js, dom.js
+    setup.js, exports.js, dom.js, backup.js (Back up / Restore)
     welcome.js/css  first-run walkthrough over the panel
     playback.js     what is playing / was pressed; list order for Next/Prev/auto-advance
     player.js       drives the embed iframe (protocol below); shared with the mini player
@@ -568,12 +584,12 @@ platforms/safari/   Safari (iPhone) build parts: manifest, background (login, bu
                     setup.js shows the desktop steps or, when PLATFORM is 'safari', a link
                     to onboarding.html.
 tools/build-safari.mjs  assembles dist/safari (gitignored). tools/ios-sim.sh: Xcode → Simulator.
-tools/build-webstore.mjs  zips the Chrome Web Store upload into dist/. store/LISTING.md, PRIVACY.md.
+tools/build-webstore.mjs  zips the Chrome Web Store upload into dist/. store/LISTING.md, docs/privacy.md, tools/store-shots.mjs.
 tools/mac-safari.sh  builds and installs the Safari Mac app (build-safari.mjs --mac; platforms/safari/mac-app/).
 extension/platform.js   desktop platform (chrome.identity); the Safari build swaps this file.
 ```
 
-Storage keys (chrome.storage.local): `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
+Storage keys (chrome.storage.local): `lastBackupAt`, `tracks`, `log`, `samples`, `seen`, `prefs`, `matches`, `excluded`,
 `playlistUndo`, `spotifyLimit`, `spotifyCounts`, `added`, `welcomed`, `setupSeen`,
 `spotify` (clientId + tokens), `playlist`. (`playbackDevice` from v0.4 may linger; unused.)
 

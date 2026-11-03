@@ -1,7 +1,7 @@
 # Chrome Web Store listing
 
 Text to paste into the Developer Dashboard (chrome.google.com/webstore/devconsole).
-Upload `dist/explore-finds-<version>.zip` from `node tools/build-webstore.mjs`.
+Upload `dist/explore-finds-store.zip` from `node tools/build-webstore.mjs`.
 
 ## Store listing tab
 
@@ -26,6 +26,7 @@ As you scroll Explore, the side panel lists the songs used in the posts you pass
 • Creates a Spotify playlist and adds new finds, by hand or automatically
 • Search YouTube for a song Spotify doesn't have
 • Light and dark looks, a song goal, and a CSV download of everything found
+• Back up your list to a file (also saved automatically once a week) and restore it later
 
 Setup takes about three minutes: Spotify only lets each developer app have five users, so you make your own free Spotify app and the extension walks you through it, filling in Spotify's form for you. Needs Spotify Premium.
 
@@ -48,6 +49,7 @@ List the songs used in the posts of the user's Instagram Explore feed, and let t
 - `storage`: keeps the list of songs found, their Spotify matches, the user's settings and Spotify login in the browser.
 - `sidePanel`: the extension's interface is a side panel next to Instagram.
 - `identity`: signs the user in to their own Spotify account (`chrome.identity.launchWebAuthFlow`, OAuth with PKCE).
+- `downloads`: saves the user's backup file (their own song list and settings, without Spotify login tokens) to their Downloads folder, when they press Back up and once a week automatically, without a Save dialog each time.
 - `scripting`: after an install or update, re-attaches the song reader to Instagram tabs that are already open, so the user doesn't have to reload them.
 - Host `https://www.instagram.com/*`: reads the post data Instagram's page has already loaded, to find the song title and artist of each post. Also used to reload open Instagram tabs when the user asks.
 - Host `https://accounts.spotify.com/*` and `https://api.spotify.com/*`: Spotify login, song search, creating the playlist and adding songs, saving to Liked Songs.
@@ -61,24 +63,41 @@ List the songs used in the posts of the user's Instagram Explore feed, and let t
 
 Certify all three: not sold to third parties; not used or transferred for purposes unrelated to the single purpose; not used for creditworthiness or lending.
 
-**Privacy policy URL:** https://github.com/jvalal/ig-explore-playlist/blob/main/PRIVACY.md
+**Privacy policy URL:** https://github.com/jvalal/ig-explore-playlist/blob/main/docs/privacy.md
 
 ## Distribution tab
 
-**Visibility:** Unlisted (only people with the link can find it) to start; Public later if wanted.
+**Visibility:** Private (only trusted testers can see and install it). Unlisted or Public can be
+picked later on the same tab.
 
 ## Screenshots
 
-Take them in your own Chrome with the store version installed, window at 1280×800:
-1. Instagram Explore with the side panel open and a dozen songs listed.
-2. A song playing in the panel (the moving bars on its row).
-3. The playlist block after "Create it on Spotify", with the playlist link.
-4. Settings › Spotify, connected.
-5. The first-run walkthrough, step 1.
+`store/screenshots/1-songs.png`, `2-settings.png`, `3-walkthrough.png` (1280×800), made by
+`cd tests && node ../tools/store-shots.mjs`: the real side panel page (its HTML, CSS and code) in
+Chrome, with made-up songs and Spotify stubbed, so no Instagram posts or accounts are shown.
+Re-run after a visible change to the panel.
 
-## After it's approved
+## Steps only you can do
 
-The store copy has its own extension ID, so its Spotify Redirect URI differs from the unpacked
-copy's. Add the new one to your Spotify app (Settings › Spotify shows it under "By hand", and the
-dashboard helper says when it's missing), then connect. The store copy has its own storage, so
-it starts with an empty list.
+1. **Developer account.** https://chrome.google.com/webstore/devconsole, sign in with the Google
+   account to publish from, accept the agreement, pay the one-time US$5 fee, verify the contact
+   email.
+2. **Build and upload.** `node tools/build-webstore.mjs`, then in the dashboard: **New item** →
+   upload `dist/explore-finds-store.zip`.
+3. **Fill the tabs** from this file: Store listing (description, category, the three screenshots,
+   the 128 px icon `extension/icon-128.png`), Privacy (single purpose, each justification, data
+   usage, the privacy policy URL; the policy must be live on GitHub, so push `docs/privacy.md`
+   first).
+4. **Distribution tab:** Visibility → **Private**.
+5. **Trusted testers:** dashboard **Account** page (not the item) → Trusted testers → add your own
+   Google account's email (and anyone else's), then Save. Only those accounts can install it.
+6. **Submit for review.** After approval, open the listing link while signed in to Chrome with a
+   trusted-tester account and **Add to Chrome**.
+7. **Spotify Redirect URI.** The store copy has its own extension ID: copy it from
+   `chrome://extensions` (or the listing URL), and add
+   `https://<store-extension-id>.chromiumapp.org/` to your Spotify app at
+   developer.spotify.com/dashboard → your app → Settings → Edit → Redirect URIs → Add → Save.
+   Keep the unpacked copy's URI (`https://adnfnkniiefhlojabhejngpkefohmnhg.chromiumapp.org/`)
+   so both work. The panel's Settings › Spotify › "By hand" shows the URI to add.
+8. **Move your list over.** The store copy starts empty (its own storage). In the unpacked copy:
+   Settings › **Back up**. In the store copy: Settings › **Restore** → pick that file. Then Connect.

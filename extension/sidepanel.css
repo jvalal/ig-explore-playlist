@@ -66,6 +66,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 body.settings-open .settings { transform: none; visibility: visible; transition: transform 240ms ease, visibility 0s; }
 body.settings-open #main { transform: translateX(-100%); visibility: hidden; transition: transform 240ms ease, visibility 0s 240ms; }
 @media (prefers-reduced-motion: reduce) { .screen, .settings, body.settings-open .settings, body.settings-open #main { transition: none; } }
+/* Settings is taller than a short panel: it scrolls, and nothing in it is squeezed to fit. */
+.settings > * { flex-shrink: 0; }
 .settings header { display: flex; align-items: center; gap: 6px; padding-left: 8px; }
 .settings h2 { margin: 12px 16px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .settings .version { margin: 0 16px 16px; text-align: left; font-size: 12px; }

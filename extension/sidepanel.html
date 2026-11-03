@@ -144,6 +144,19 @@
     <label><input type="radio" name="theme" value="dark"> Dark</label>
     <label><input type="radio" name="theme" value="system"> Follow system</label>
   </div>
+  <h2>Your data</h2>
+  <div class="setup" id="backup">
+    <p class="setup-title">Back up your list</p>
+    <div class="setup-body">
+      <p>Saves your songs, matches, choices and playlist to a file in Downloads. Your Spotify login stays out of it. A backup is also saved there once a week.</p>
+      <div class="row-actions">
+        <button id="backup-save">Back up</button>
+        <button id="backup-restore">Restore</button>
+        <input type="file" id="backup-file" accept=".json,application/json" hidden>
+      </div>
+      <p class="msg" id="backup-msg" role="status"></p>
+    </div>
+  </div>
   <h2>About</h2>
   <p class="version"><span id="version"></span> · <button id="dl-json" class="linkish">Debug data</button></p>
  </section>

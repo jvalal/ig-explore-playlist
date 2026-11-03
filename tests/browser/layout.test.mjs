@@ -46,6 +46,12 @@ try {
   const s1 = await screens();
   check('the gear slides Settings in and the songs out to the left', s1.settings === 0 && s1.setVis === 'visible' && s1.main <= -s1.w && s1.mainVis === 'hidden', JSON.stringify(s1));
   check('...with a back arrow in the upper left', s1.back < 60 && await onScreen(page, '#settings-back') && await onScreen(page, '#setup'), JSON.stringify(s1));
+  await page.setViewport({ width: 380, height: 560 });
+  await tick(150);
+  const heights = await page.evaluate(() => ['.theme-pick', '#backup', '#backup-save'].map((q) => Math.round(document.querySelector(q).getBoundingClientRect().height)));
+  check('Settings taller than the panel scrolls; nothing in it is squeezed (Appearance, Your data)', heights[0] >= 30 && heights[1] >= 100 && heights[2] >= 24, JSON.stringify(heights));
+  await page.setViewport({ width: 380, height: 760 });
+  await tick(150);
   // Appearance: Light (Daylight), Dark, Follow system.
   const look = () => page.evaluate(() => ({ theme: document.documentElement.dataset.theme, scheme: document.documentElement.dataset.scheme, bg: getComputedStyle(document.body).backgroundColor, font: getComputedStyle(document.body).fontFamily.split(',')[0].trim(), picked: (document.querySelector('.theme-pick input:checked') || {}).value, rowBorder: getComputedStyle(document.querySelector('#list > li.row')).borderTopWidth, rowRadius: getComputedStyle(document.querySelector('#list > li.row')).borderTopLeftRadius }));
   const pick = async (v) => { await page.evaluate((val) => document.querySelector(`.theme-pick input[value="${val}"]`).closest('label').click(), v); await tick(150); return look(); };

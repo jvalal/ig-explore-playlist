@@ -8,6 +8,7 @@ import { buildPlaylist, syncMatched, defaultName } from './build.js';
 import { renderGoal } from './goal.js';
 import { renderSetup, wireSetup, openSettingsForSetup } from './setup.js';
 import { downloadCsv, downloadDebug } from './exports.js';
+import { saveBackup, restoreBackup, backupIfDue } from './backup.js';
 import { Player } from './player.js';
 import { Playback } from './playback.js';
 import { initWelcome, renderWelcome } from './welcome.js';
@@ -499,6 +500,38 @@ $('#dl-json').addEventListener('click', async () => {
   downloadDebug(st, { version: chrome.runtime.getManifest().version, playback: { player: player.state, key: playback.key }, recent_spotify_calls: S.callLog, spotify_counts: spotifyCounts, player_trace: playerTrace });
 });
 
+// ---------- backup ----------
+const backupMsg = (text) => { $('#backup-msg').textContent = text; };
+$('#backup-save').addEventListener('click', async () => {
+  try {
+    const n = await saveBackup();
+    backupMsg(`Saved a backup of ${n} ${n === 1 ? 'capture' : 'captures'} to Downloads.`);
+  } catch (err) {
+    console.warn('[Explore Playlist Gen] backup', err);
+    backupMsg(`Couldn't save the backup: ${err.message}`);
+  }
+});
+$('#backup-restore').addEventListener('click', () => $('#backup-file').click());
+$('#backup-file').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // the same file can be picked again
+  if (!file) return;
+  try {
+    const { songs: n, added } = await restoreBackup(await file.text());
+    backupMsg(`Restored. ${added} ${added === 1 ? 'song' : 'songs'} added back, ${n} in the list.`);
+  } catch (err) {
+    backupMsg(err.message);
+  }
+});
+// The weekly backup is checked when the panel opens and when songs arrive.
+// Needs chrome.downloads, which Safari doesn't have: there the card is hidden.
+$('#backup').hidden = !chrome.downloads;
+function weeklyBackup() {
+  if (!chrome.downloads) return;
+  backupIfDue(Object.keys(st.tracks).length > 0)
+    .catch((err) => console.warn('[Explore Playlist Gen] weekly backup', err));
+}
+
 // The player and playlist block is pinned to the top and covers what scrolls under it. Tell the
 // browser how tall it is, so anything scrolled into view (a row, a picker) stops below it.
 if (typeof ResizeObserver !== 'undefined') {
@@ -540,6 +573,7 @@ $('#clear').addEventListener('click', async (e) => {
 store.subscribe((keys) => {
   render();
   if (keys.has('tracks') || keys.has('spotify')) prematch();
+  if (keys.has('tracks')) weeklyBackup();
   if (['matches', 'tracks', 'excluded', 'playlist', 'prefs'].some((k) => keys.has(k))) scheduleSync();
 });
 $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;

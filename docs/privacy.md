@@ -1,10 +1,12 @@
 # Instagram Explore Playlist Generator privacy policy
 
-Last updated: November 1, 2026
+Last updated: November 3, 2026
 
 Instagram Explore Playlist Generator is a Chrome extension that lists the songs used in posts on your Instagram Explore
-feed and helps you put them in a Spotify playlist. It has no server of its own: nothing is sent
-to the developer, and there are no analytics, ads or trackers.
+feed and helps you put them in a Spotify playlist. It has no server of its own: everything
+stays in Chrome on your computer, nothing is sent to the developer, and there are no analytics,
+ads or trackers. Spotify is reached through a Spotify developer app that you create and own, with
+your own Spotify account; the developer of this extension has no access to it.
 
 ## What it reads
 - **On instagram.com:** the post data Instagram's own page has already loaded while you scroll.
@@ -23,6 +25,11 @@ the songs found, their Spotify matches, your settings, the playlist it made, the
 troubleshooting log above, and your Spotify Client ID and login tokens. Removing the extension deletes all of it. **Clear captures** in the
 panel removes the song list.
 
+**Backups.** **Back up** in Settings, and an automatic backup once a week, save a copy of that
+storage as a file in your Downloads folder, without your Spotify login tokens (the Client ID is
+included). The files stay on your computer: delete them like any other file. **Restore** reads a
+file you pick and merges it back into the extension's storage.
+
 ## What it sends, and where
 Only to Spotify, and only for your own account:
 - **Spotify login** (accounts.spotify.com), when you connect.
@@ -33,7 +40,8 @@ Only to Spotify, and only for your own account:
 Spotify's own privacy policy applies to that: https://www.spotify.com/legal/privacy-policy/
 
 The **Search YouTube** link opens YouTube's search in a new tab only when you click it.
-**Download CSV** and **Debug data** save a file to your computer only when you press them.
+**Download CSV** and **Debug data** save a file to your computer only when you press them; backups
+are described above.
 
 ## Selling and sharing
 None of your data is sold, shared, or used for anything other than the features above.

@@ -9,7 +9,7 @@ Some of the best new music I hear is in the background of posts on Instagram's E
 
 > [!IMPORTANT]
 > **No data collection. No auto-scrolling.**
-> - **Nothing is collected.** No account, no server, no analytics. Your list stays in your browser; the only service it talks to is Spotify, through your own account. See [PRIVACY.md](PRIVACY.md).
+> - **Nothing is collected.** No account, no server, no analytics. Your list stays in your browser; the only service it talks to is Spotify, through your own account. See [docs/privacy.md](docs/privacy.md).
 > - **No automation.** You scroll Explore yourself. The extension never scrolls, clicks, likes, follows, posts or sends messages for you.
 > - **No requests to Instagram.** It only reads the posts Instagram has already loaded in your browser while you scroll.
 > - **No Instagram login.** It never asks for or reads your Instagram password or login cookies.

@@ -9,7 +9,8 @@ export const connectedSpotify = () => ({
   scope: 'playlist-modify-private playlist-modify-public', user: 'jkidd',
 });
 
-export async function boot(sim, initial = {}) {
+// more: extra chrome.* APIs (e.g. downloads).
+export async function boot(sim, initial = {}, more = {}) {
   const html = fs.readFileSync(EXT_DIR + 'sidepanel.html', 'utf8').replace(/<script.*<\/script>/g, '');
   const dom = new JSDOM(html, { pretendToBeVisual: true, url: 'chrome-extension://abc/sidepanel.html' });
   Object.assign(globalThis, {
@@ -22,6 +23,7 @@ export async function boot(sim, initial = {}) {
     storage: { local: storage.local, onChanged: storage.onChanged },
     identity: { getRedirectURL: () => 'https://abc.chromiumapp.org/' },
     runtime: { getManifest: () => JSON.parse(fs.readFileSync(EXT_DIR + 'manifest.json', 'utf8')) },
+    ...more,
   };
   globalThis.fetch = sim.fetch;
   await import(`${EXT_DIR}sidepanel.js?${Math.random()}`);

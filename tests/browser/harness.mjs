@@ -83,6 +83,7 @@ export async function open({ songs = 30, misses = [], viewport = { width: 380, h
       },
       identity: { getRedirectURL: () => 'https://adnfnkniiefhlojabhejngpkefohmnhg.chromiumapp.org/' },
       runtime: { getManifest: () => manifest, id: 'test' },
+      downloads: { download: async () => 1 },
     };
     const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
     const realFetch = window.fetch.bind(window);
