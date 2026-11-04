@@ -17,7 +17,7 @@ Spotify's official embed, with the user's own accounts; nothing is bundled.
 Spotify pages).
 **Privacy Policy URL:** https://github.com/jvalal/ig-explore-playlist/blob/main/docs/privacy.md
 
-## Version page (0.11.34)
+## Version page (0.11.35)
 
 **Promotional text** (170 max):
 Hear a great song on Instagram Explore, scroll on, and it's gone. This Safari extension keeps it,
@@ -64,8 +64,8 @@ Spotify account and own Spotify app.
 ## App Review Information
 
 **Sign-in required:** No account with us. The reviewer needs an Instagram account and a Spotify
-Premium account of their own; we have no demo accounts to give. Attach a screen recording
-(App Review › Attachment) showing setup, capture and playlist creation.
+Premium account of their own; we have no demo accounts to give. Submitted without a video
+(2026-11-04); record one if Apple asks.
 
 **Notes:**
 
@@ -74,14 +74,14 @@ This app is a container for a Safari Web Extension. To try it:
 1. Open the app, then turn on "Explore Playlist Gen" in Safari › Settings › Extensions, and allow it on instagram.com.
 2. Open instagram.com/explore in Safari (any Instagram account) and click the extension's toolbar button. A panel opens beside the Safari window.
 3. Scroll Explore. Songs used in the posts appear in the panel.
-4. To play songs and make a playlist, the extension connects to Spotify. Spotify limits each developer app to five users, so each person creates their own free Spotify developer app; Settings › Spotify walks through it and fills in Spotify's form. Spotify requires Premium for this. The attached video shows the whole flow.
+4. To play songs and make a playlist, the extension connects to Spotify. Spotify limits each developer app to five users, so each person creates their own free Spotify developer app; Settings › Spotify walks through it and fills in Spotify's form. Spotify requires Premium for this.
 
 The extension only reads the post data Instagram's own page has already loaded. It makes no requests to Instagram, never automates anything (no scrolling, clicking or posting), has no server, and sends nothing to the developer. Spotify is reached only with the user's own account.
 
 ## Steps only you can do
 
 1. Push `docs/privacy.md` so the policy URL shows the Safari wording.
-2. Fill the fields above. In the version page, pick the uploaded build (0.11.34).
+2. Fill the fields above. In the version page, set the version to 0.11.35 and pick that build.
 3. Screenshots and the review video.
 4. Pricing and Availability: Free, all countries (or pick).
 5. Add for Review, then Submit.
