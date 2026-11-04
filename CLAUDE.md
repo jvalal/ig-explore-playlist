@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.33)
+## Current status (v0.11.34)
 
 **"Open Instagram Explore" comes back when you're elsewhere** (v0.11.31, the user's ask). Under the
 title, `#explore-note` shows when the tab in front isn't Explore (explore-tab.js: Explore, and
@@ -55,7 +55,11 @@ last 30 minutes. Not yet: a real iPhone run.
 "Jason Valalik (Personal Team)" `7B3GB44F7V`. That *is* the paid team: same ID after enrolling,
 Xcode's label just stays stale. `TEAM=7B3GB44F7V tools/mac-safari.sh --store` worked on
 2026-11-04 (archive + export, .pkg signed "3rd Party Mac Developer Installer", Mac Team Store
-profile). `--upload` sends it to App Store Connect; not run yet (needs the app record first). Every build now gets a sharp app icon
+profile). App Store Connect record created by the user: name "Instagram Explore Playlist Gen"
+(the 30-character cap; their call to try the Chrome name and see if Apple objects), SKU
+explore-playlist-gen. `--upload` sent v0.11.34 (build 2026110412xx) on 2026-11-04, after Apple
+refused the first try: a Safari manifest `description` must be ≤ 112 characters (the Safari
+manifest now has a 101-character one; Chrome's 129-character one is unchanged). Every build now gets a sharp app icon
 (`platforms/safari/mac-app/AppIcon.svg`, my redraw of the 128 px icon on Apple's 824-on-1024
 grid, rendered to `AppIcon-1024.png` with AppKit; the converter had enlarged the 128 px one onto
 a grey plate), version from the manifest, build number `YYYYMMDDHHMM`, category Music. Still to

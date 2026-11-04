@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Explore Playlist Gen",
   "version": "0.0.0",
-  "description": "Captures song info from the posts Instagram loads in your browser while you browse Explore, and turns it into a Spotify playlist.",
+  "description": "Captures the songs in the Instagram Explore posts you browse, and turns them into a Spotify playlist.",
   "icons": {
     "16": "icon-16.png",
     "32": "icon-32.png",
