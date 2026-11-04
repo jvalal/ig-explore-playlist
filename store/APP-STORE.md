@@ -71,7 +71,7 @@ Premium account of their own; we have no demo accounts to give. Attach a screen 
 
 This app is a container for a Safari Web Extension. To try it:
 
-1. Open the app, then turn on "Instagram Explore Playlist Gen" in Safari › Settings › Extensions, and allow it on instagram.com.
+1. Open the app, then turn on "Explore Playlist Gen" in Safari › Settings › Extensions, and allow it on instagram.com.
 2. Open instagram.com/explore in Safari (any Instagram account) and click the extension's toolbar button. A panel opens beside the Safari window.
 3. Scroll Explore. Songs used in the posts appear in the panel.
 4. To play songs and make a playlist, the extension connects to Spotify. Spotify limits each developer app to five users, so each person creates their own free Spotify developer app; Settings › Spotify walks through it and fills in Spotify's form. Spotify requires Premium for this. The attached video shows the whole flow.
