@@ -10,9 +10,9 @@ Back up, so neither is mentioned here.
 **Name** (30 max): Instagram Explore Playlist Gen
 **Subtitle** (30 max): Save the songs you scroll past
 **Category:** Music. Secondary: Entertainment.
-**Content rights:** No, it doesn't contain, show or access third-party content. (It shows song
-titles and plays Spotify's own player; nothing is bundled.) If Apple pushes back, the answer is
-"Yes, and I have the rights": the songs play through Spotify's official embed.
+**Content rights:** "Yes, it contains, shows or accesses third-party content", then "I have the
+necessary rights": it shows song titles from Instagram posts and plays songs only through
+Spotify's official embed, with the user's own accounts; nothing is bundled.
 **Age rating:** None for every question. No unrestricted web access (it only opens Instagram and
 Spotify pages).
 **Privacy Policy URL:** https://github.com/jvalal/ig-explore-playlist/blob/main/docs/privacy.md
