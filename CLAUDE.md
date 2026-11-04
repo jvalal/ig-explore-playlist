@@ -62,7 +62,8 @@ refused the first try: a Safari manifest `description` must be ≤ 112 character
 manifest now has a 101-character one; Chrome's 129-character one is unchanged).
 v0.11.35: in Safari, Settings showed an empty "Your data" heading (the Back up card is hidden
 there); now hidden with it (backup.test.mjs). The browser harness gives `chrome.downloads` only
-to builds whose manifest asks for it. Mac screenshots: `tools/store-shots.mjs --mac`. Uploaded
+to builds whose manifest asks for it. Mac screenshots: `tools/store-shots.mjs --mac`. **Submitted for Mac App Store review 2026-11-04**
+(build 0.11.35, version 0.11.35, no review video; listing text in store/APP-STORE.md). Uploaded
 build is still 0.11.34 (has that empty heading). `EXT_DIR=dist/safari` browser runs still
 have older Safari-only failures (Pop out tests; a playback crash), not from this. Every build now gets a sharp app icon
 (`platforms/safari/mac-app/AppIcon.svg`, my redraw of the 128 px icon on Apple's 824-on-1024
