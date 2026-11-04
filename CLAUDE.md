@@ -52,9 +52,10 @@ platform.js, `permissions.request` during the click). The setup page resumes a v
 last 30 minutes. Not yet: a real iPhone run.
 **Mac App Store prep** (v0.11.33, 2026-11-04). The user re-enrolled in the Apple Developer Program
 (Apple ID jvalal@gmail.com; "enrollment complete" on the site), but Xcode still showed only the
-free "Jason Valalik (Personal Team)" `7B3GB44F7V` that day: activation pending. `TEAM=<paid id>
-tools/mac-safari.sh --store` archives and exports a .pkg to build/mac/export; `--upload` sends it
-to App Store Connect (both untried: no paid team yet). Every build now gets a sharp app icon
+"Jason Valalik (Personal Team)" `7B3GB44F7V`. That *is* the paid team: same ID after enrolling,
+Xcode's label just stays stale. `TEAM=7B3GB44F7V tools/mac-safari.sh --store` worked on
+2026-11-04 (archive + export, .pkg signed "3rd Party Mac Developer Installer", Mac Team Store
+profile). `--upload` sends it to App Store Connect; not run yet (needs the app record first). Every build now gets a sharp app icon
 (`platforms/safari/mac-app/AppIcon.svg`, my redraw of the 128 px icon on Apple's 824-on-1024
 grid, rendered to `AppIcon-1024.png` with AppKit; the converter had enlarged the 128 px one onto
 a grey plate), version from the manifest, build number `YYYYMMDDHHMM`, category Music. Still to
