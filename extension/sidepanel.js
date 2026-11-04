@@ -527,8 +527,8 @@ $('#backup-file').addEventListener('change', async (e) => {
   }
 });
 // The weekly backup is checked when the panel opens and when songs arrive.
-// Needs chrome.downloads, which Safari doesn't have: there the card is hidden.
-$('#backup').hidden = !chrome.downloads;
+// Needs chrome.downloads, which Safari doesn't have: there the card and its heading are hidden.
+$('#backup').hidden = $('#backup').previousElementSibling.hidden = !chrome.downloads;
 function weeklyBackup() {
   if (!chrome.downloads) return;
   backupIfDue(Object.keys(st.tracks).length > 0)

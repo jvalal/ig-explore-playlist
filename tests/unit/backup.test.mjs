@@ -59,6 +59,8 @@ check('merge is not just "backup wins"', m.tracks.k1.posts[0].code === 'new');
 const sim = makeSim();
 const { storage, $ } = await boot(sim, { spotify: {}, tracks: {}, matches: {} });
 check('the fresh copy starts empty', rows().length === 0);
+check('without chrome.downloads (Safari) the card and its "Your data" heading are hidden',
+  $('#backup').hidden && $('#backup').previousElementSibling.hidden && $('#backup').previousElementSibling.textContent === 'Your data');
 const input = $('#backup-file');
 Object.defineProperty(input, 'files', { configurable: true, value: [new File([file], 'backup.json', { type: 'application/json' })] });
 input.dispatchEvent(new window.Event('change'));

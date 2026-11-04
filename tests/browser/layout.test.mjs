@@ -49,7 +49,8 @@ try {
   await page.setViewport({ width: 380, height: 560 });
   await tick(150);
   const heights = await page.evaluate(() => ['.theme-pick', '#backup', '#backup-save'].map((q) => Math.round(document.querySelector(q).getBoundingClientRect().height)));
-  check('Settings taller than the panel scrolls; nothing in it is squeezed (Appearance, Your data)', heights[0] >= 30 && heights[1] >= 100 && heights[2] >= 24, JSON.stringify(heights));
+  const hasBackup = await page.evaluate(() => !document.querySelector('#backup').hidden); // hidden in Safari builds
+  check('Settings taller than the panel scrolls; nothing in it is squeezed (Appearance, Your data)', heights[0] >= 30 && (!hasBackup || (heights[1] >= 100 && heights[2] >= 24)), JSON.stringify(heights));
   await page.setViewport({ width: 380, height: 760 });
   await tick(150);
   // Appearance: Light (Daylight), Dark, Follow system.

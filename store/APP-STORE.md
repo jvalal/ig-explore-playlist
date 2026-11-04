@@ -50,8 +50,9 @@ music,songs,song finder,reels,discover,soundtrack,audio,tracks,trending,saver,mi
 **Marketing URL** (optional): https://github.com/jvalal/ig-explore-playlist
 **Copyright:** 2026 Jason Valalik
 
-**Screenshots:** Mac sizes, 16:10, e.g. 2880×1800 or 1280×800; 1 to 10. Not made yet: the
-Chrome ones show Chrome's side panel, and Apple wants the app as it runs on the Mac.
+**Screenshots** (2880×1800): `store/screenshots-mac/1-songs.png`, `2-settings.png`, `3-dark.png`,
+made by `node tools/build-safari.mjs --mac && cd tests && node ../tools/store-shots.mjs --mac`: the
+Safari Mac build's panel in a Mac window frame, made-up songs, Spotify stubbed.
 
 ## App Privacy
 

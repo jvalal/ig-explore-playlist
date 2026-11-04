@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.34)
+## Current status (v0.11.35)
 
 **"Open Instagram Explore" comes back when you're elsewhere** (v0.11.31, the user's ask). Under the
 title, `#explore-note` shows when the tab in front isn't Explore (explore-tab.js: Explore, and
@@ -59,7 +59,12 @@ profile). App Store Connect record created by the user: name "Instagram Explore 
 (the 30-character cap; their call to try the Chrome name and see if Apple objects), SKU
 explore-playlist-gen. `--upload` sent v0.11.34 (build 2026110412xx) on 2026-11-04, after Apple
 refused the first try: a Safari manifest `description` must be ≤ 112 characters (the Safari
-manifest now has a 101-character one; Chrome's 129-character one is unchanged). Every build now gets a sharp app icon
+manifest now has a 101-character one; Chrome's 129-character one is unchanged).
+v0.11.35: in Safari, Settings showed an empty "Your data" heading (the Back up card is hidden
+there); now hidden with it (backup.test.mjs). The browser harness gives `chrome.downloads` only
+to builds whose manifest asks for it. Mac screenshots: `tools/store-shots.mjs --mac`. Uploaded
+build is still 0.11.34 (has that empty heading). `EXT_DIR=dist/safari` browser runs still
+have older Safari-only failures (Pop out tests; a playback crash), not from this. Every build now gets a sharp app icon
 (`platforms/safari/mac-app/AppIcon.svg`, my redraw of the 128 px icon on Apple's 824-on-1024
 grid, rendered to `AppIcon-1024.png` with AppKit; the converter had enlarged the 128 px one onto
 a grey plate), version from the manifest, build number `YYYYMMDDHHMM`, category Music. Still to

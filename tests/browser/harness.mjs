@@ -83,7 +83,8 @@ export async function open({ songs = 30, misses = [], viewport = { width: 380, h
       },
       identity: { getRedirectURL: () => 'https://adnfnkniiefhlojabhejngpkefohmnhg.chromiumapp.org/' },
       runtime: { getManifest: () => manifest, id: 'test' },
-      downloads: { download: async () => 1 },
+      // Only builds that ask for it get it: Safari has no chrome.downloads.
+      downloads: (manifest.permissions || []).includes('downloads') ? { download: async () => 1 } : undefined,
     };
     const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
     const realFetch = window.fetch.bind(window);
