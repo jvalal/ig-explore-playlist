@@ -62,7 +62,7 @@ user as trusted tester (their call, 2026-11-03). Icons (`extension/icon-{16,32,4
 set from a claude.ai chat: magnifier, play button and sparkle on an Instagram-style gradient.
 The user leans to keeping it ("you can't copyright a gradient"): several live Instagram extensions use the gradient, the
 glyph, or both; no case found of removal over the gradient alone; enforcement seen is
-trademark complaints over name and logo. Not submitted yet; the Safari build has no icon.
+trademark complaints over name and logo. **Published on the Chrome Web Store (the user, 2026-11-04)**: https://chromewebstore.google.com/detail/instagram-explore-playlis/cchbbmddhcnmpjeeiloclinfambmmcjf, store ID `cchbbmddhcnmpjeeiloclinfambmmcjf` (its Spotify Redirect URI: `https://cchbbmddhcnmpjeeiloclinfambmmcjf.chromiumapp.org/`). Version and visibility not recorded. The Safari build has no icon.
 v0.11.29: the product name is **Instagram Explore Playlist Generator** (the user's pick, 2026-11-02;
 Google features other "Instagram …" names, e.g. Instagram Transcript Generator). Inside the extension it is
 **Explore Playlist Gen** (panel header, walkthrough, setup banners, Spotify app name the helper fills,
