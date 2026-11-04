@@ -6,7 +6,7 @@ and builds a Spotify playlist. Personal tool for now; public release is undecide
 
 Owner: Jkidd (Jason). Direct, wants things verified, not guessed. Has Spotify Premium. On a Mac.
 
-## Current status (v0.11.32)
+## Current status (v0.11.33)
 
 **"Open Instagram Explore" comes back when you're elsewhere** (v0.11.31, the user's ask). Under the
 title, `#explore-note` shows when the tab in front isn't Explore (explore-tab.js: Explore, and
@@ -49,7 +49,17 @@ loopback Redirect URI. Safari runs an extension on a site only once the person a
 never asks for a page that fails to load, so Connect asks for accounts.spotify.com and 127.0.0.1
 and "Open Spotify's page" asks for developer.spotify.com (`askForSites` in platforms/safari/
 platform.js, `permissions.request` during the click). The setup page resumes a visit only from the
-last 30 minutes. Not yet: Mac App Store ($99/yr Apple account), a real iPhone run.
+last 30 minutes. Not yet: a real iPhone run.
+**Mac App Store prep** (v0.11.33, 2026-11-04). The user re-enrolled in the Apple Developer Program
+(Apple ID jvalal@gmail.com; "enrollment complete" on the site), but Xcode still showed only the
+free "Jason Valalik (Personal Team)" `7B3GB44F7V` that day: activation pending. `TEAM=<paid id>
+tools/mac-safari.sh --store` archives and exports a .pkg to build/mac/export; `--upload` sends it
+to App Store Connect (both untried: no paid team yet). Every build now gets a sharp app icon
+(`platforms/safari/mac-app/AppIcon.svg`, my redraw of the 128 px icon on Apple's 824-on-1024
+grid, rendered to `AppIcon-1024.png` with AppKit; the converter had enlarged the 128 px one onto
+a grey plate), version from the manifest, build number `YYYYMMDDHHMM`, category Music. Still to
+do: App Store Connect record, screenshots, privacy answers, review notes; the name for Apple is
+likely "Explore Playlist Gen" (Apple is stricter on "Instagram" in names).
 
 **Chrome Web Store build** (v0.11.27–28, 2026-11-02; the repo is public since 2026-11-01, with a
 Ko-fi button and `.github/FUNDING.yml`). `node tools/build-webstore.mjs` writes

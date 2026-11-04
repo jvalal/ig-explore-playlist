@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The extension icon (extension/icon-128.png) redrawn on Apple's macOS grid: 824 px shape on 1024. -->
+  <defs>
+    <radialGradient id="g" cx="182" cy="924" r="1060" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD600"/>
+      <stop offset="0.22" stop-color="#FF7A00"/>
+      <stop offset="0.52" stop-color="#FF0069"/>
+      <stop offset="0.8" stop-color="#D300C5"/>
+      <stop offset="1" stop-color="#7638FA"/>
+    </radialGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#g)"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="495" cy="508" r="183" stroke-width="40"/>
+    <line x1="352" y1="648" x2="215" y2="782" stroke-width="48"/>
+  </g>
+  <path d="M440 434 L558 504 L440 574 Z" fill="#fff" stroke="#fff" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M746 198 Q756 264 822 274 Q756 284 746 350 Q736 284 670 274 Q736 264 746 198 Z" fill="#fff"/>
+</svg>
