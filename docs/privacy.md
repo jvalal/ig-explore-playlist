@@ -1,10 +1,10 @@
 # Instagram Explore Playlist Generator privacy policy
 
-Last updated: November 3, 2026
+Last updated: November 4, 2026
 
-Instagram Explore Playlist Generator is a Chrome extension that lists the songs used in posts on your Instagram Explore
+Instagram Explore Playlist Generator (in Safari: Instagram Explore Playlist Gen) is a browser extension for Chrome and Safari that lists the songs used in posts on your Instagram Explore
 feed and helps you put them in a Spotify playlist. It has no server of its own: everything
-stays in Chrome on your computer, nothing is sent to the developer, and there are no analytics,
+stays in your browser on your computer, nothing is sent to the developer, and there are no analytics,
 ads or trackers. Spotify is reached through a Spotify developer app that you create and own, with
 your own Spotify account; the developer of this extension has no access to it.
 
@@ -20,12 +20,12 @@ your own Spotify account; the developer of this extension has no access to it.
   form for you and to read your app's Client ID from the page address.
 
 ## What it stores
-Everything is kept in your browser, in the extension's own storage (`chrome.storage.local`):
+Everything is kept in your browser, in the extension's own storage:
 the songs found, their Spotify matches, your settings, the playlist it made, the
 troubleshooting log above, and your Spotify Client ID and login tokens. Removing the extension deletes all of it. **Clear captures** in the
 panel removes the song list.
 
-**Backups.** **Back up** in Settings, and an automatic backup once a week, save a copy of that
+**Backups.** **Back up** in Settings (Chrome only), and an automatic backup once a week, save a copy of that
 storage as a file in your Downloads folder, without your Spotify login tokens (the Client ID is
 included). The files stay on your computer: delete them like any other file. **Restore** reads a
 file you pick and merges it back into the extension's storage.
